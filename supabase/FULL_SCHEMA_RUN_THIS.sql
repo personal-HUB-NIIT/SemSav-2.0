@@ -683,13 +683,6 @@ begin
 end;
 $$;
 
--- ─────────────────────────────────────────
--- Seed: Insert NIIT (Neotia Institute of
---       Technology Management & Science)
---       as the first allowed_domain so the
---       app can accept real .edu.in emails.
---       Change/add your actual college domain here.
--- ─────────────────────────────────────────
--- NOTE: Uncomment and edit before running in production.
+
 -- insert into allowed_domains (domain, is_active)
 -- values ('nita.ac.in', true);
