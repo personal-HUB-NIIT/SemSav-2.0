@@ -35,6 +35,7 @@ export default function Upload() {
 
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(false);
+  const [aiExtracting, setAiExtracting] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
   // Form state
@@ -73,6 +74,45 @@ export default function Upload() {
     setDragOver(false);
     const file = e.dataTransfer.files[0];
     if (file) handleFile(file);
+  };
+
+  const handleAiExtract = async () => {
+    if (!selectedFile) return;
+    setAiExtracting(true);
+    const loadingToast = toast.loading('✨ AI is reading your file...');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Not authenticated");
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      // Call Edge Function
+      const res = await fetch('http://127.0.0.1:54321/functions/v1/ai-extract', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: formData
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to extract data');
+
+      if (data.title) setTitle(data.title);
+      if (data.test_type) {
+        setCategory('TEST');
+        setTestType(data.test_type);
+      }
+      if (data.room_no) setRoomNo(data.room_no);
+      if (data.due_date_time) setDueDateTime(data.due_date_time);
+
+      toast.success('Fields auto-filled successfully!', { id: loadingToast });
+    } catch (err: any) {
+      toast.error(err.message, { id: loadingToast });
+    } finally {
+      setAiExtracting(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -292,13 +332,30 @@ export default function Upload() {
                   <div className="text-3xl">📄</div>
                   <p className="text-white font-medium text-sm">{selectedFile.name}</p>
                   <p className="text-slate-500 text-xs">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                  <button
-                    type="button"
-                    onClick={e => { e.stopPropagation(); setSelectedFile(null); }}
-                    className="text-red-400 hover:text-red-300 text-xs underline"
-                  >
-                    Remove file
-                  </button>
+                  <div className="flex items-center justify-center gap-4 mt-2">
+                    <button
+                      type="button"
+                      onClick={e => { e.stopPropagation(); setSelectedFile(null); }}
+                      className="text-red-400 hover:text-red-300 text-xs font-medium px-3 py-1.5 rounded-lg bg-red-400/10 hover:bg-red-400/20 transition-colors"
+                    >
+                      Remove file
+                    </button>
+                    <button
+                      type="button"
+                      disabled={aiExtracting}
+                      onClick={e => { e.stopPropagation(); handleAiExtract(); }}
+                      className="text-indigo-400 hover:text-indigo-300 text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-400/10 hover:bg-indigo-400/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                    >
+                      {aiExtracting ? (
+                        <>
+                          <div className="w-3 h-3 border-2 border-indigo-400/30 border-t-indigo-400 rounded-full animate-spin" />
+                          Extracting...
+                        </>
+                      ) : (
+                        '✨ Auto-Fill with AI'
+                      )}
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-2">

@@ -58,6 +58,8 @@ export default function Dashboard() {
   const [activeTab, setActiveTab]   = useState<'ALL' | 'NOTES' | 'ASSIGNMENT' | 'TEST'>('ALL');
   const [votingId, setVotingId]     = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [summarizingId, setSummarizingId] = useState<string | null>(null);
+  const [summaryModal, setSummaryModal] = useState<{ title: string; content: string } | null>(null);
 
   const fetchUploads = useCallback(async () => {
     if (!profile?.branch_id || !profile?.semester) return;
@@ -133,6 +135,35 @@ export default function Dashboard() {
       toast.error('Vote failed: ' + err.message);
     } finally {
       setVotingId(null);
+    }
+  };
+
+  const handleSummarize = async (upload: Upload) => {
+    if (!profile) return;
+    setSummarizingId(upload.id);
+    const loadingToast = toast.loading('✨ AI is summarizing...');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Not authenticated");
+
+      const res = await fetch('http://127.0.0.1:54321/functions/v1/ai-summarize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ file_url: upload.file_url })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to summarize');
+
+      setSummaryModal({ title: upload.title_syllabus, content: data.summary });
+      toast.dismiss(loadingToast);
+    } catch (err: any) {
+      toast.error(err.message, { id: loadingToast });
+    } finally {
+      setSummarizingId(null);
     }
   };
 
@@ -375,12 +406,30 @@ export default function Dashboard() {
                           <span className="text-slate-500 text-xs">{upload.users?.full_name}</span>
                         </div>
 
-                        <a
-                          href={upload.file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs font-medium rounded-lg transition-all"
-                        >
+                        <div className="flex items-center gap-2">
+                          {upload.category === 'NOTES' && (
+                            <button
+                              onClick={() => handleSummarize(upload)}
+                              disabled={summarizingId === upload.id}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-indigo-200 text-xs font-medium rounded-lg transition-all disabled:opacity-50"
+                            >
+                              {summarizingId === upload.id ? (
+                                <div className="w-3.5 h-3.5 border-2 border-indigo-400/30 border-t-indigo-400 rounded-full animate-spin" />
+                              ) : '✨'} Summarize
+                            </button>
+                          )}
+                          <a
+                            href={upload.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs font-medium rounded-lg transition-all"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Download
+                          </a>
+                        </div>
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                           </svg>
@@ -395,6 +444,29 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Summary Modal */}
+      {summaryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSummaryModal(null)} />
+          <div className="relative bg-slate-800 border border-slate-700 w-full max-w-xl rounded-2xl p-6 shadow-2xl">
+            <button onClick={() => setSummaryModal(null)} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-xl transition-all">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <h3 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
+              <span className="text-2xl">✨</span> AI Summary
+            </h3>
+            <p className="text-slate-400 text-sm mb-4">{summaryModal.title}</p>
+            <div className="prose prose-invert prose-sm max-w-none">
+              <div className="whitespace-pre-wrap text-slate-300 leading-relaxed bg-slate-900/50 p-4 rounded-xl border border-slate-700">
+                {summaryModal.content}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
