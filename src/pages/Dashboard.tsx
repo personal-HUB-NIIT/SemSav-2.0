@@ -146,7 +146,7 @@ export default function Dashboard() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Not authenticated");
 
-      const res = await fetch('http://127.0.0.1:54321/functions/v1/ai-summarize', {
+      const res = await fetch('http://127.0.0.1:3001/api/ai-summarize', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -431,6 +431,7 @@ export default function Dashboard() {
                           </a>
                       </div>
                     </div>
+                  </div>
                   </div>
                 </div>
               );
