@@ -87,8 +87,8 @@ export default function Upload() {
       const formData = new FormData();
       formData.append('file', selectedFile);
 
-      // Call Edge Function
-      const res = await fetch('http://127.0.0.1:54321/functions/v1/ai-extract', {
+      // Call local Node.js Server
+      const res = await fetch('http://127.0.0.1:3001/api/ai-extract', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`
