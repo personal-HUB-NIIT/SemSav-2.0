@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 
-interface Branch { id: string; name: string; code: string; }
+interface Branch { id: string; branch_name: string; branch_code: string; }
 
 const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
 const GPA_OPTIONS = ['< 6.0', '6.0 - 7.0', '7.0 - 8.0', '8.0 - 9.0', '9.0+'];
@@ -25,7 +25,7 @@ export default function Onboarding() {
   const [enrollmentId, setEnrollmentId] = useState('');
 
   useEffect(() => {
-    supabase.from('branches').select('id, name, code').order('name')
+    supabase.from('branches').select('id, branch_name, branch_code').order('branch_name')
       .then(({ data }) => { if (data) setBranches(data); });
   }, []);
 
@@ -146,7 +146,7 @@ export default function Onboarding() {
                   >
                     <option value="" className="bg-slate-800">Select your branch</option>
                     {branches.map(b => (
-                      <option key={b.id} value={b.id} className="bg-slate-800">{b.name} ({b.code})</option>
+                      <option key={b.id} value={b.id} className="bg-slate-800">{b.branch_name} ({b.branch_code})</option>
                     ))}
                     {branches.length === 0 && (
                       <option disabled className="bg-slate-800">Loading branches...</option>
