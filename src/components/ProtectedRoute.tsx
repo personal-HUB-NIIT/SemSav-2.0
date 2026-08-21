@@ -24,7 +24,7 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
 
   // Not logged in at all → redirect to login
   if (!session) {
-    const loginPath = requireAdmin ? '/admin/login' : '/login';
+    const loginPath = requireAdmin ? '/admin/login' : '/auth/student';
     return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
 
@@ -40,8 +40,16 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
 
   // Onboarding not completed → redirect to onboarding
   if (!requireAdmin && profile && !profile.onboarding_completed) {
-    if (location.pathname !== '/onboarding') {
-      return <Navigate to="/onboarding" replace />;
+    const isPasswordSet = session.user.user_metadata?.password_setup_complete;
+    
+    if (!isPasswordSet) {
+      if (location.pathname !== '/auth/set-password') {
+        return <Navigate to="/auth/set-password" replace />;
+      }
+    } else {
+      if (location.pathname !== '/auth/student-onboarding') {
+        return <Navigate to="/auth/student-onboarding" replace />;
+      }
     }
   }
 
