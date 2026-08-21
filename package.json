@@ -13,6 +13,7 @@
     "@supabase/supabase-js": "^2.112.3",
     "@tailwindcss/vite": "^4.3.3",
     "@types/react-router-dom": "^5.3.3",
+    "pg": "^8.23.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-hot-toast": "^2.6.0",

@@ -3,19 +3,14 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import toast from 'react-hot-toast';
 
-type Tab = 'login' | 'signup';
-
 export default function Login() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>('login');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
   // Form state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
 
   // Check for errors in URL
   useEffect(() => {
@@ -55,32 +50,12 @@ export default function Login() {
       const { data: profile } = await supabase
         .from('users').select('onboarding_completed, role').eq('auth_id', data.session.user.id).single();
       if (profile?.role === 'SUPER_ADMIN') { navigate('/admin/dashboard'); return; }
-      if (!profile?.onboarding_completed) { navigate('/onboarding'); return; }
+      if (!profile?.onboarding_completed) { navigate('/auth/student-onboarding'); return; }
       navigate('/dashboard');
     }
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password !== confirmPassword) { toast.error('Passwords do not match'); return; }
-    if (password.length < 6) { toast.error('Password must be at least 6 characters'); return; }
-    setLoading(true);
-
-    const { data, error } = await supabase.auth.signUp({
-      email, password,
-      options: { data: { full_name: fullName }, emailRedirectTo: undefined },
-    });
-    setLoading(false);
-
-    if (error) { toast.error(error.message); return; }
-    if (data.session) {
-      toast.success('Account created! Setting up your profile...');
-      navigate('/onboarding');
-    } else if (data.user && !data.session) {
-      toast.success('Account created! You can now sign in.');
-      setTab('login');
-    }
-  };
+// Removed handleSignup
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -98,28 +73,13 @@ export default function Login() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-white">SemSav 2.0</h1>
-          <p className="text-slate-400 text-sm mt-1">Your Academic Command Center</p>
+          <h1 className="text-2xl font-bold text-white">Student Login</h1>
+          <p className="text-slate-400 text-sm mt-1">Welcome back to SemSav 2.0</p>
         </div>
 
         {/* Card */}
         <div className="bg-slate-800/60 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
-          {/* Tab Toggle */}
-          <div className="flex bg-slate-900/50 rounded-xl p-1 mb-6">
-            {(['login', 'signup'] as Tab[]).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
-                  tab === t
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                {t === 'login' ? 'Sign In' : 'Sign Up'}
-              </button>
-            ))}
-          </div>
+          {/* Removed Tab Toggle */}
 
           {/* Google OAuth */}
           <button
@@ -148,7 +108,6 @@ export default function Login() {
           </div>
 
           {/* Login Form */}
-          {tab === 'login' && (
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className="block text-slate-300 text-sm font-medium mb-1.5">Email</label>
@@ -174,60 +133,13 @@ export default function Login() {
                 {loading ? 'Signing in...' : 'Sign In'}
               </button>
             </form>
-          )}
 
-          {/* Signup Form */}
-          {tab === 'signup' && (
-            <form onSubmit={handleSignup} className="space-y-4">
-              <div>
-                <label className="block text-slate-300 text-sm font-medium mb-1.5">Full Name</label>
-                <input
-                  type="text" required value={fullName} onChange={e => setFullName(e.target.value)}
-                  placeholder="Gulshan Kumar"
-                  className="w-full bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-slate-300 text-sm font-medium mb-1.5">College Email</label>
-                <input
-                  type="email" required value={email} onChange={e => setEmail(e.target.value)}
-                  placeholder="24cse001@nita.ac.in"
-                  className="w-full bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-slate-300 text-sm font-medium mb-1.5">Password</label>
-                <input
-                  type="password" required value={password} onChange={e => setPassword(e.target.value)}
-                  placeholder="Min. 6 characters"
-                  className="w-full bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-slate-300 text-sm font-medium mb-1.5">Confirm Password</label>
-                <input
-                  type="password" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-                />
-              </div>
-              <button
-                type="submit" disabled={loading}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
-              >
-                {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
-                {loading ? 'Creating account...' : 'Create Account'}
-              </button>
-            </form>
-          )}
-
-          {/* Admin link */}
-          <p className="text-center text-slate-500 text-xs mt-6">
-            Are you an admin?{' '}
-            <Link to="/admin/login" className="text-indigo-400 hover:text-indigo-300 transition-colors">
-              Admin Portal →
+          {/* Back link */}
+          <div className="flex justify-between mt-6">
+            <Link to="/" className="text-slate-500 text-xs hover:text-white transition-colors">
+              ← Back
             </Link>
-          </p>
+          </div>
         </div>
       </div>
     </div>

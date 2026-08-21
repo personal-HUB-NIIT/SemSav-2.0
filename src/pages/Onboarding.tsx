@@ -30,6 +30,12 @@ export default function Onboarding() {
   }, []);
 
   useEffect(() => {
+    if (user?.user_metadata?.full_name && !fullName) {
+      setFullName(user.user_metadata.full_name);
+    }
+  }, [user, fullName]);
+
+  useEffect(() => {
     if (profile?.onboarding_completed) navigate('/dashboard');
   }, [profile, navigate]);
 

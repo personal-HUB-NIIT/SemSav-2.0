@@ -70,7 +70,12 @@ export default function AuthCallback() {
         }
 
         if (!profile || !profile.onboarding_completed) {
-          navigate('/onboarding');
+          // If the user hasn't completed password setup, send to set-password
+          if (!currentSession.user.user_metadata?.password_setup_complete) {
+            navigate('/auth/set-password');
+          } else {
+            navigate('/auth/student-onboarding');
+          }
           return;
         }
 
