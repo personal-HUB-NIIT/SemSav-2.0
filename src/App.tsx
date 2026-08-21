@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import AdminLogin from './pages/AdminLogin';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
+import Upload from './pages/Upload';
 import AdminDashboard from './pages/AdminDashboard';
 import AuthCallback from './pages/AuthCallback';
 import Unauthorized from './pages/Unauthorized';
@@ -51,6 +52,11 @@ export default function App() {
         <Route path="/dashboard" element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/upload" element={
+          <ProtectedRoute>
+            <Upload />
           </ProtectedRoute>
         } />
 
