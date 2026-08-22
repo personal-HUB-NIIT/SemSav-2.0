@@ -327,39 +327,45 @@ function AgendaCard({ task, onToggle, onEdit, onDelete, toggling }: AgendaCardPr
   );
 }
 
-// ─── Subject Vault Card ───────────────────────────────────────────────────────
+// ─── Subject Hub Card ─────────────────────────────────────────────────────────
 
-interface VaultCardProps {
-  icon: string; title: string; subtitle: string;
-  gradient: string; border: string; glow: string;
-  count?: number; countLabel?: string;
-  onClick: () => void;
+interface SubjectHubCardProps {
+  name: string;
+  code: string;
+  isLab: boolean;
+  notesCount?: number;
+  pyqCount?: number;
+  onQuickAccess: (category: 'NOTES' | 'TEST') => void;
 }
-function VaultCard({ icon, title, subtitle, gradient, border, glow, count, countLabel, onClick }: VaultCardProps) {
+function SubjectHubCard({ name, code, isLab, notesCount, pyqCount, onQuickAccess }: SubjectHubCardProps) {
   return (
-    <button onClick={onClick}
-      className="relative group flex flex-col p-5 rounded-2xl border text-left overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.99]"
-      style={{ background: gradient, borderColor: border }}>
-      {/* Glow effect */}
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"
-        style={{ background: `radial-gradient(circle at 50% 0%, ${glow}, transparent 70%)` }} />
-      <div className="relative">
-        <div className="text-3xl mb-3">{icon}</div>
-        <h3 className="text-white font-bold text-base mb-0.5">{title}</h3>
-        <p className="text-slate-400 text-xs leading-relaxed">{subtitle}</p>
-        {count !== undefined && (
-          <div className="mt-3 flex items-center gap-2">
-            <span className="text-white font-bold text-xl">{count}</span>
-            <span className="text-slate-500 text-xs">{countLabel}</span>
-          </div>
-        )}
-        <div className="mt-3 flex items-center gap-1.5 text-slate-400 group-hover:text-white text-xs font-medium transition-colors">
-          Browse <svg className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
+    <div className="group flex flex-col p-4 sm:p-5 rounded-2xl border border-slate-700/50 bg-slate-800/40 hover:bg-slate-800/70 hover:border-slate-600 transition-all duration-300 hover:-translate-y-0.5">
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="min-w-0">
+          <h3 className="text-white font-bold text-sm sm:text-base leading-snug">{name}</h3>
+          <p className="text-slate-500 text-xs mt-1">
+            {code}{isLab ? ' · Lab' : ''}
+            {notesCount !== undefined || pyqCount !== undefined ? ' · ' : ''}
+            {notesCount !== undefined && `${notesCount} note${notesCount === 1 ? '' : 's'}`}
+            {notesCount !== undefined && pyqCount !== undefined && ' · '}
+            {pyqCount !== undefined && `${pyqCount} PYQ${pyqCount === 1 ? '' : 's'}`}
+          </p>
+        </div>
+        <div className="w-9 h-9 shrink-0 rounded-xl bg-indigo-600/15 border border-indigo-500/25 text-indigo-300 font-bold text-xs flex items-center justify-center tracking-wide">
+          {name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
         </div>
       </div>
-    </button>
+      <div className="mt-auto grid grid-cols-2 gap-2">
+        <button onClick={() => onQuickAccess('NOTES')}
+          className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl bg-slate-900/60 border border-slate-700/60 hover:border-indigo-500/50 hover:bg-indigo-600/15 text-slate-300 hover:text-indigo-300 text-xs font-semibold transition-all active:scale-95">
+          📝 Notes
+        </button>
+        <button onClick={() => onQuickAccess('TEST')}
+          className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl bg-slate-900/60 border border-slate-700/60 hover:border-red-500/50 hover:bg-red-500/10 text-slate-300 hover:text-red-300 text-xs font-semibold transition-all active:scale-95">
+          📄 PYQs
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -741,43 +747,19 @@ CREATE POLICY "own" ON public.user_tasks
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
-const VAULT_CARDS = [
-  {
-    icon: '📝',  title: 'Notes',            subtitle: 'Lecture notes & study material',
-    gradient: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(79,70,229,0.08))',
-    border: 'rgba(99,102,241,0.3)', glow: 'rgba(99,102,241,0.15)',
-    cat: 'NOTES',
-  },
-  {
-    icon: '📋',  title: 'Assignments',       subtitle: 'Pending & submitted work',
-    gradient: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(217,119,6,0.08))',
-    border: 'rgba(245,158,11,0.3)', glow: 'rgba(245,158,11,0.15)',
-    cat: 'ASSIGNMENT',
-  },
-  {
-    icon: '📅',  title: 'Tests & PYQs',      subtitle: 'Previous year question papers',
-    gradient: 'linear-gradient(135deg, rgba(239,68,68,0.15), rgba(220,38,38,0.08))',
-    border: 'rgba(239,68,68,0.3)',  glow: 'rgba(239,68,68,0.15)',
-    cat: 'TEST',
-  },
-  {
-    icon: '🧪',  title: 'Lab Files',          subtitle: 'Lab manuals & practical records',
-    gradient: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(5,150,105,0.08))',
-    border: 'rgba(16,185,129,0.3)', glow: 'rgba(16,185,129,0.15)',
-    cat: 'LAB',
-  },
-  {
-    icon: '🎯',  title: 'Practice Sets',      subtitle: 'Mock tests & exercise sheets',
-    gradient: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(139,92,246,0.08))',
-    border: 'rgba(168,85,247,0.3)', glow: 'rgba(168,85,247,0.15)',
-    cat: 'PRACTICE',
-  },
-  {
-    icon: '📊',  title: 'Results & Grades',   subtitle: 'Marks, grades & scorecards',
-    gradient: 'linear-gradient(135deg, rgba(20,184,166,0.15), rgba(13,148,136,0.08))',
-    border: 'rgba(20,184,166,0.3)', glow: 'rgba(20,184,166,0.15)',
-    cat: 'RESULTS',
-  },
+interface EnrolledSubject {
+  id: string;
+  subject_name: string;
+  subject_code: string;
+  is_lab: boolean;
+}
+
+// Fallback shown if the subjects table has no rows for this branch/semester
+const FALLBACK_SUBJECTS: EnrolledSubject[] = [
+  { id: 'fb-mpmc', subject_name: 'Microprocessors',      subject_code: 'MPMC',  is_lab: false },
+  { id: 'fb-os',   subject_name: 'Operating Systems',    subject_code: 'OS',    is_lab: false },
+  { id: 'fb-oops', subject_name: 'Object Oriented Prog.',subject_code: 'OOPs',  is_lab: false },
+  { id: 'fb-cn',   subject_name: 'Computer Networks',    subject_code: 'CN',    is_lab: false },
 ];
 
 export default function Dashboard() {
@@ -806,8 +788,9 @@ export default function Dashboard() {
   const [editTask, setEditTask]         = useState<AcademicTask | null>(null);
   const [seedingDemo, setSeedingDemo]   = useState(false);
 
-  // ── Upload counts (for vault cards)
+  // ── Upload counts, keyed as `${subject_id}:${category}` (for subject hub)
   const [uploadCounts, setUploadCounts] = useState<Record<string, number>>({});
+  const [subjects, setSubjects]         = useState<EnrolledSubject[]>([]);
 
   // ─── Fetch tasks ──────────────────────────────────────────────────────────
 
@@ -844,20 +827,33 @@ export default function Dashboard() {
 
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
 
-  // ─── Fetch upload counts ──────────────────────────────────────────────────
+  // ─── Fetch enrolled subjects + per-subject upload counts ──────────────────
 
   useEffect(() => {
     if (!profile?.branch_id || !profile?.semester) return;
     (async () => {
-      const { data } = await supabase
-        .from('uploads')
-        .select('category')
-        .eq('branch_id', profile.branch_id!)
-        .eq('semester', profile.semester!)
-        .neq('status', 'PURGED');
-      if (data) {
+      const [subjectsRes, uploadsRes] = await Promise.all([
+        supabase
+          .from('subjects')
+          .select('id, subject_name, subject_code, is_lab')
+          .eq('branch_id', profile.branch_id!)
+          .eq('semester', profile.semester!)
+          .order('subject_name'),
+        supabase
+          .from('uploads')
+          .select('category, subject_id')
+          .eq('branch_id', profile.branch_id!)
+          .eq('semester', profile.semester!)
+          .neq('status', 'PURGED'),
+      ]);
+      if (subjectsRes.data) setSubjects(subjectsRes.data as EnrolledSubject[]);
+      if (uploadsRes.data) {
         const counts: Record<string, number> = {};
-        data.forEach((r: { category: string }) => { counts[r.category] = (counts[r.category] ?? 0) + 1; });
+        uploadsRes.data.forEach((r: { category: string; subject_id: string | null }) => {
+          if (!r.subject_id) return;
+          const key = `${r.subject_id}:${r.category}`;
+          counts[key] = (counts[key] ?? 0) + 1;
+        });
         setUploadCounts(counts);
       }
     })();
@@ -868,6 +864,12 @@ export default function Dashboard() {
   const nearestTask: AcademicTask | null = tasks
     .filter(t => !t.is_completed && new Date(t.due_date).getTime() >= today.getTime())
     .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0] ?? null;
+
+  // Subjects for the hub: real enrolled subjects, falling back to demo list
+  const hubSubjects: EnrolledSubject[] =
+    subjects.length > 0 ? subjects
+    : (profile?.branch_id && profile?.semester) ? FALLBACK_SUBJECTS
+    : [];
 
   // ─── Task operations ──────────────────────────────────────────────────────
 
@@ -1103,12 +1105,12 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Subject Vaults */}
+        {/* Subject Resource Hub */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-white font-bold text-lg">Subject Vaults</h2>
-              <p className="text-slate-500 text-sm mt-0.5">Browse study material by category</p>
+              <h2 className="text-white font-bold text-lg">Subject Resource Hub</h2>
+              <p className="text-slate-500 text-sm mt-0.5">Your enrolled subjects · quick access to study material</p>
             </div>
             <button onClick={() => navigate('/upload')}
               className="text-indigo-400 hover:text-indigo-300 text-sm font-medium flex items-center gap-1 transition-colors">
@@ -1119,37 +1121,31 @@ export default function Dashboard() {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-            {VAULT_CARDS.map(v => (
-              <VaultCard
-                key={v.cat}
-                icon={v.icon} title={v.title} subtitle={v.subtitle}
-                gradient={v.gradient} border={v.border} glow={v.glow}
-                count={uploadCounts[v.cat]}
-                countLabel={uploadCounts[v.cat] !== undefined ? 'files' : undefined}
-                onClick={() => navigate('/upload')}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Recent activity placeholder */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-white font-bold text-lg">Recent Uploads</h2>
-              <p className="text-slate-500 text-sm mt-0.5">Latest study material from your branch</p>
+          {hubSubjects.length === 0 ? (
+            <div className="bg-slate-800/40 border border-dashed border-slate-700/50 rounded-2xl p-8 text-center">
+              <div className="text-4xl mb-3 opacity-40">🎓</div>
+              <p className="text-white font-semibold mb-1">Complete your onboarding</p>
+              <p className="text-slate-500 text-sm">Set your branch & semester to unlock your subjects.</p>
             </div>
-          </div>
-          <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-8 text-center">
-            <div className="text-5xl mb-3 opacity-40">📂</div>
-            <p className="text-white font-semibold mb-1">Browse the full vault</p>
-            <p className="text-slate-500 text-sm mb-5">View notes, assignments, and test papers shared by your batch.</p>
-            <button onClick={() => navigate('/upload')}
-              className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-all">
-              Go to Uploads →
-            </button>
-          </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              {hubSubjects.map(s => {
+                const sid = uploadCounts[`${s.id}:NOTES`];
+                const pyq = uploadCounts[`${s.id}:TEST`];
+                return (
+                  <SubjectHubCard
+                    key={s.id}
+                    name={s.subject_name}
+                    code={s.subject_code}
+                    isLab={s.is_lab}
+                    notesCount={sid}
+                    pyqCount={pyq}
+                    onQuickAccess={(cat) => navigate(`/upload?subject=${encodeURIComponent(s.subject_code)}&category=${cat}`)}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
 
       </div>
