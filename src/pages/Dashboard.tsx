@@ -17,6 +17,28 @@ export interface AcademicTask {
   description?: string;
 }
 
+interface ClassSlot {
+  id: string;
+  branch_id: string;
+  semester: number;
+  day_of_week: string;
+  start_time: string;
+  end_time: string;
+  subject_name: string;
+  subject_code: string;
+  teacher_name: string | null;
+  room_number: string | null;
+}
+
+interface FeedUpload {
+  id: string;
+  title_syllabus: string;
+  category: string;
+  created_at: string;
+  users?: { full_name: string } | { full_name: string }[] | null;
+  subjects?: { subject_name: string; subject_code: string } | { subject_name: string; subject_code: string }[] | null;
+}
+
 type FilterType = 'all' | 'test' | 'assignment' | 'task';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -24,15 +46,24 @@ type FilterType = 'all' | 'test' | 'assignment' | 'task';
 const EVENT_COLORS: Record<AcademicTask['event_type'], {
   bg: string; border: string; text: string; dot: string; label: string; icon: string;
 }> = {
-  test:       { bg: 'rgba(239,68,68,0.12)',  border: '#ef4444', text: '#f87171', dot: '#ef4444', label: 'Test',       icon: '📝' },
-  exam:       { bg: 'rgba(168,85,247,0.12)', border: '#a855f7', text: '#c084fc', dot: '#a855f7', label: 'Exam',       icon: '🎓' },
-  assignment: { bg: 'rgba(245,158,11,0.12)', border: '#f59e0b', text: '#fbbf24', dot: '#f59e0b', label: 'Assignment', icon: '📋' },
-  task:       { bg: 'rgba(59,130,246,0.12)', border: '#3b82f6', text: '#60a5fa', dot: '#3b82f6', label: 'Task',       icon: '✅' },
+  test:       { bg: '#fef2f2', border: '#fecaca', text: '#dc2626', dot: '#ef4444', label: 'Test',       icon: '📝' },
+  exam:       { bg: '#f5f3ff', border: '#ddd6fe', text: '#7c3aed', dot: '#a855f7', label: 'Exam',       icon: '🎓' },
+  assignment: { bg: '#fffbeb', border: '#fde68a', text: '#b45309', dot: '#f59e0b', label: 'Assignment', icon: '📋' },
+  task:       { bg: '#eff6ff', border: '#bfdbfe', text: '#2563eb', dot: '#3b82f6', label: 'Task',       icon: '✅' },
 };
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_NAMES  = ['January','February','March','April','May','June',
                       'July','August','September','October','November','December'];
+const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAY_NAMES    = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+const UPLOAD_META: Record<string, { label: string; icon: string; chip: string }> = {
+  NOTES:      { label: 'Notes',      icon: '📝', chip: 'bg-blue-50 border-blue-200 text-blue-700' },
+  TEST:       { label: 'PYQ',        icon: '📄', chip: 'bg-red-50 border-red-200 text-red-700' },
+  ASSIGNMENT: { label: 'Assignment', icon: '📋', chip: 'bg-amber-50 border-amber-200 text-amber-700' },
+};
+const FALLBACK_UPLOAD_META = { label: 'File', icon: '📁', chip: 'bg-slate-100 border-slate-200 text-slate-600' };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -44,31 +75,57 @@ function toLocalDateKey(date: Date): string {
 }
 function isoToDateKey(iso: string): string { return toLocalDateKey(new Date(iso)); }
 
+function startOfTodayMs(): number {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+}
+function daysAgo(iso: string): number { return (Date.now() - new Date(iso).getTime()) / 86400000; }
+
 function formatDisplayTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 }
 function formatFullDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
 }
+function formatTime12(t: string): string {
+  const parts = t.split(':');
+  let h = parseInt(parts[0], 10);
+  const m = parts[1] ?? '00';
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12; if (h === 0) h = 12;
+  return `${h}:${m} ${ampm}`;
+}
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  if (diff < 60000) return 'just now';
+  const min = Math.floor(diff / 60000);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const d = Math.floor(hr / 24);
+  return d === 1 ? '1 day ago' : `${d} days ago`;
+}
+
 function dueTag(iso: string): { label: string; tone: 'overdue' | 'urgent' | 'soon' | 'calm' } {
   const due = new Date(iso);
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const startOfDue   = new Date(due.getFullYear(), due.getMonth(), due.getDate()).getTime();
   const days = Math.round((startOfDue - startOfToday) / 86400000);
-  if (days < 0)   return { label: 'Overdue',          tone: 'overdue' };
-  if (days === 0) return { label: 'Due today',        tone: 'urgent' };
-  if (days === 1) return { label: 'Due tomorrow',     tone: 'urgent' };
+  if (days < 0)   return { label: 'Overdue',             tone: 'overdue' };
+  if (days === 0) return { label: 'Due today',           tone: 'urgent' };
+  if (days === 1) return { label: 'Due tomorrow',        tone: 'urgent' };
   if (days <= 3)  return { label: `Due in ${days} days`, tone: 'soon' };
   return { label: `Due in ${days} days`, tone: 'calm' };
 }
 
 const DUE_TAG_STYLES: Record<ReturnType<typeof dueTag>['tone'], string> = {
-  overdue: 'bg-red-500/20 text-red-400',
-  urgent:  'bg-amber-500/20 text-amber-400',
-  soon:    'bg-indigo-500/20 text-indigo-300',
-  calm:    'bg-slate-800/80 text-slate-300',
+  overdue: 'bg-red-100 text-red-700',
+  urgent:  'bg-orange-100 text-orange-700',
+  soon:    'bg-indigo-100 text-indigo-700',
+  calm:    'bg-slate-100 text-slate-600',
 };
+
 function getMonthGrid(year: number, month: number): Date[] {
   const firstDay = new Date(year, month, 1);
   const lastDay  = new Date(year, month + 1, 0);
@@ -83,13 +140,26 @@ function getMonthGrid(year: number, month: number): Date[] {
   return cells;
 }
 
+function relOne<T>(rel: T | T[] | null | undefined): T | null {
+  if (!rel) return null;
+  return Array.isArray(rel) ? (rel[0] ?? null) : rel;
+}
+
+function isTableMissing(err: { message?: string; code?: string }): boolean {
+  return err.code === '42P01' || !!err.message?.includes('does not exist') ||
+         !!err.message?.includes('schema cache') || !!err.code?.startsWith('42');
+}
+
+const byDueAsc = (a: AcademicTask, b: AcademicTask) =>
+  new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+
 // ─── Spinner ─────────────────────────────────────────────────────────────────
 
 function Spinner({ size = 16 }: { size?: number }) {
   return (
     <div
       style={{ width: size, height: size }}
-      className="border-2 border-slate-600 border-t-indigo-400 rounded-full animate-spin"
+      className="border-2 border-slate-200 border-t-indigo-600 rounded-full animate-spin"
     />
   );
 }
@@ -139,7 +209,7 @@ function TaskModal({ open, initialDate, editTask, onClose, onSaved, userId }: Ta
     if (!title.trim()) { toast.error('Title is required'); return; }
     setSaving(true);
     const due_date = new Date(`${dateVal}T${timeVal}:00`).toISOString();
-    const payload: Record<string, any> = {
+    const payload: Record<string, unknown> = {
       user_id: userId, title: title.trim(), event_type: eventType, due_date,
     };
     if (subjectCode.trim()) payload.subject_code = subjectCode.trim();
@@ -155,20 +225,24 @@ function TaskModal({ open, initialDate, editTask, onClose, onSaved, userId }: Ta
         toast.success('Added to calendar!');
       }
       onSaved(); onClose();
-    } catch (err: any) { toast.error(err.message ?? 'Failed to save'); }
-    finally { setSaving(false); }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save');
+    } finally { setSaving(false); }
   };
+
+  const inputCls = "w-full bg-white border border-slate-300 text-slate-900 placeholder-slate-400 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all";
+  const labelCls = "block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5";
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-slate-900 border border-slate-700/70 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
-          <h2 className="text-white font-bold text-lg flex items-center gap-2">
+      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white border border-slate-200 w-full max-w-lg rounded-2xl shadow-xl overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <h2 className="text-slate-900 font-bold text-lg flex items-center gap-2">
             <span>{isEdit ? '✏️' : '➕'}</span>
             {isEdit ? 'Edit Event' : 'Add Academic Event'}
           </h2>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all">
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -176,21 +250,20 @@ function TaskModal({ open, initialDate, editTask, onClose, onSaved, userId }: Ta
         </div>
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           <div>
-            <label className="block text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Title *</label>
+            <label className={labelCls}>Title *</label>
             <input ref={titleRef} type="text" value={title} onChange={e => setTitle(e.target.value)}
-              placeholder="e.g. OOPs Mid-Sem Exam"
-              className="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 transition-all" />
+              placeholder="e.g. Compiler Design Mid-Sem Exam" className={inputCls} />
           </div>
           <div>
-            <label className="block text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Category *</label>
+            <label className={labelCls}>Category *</label>
             <div className="grid grid-cols-4 gap-2">
               {(['test','exam','assignment','task'] as AcademicTask['event_type'][]).map(et => {
                 const c = EVENT_COLORS[et];
                 return (
                   <button key={et} type="button" onClick={() => setEventType(et)}
-                    style={eventType === et ? { background: c.bg, borderColor: c.border, color: c.text } : {}}
+                    style={eventType === et ? { background: c.bg, borderColor: c.text, color: c.text } : {}}
                     className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border text-xs font-medium transition-all ${
-                      eventType === et ? '' : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white hover:border-slate-500'
+                      eventType === et ? '' : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300'
                     }`}>
                     <span className="text-lg">{c.icon}</span>{c.label}
                   </button>
@@ -200,35 +273,35 @@ function TaskModal({ open, initialDate, editTask, onClose, onSaved, userId }: Ta
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Subject / Code</label>
-              <input type="text" value={subjectCode} onChange={e => setSubjectCode(e.target.value)} placeholder="e.g. OOPs, MPMC"
-                className="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 transition-all" />
+              <label className={labelCls}>Subject / Code</label>
+              <input type="text" value={subjectCode} onChange={e => setSubjectCode(e.target.value)} placeholder="e.g. CS503"
+                className={inputCls} />
             </div>
             <div>
-              <label className="block text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Date *</label>
+              <label className={labelCls}>Date *</label>
               <input type="date" value={dateVal} onChange={e => setDateVal(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 transition-all [color-scheme:dark]" />
+                className={`${inputCls} [color-scheme:light]`} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Time *</label>
+              <label className={labelCls}>Time *</label>
               <input type="time" value={timeVal} onChange={e => setTimeVal(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 transition-all [color-scheme:dark]" />
+                className={`${inputCls} [color-scheme:light]`} />
             </div>
             <div>
-              <label className="block text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Description</label>
+              <label className={labelCls}>Description</label>
               <input type="text" value={description} onChange={e => setDesc(e.target.value)} placeholder="Optional notes..."
-                className="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 transition-all" />
+                className={inputCls} />
             </div>
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 text-sm font-medium transition-all">
+              className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-sm font-medium transition-all">
               Cancel
             </button>
             <button type="submit" disabled={saving}
-              className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2">
+              className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-sm shadow-indigo-200">
               {saving ? <Spinner size={14} /> : null}
               {isEdit ? 'Save Changes' : 'Add to Calendar'}
             </button>
@@ -252,15 +325,15 @@ function DayCell({ date, currentMonth, isToday, isSelected, events, onClick }: D
   return (
     <button onClick={onClick}
       className={`relative flex flex-col p-1 rounded-xl border text-left transition-all min-h-[58px] ${
-        isSelected ? 'bg-indigo-600/20 border-indigo-500/70 ring-1 ring-indigo-500/50'
-        : isToday   ? 'bg-indigo-500/10 border-indigo-500/30 hover:border-indigo-500/60'
-        : isCurrentMonth ? 'bg-slate-800/40 border-slate-700/40 hover:bg-slate-800/80 hover:border-slate-600'
-        : 'bg-slate-900/20 border-slate-800/30 hover:bg-slate-800/30'
+        isSelected ? 'bg-indigo-50 border-indigo-400 ring-1 ring-indigo-300'
+        : isToday   ? 'bg-indigo-50/60 border-indigo-200 hover:border-indigo-400'
+        : isCurrentMonth ? 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+        : 'bg-slate-50 border-slate-100 hover:bg-slate-100'
       }`}>
       <span className={`text-xs font-semibold w-5 h-5 flex items-center justify-center rounded-full mb-0.5 shrink-0 ${
-        isToday ? 'bg-indigo-500 text-white'
-        : isSelected && !isToday ? 'text-indigo-300'
-        : isCurrentMonth ? 'text-slate-200' : 'text-slate-600'
+        isToday ? 'bg-indigo-600 text-white'
+        : isSelected && !isToday ? 'text-indigo-700'
+        : isCurrentMonth ? 'text-slate-800' : 'text-slate-400'
       }`}>{date.getDate()}</span>
       <div className="flex flex-col gap-0.5 w-full overflow-hidden">
         {visible.map(ev => {
@@ -272,7 +345,7 @@ function DayCell({ date, currentMonth, isToday, isSelected, events, onClick }: D
             </div>
           );
         })}
-        {overflow > 0 && <span className="text-[9px] text-slate-500 pl-0.5">+{overflow} more</span>}
+        {overflow > 0 && <span className="text-[9px] text-slate-400 pl-0.5">+{overflow} more</span>}
       </div>
     </button>
   );
@@ -288,10 +361,10 @@ function AgendaCard({ task, onToggle, onEdit, onDelete, toggling }: AgendaCardPr
   const c = EVENT_COLORS[task.event_type];
   return (
     <div className={`flex items-start gap-3 p-3 rounded-xl border transition-all group ${task.is_completed ? 'opacity-60' : ''}`}
-      style={{ background: c.bg, borderColor: c.border + '40' }}>
+      style={{ background: c.bg, borderColor: c.border }}>
       <button onClick={() => onToggle(task)} disabled={toggling}
-        className="mt-0.5 shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all disabled:opacity-50 hover:scale-110"
-        style={{ borderColor: task.is_completed ? c.border : c.border + '60', background: task.is_completed ? c.border : 'transparent' }}>
+        className="mt-0.5 shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all disabled:opacity-50 hover:scale-110 bg-white"
+        style={{ borderColor: task.is_completed ? c.dot : '#cbd5e1', background: task.is_completed ? c.dot : '#fff' }}>
         {task.is_completed && (
           <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -300,137 +373,29 @@ function AgendaCard({ task, onToggle, onEdit, onDelete, toggling }: AgendaCardPr
       </button>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: c.border + '25', color: c.text }}>
+          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border bg-white" style={{ color: c.text, borderColor: c.border }}>
             {c.icon} {c.label}
           </span>
           {task.subject_code && (
-            <span className="text-[10px] text-slate-500 bg-slate-800 border border-slate-700/50 px-1.5 py-0.5 rounded-full">{task.subject_code}</span>
+            <span className="text-[10px] text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-full">{task.subject_code}</span>
           )}
-          <span className="text-[10px] text-slate-500 ml-auto">🕐 {formatDisplayTime(task.due_date)}</span>
+          <span className="text-[10px] text-slate-400 ml-auto">🕐 {formatDisplayTime(task.due_date)}</span>
         </div>
-        <p className={`text-sm font-semibold ${task.is_completed ? 'line-through text-slate-500' : 'text-white'}`}>{task.title}</p>
+        <p className={`text-sm font-semibold ${task.is_completed ? 'line-through text-slate-400' : 'text-slate-900'}`}>{task.title}</p>
         {task.description && <p className="text-xs text-slate-500 mt-0.5">{task.description}</p>}
       </div>
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-        <button onClick={() => onEdit(task)} className="p-1 text-slate-500 hover:text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all">
+        <button onClick={() => onEdit(task)} className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
           </svg>
         </button>
-        <button onClick={() => onDelete(task)} className="p-1 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all">
+        <button onClick={() => onDelete(task)} className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
         </button>
       </div>
-    </div>
-  );
-}
-
-// ─── Subject Hub Card ─────────────────────────────────────────────────────────
-
-interface SubjectHubCardProps {
-  name: string;
-  code: string;
-  isLab: boolean;
-  notesCount?: number;
-  pyqCount?: number;
-  onQuickAccess: (category: 'NOTES' | 'TEST') => void;
-}
-function SubjectHubCard({ name, code, isLab, notesCount, pyqCount, onQuickAccess }: SubjectHubCardProps) {
-  return (
-    <div className="group flex flex-col p-4 sm:p-5 rounded-2xl border border-slate-700/50 bg-slate-800/40 hover:bg-slate-800/70 hover:border-slate-600 transition-all duration-300 hover:-translate-y-0.5">
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <div className="min-w-0">
-          <h3 className="text-white font-bold text-sm sm:text-base leading-snug">{name}</h3>
-          <p className="text-slate-500 text-xs mt-1">
-            {code}{isLab ? ' · Lab' : ''}
-            {notesCount !== undefined || pyqCount !== undefined ? ' · ' : ''}
-            {notesCount !== undefined && `${notesCount} note${notesCount === 1 ? '' : 's'}`}
-            {notesCount !== undefined && pyqCount !== undefined && ' · '}
-            {pyqCount !== undefined && `${pyqCount} PYQ${pyqCount === 1 ? '' : 's'}`}
-          </p>
-        </div>
-        <div className="w-9 h-9 shrink-0 rounded-xl bg-indigo-600/15 border border-indigo-500/25 text-indigo-300 font-bold text-xs flex items-center justify-center tracking-wide">
-          {name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
-        </div>
-      </div>
-      <div className="mt-auto grid grid-cols-2 gap-2">
-        <button onClick={() => onQuickAccess('NOTES')}
-          className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl bg-slate-900/60 border border-slate-700/60 hover:border-indigo-500/50 hover:bg-indigo-600/15 text-slate-300 hover:text-indigo-300 text-xs font-semibold transition-all active:scale-95">
-          📝 Notes
-        </button>
-        <button onClick={() => onQuickAccess('TEST')}
-          className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl bg-slate-900/60 border border-slate-700/60 hover:border-red-500/50 hover:bg-red-500/10 text-slate-300 hover:text-red-300 text-xs font-semibold transition-all active:scale-95">
-          📄 PYQs
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── Up Next Banner ───────────────────────────────────────────────────────────
-
-interface UpNextBannerProps {
-  task: AcademicTask | null;
-  loading: boolean;
-  onViewSchedule: () => void;
-}
-function UpNextBanner({ task, loading, onViewSchedule }: UpNextBannerProps) {
-  if (loading) {
-    return <div className="h-[66px] bg-slate-800/60 border border-slate-700/50 rounded-2xl animate-pulse" />;
-  }
-
-  const c = task ? EVENT_COLORS[task.event_type] : null;
-  const tag = task ? dueTag(task.due_date) : null;
-  const isUrgent = tag ? tag.tone === 'urgent' || tag.tone === 'overdue' : false;
-
-  return (
-    <div className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border text-left transition-all"
-      style={{
-        background: c ? c.bg : 'rgba(16,185,129,0.07)',
-        borderColor: c ? c.border + '50' : 'rgba(16,185,129,0.25)',
-      }}>
-      {task && c && tag ? (
-        <>
-          <div className="relative shrink-0">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg" style={{ background: c.border + '30' }}>
-              {c.icon}
-            </div>
-            {isUrgent && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />}
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: c.text }}>Up Next</span>
-              {task.subject_code && (
-                <span className="text-[10px] bg-slate-800/80 text-slate-400 border border-slate-700/50 px-1.5 py-0.5 rounded-full">
-                  {task.subject_code}
-                </span>
-              )}
-            </div>
-            <p className="text-white text-sm font-semibold truncate">{task.title}</p>
-          </div>
-
-          <span className={`inline-flex items-center text-xs font-bold px-2.5 py-1 rounded-full shrink-0 ${DUE_TAG_STYLES[tag.tone]}`}>
-            {tag.label}
-          </span>
-        </>
-      ) : (
-        <>
-          <span className="text-xl shrink-0">🎉</span>
-          <p className="flex-1 min-w-0 text-white text-sm font-semibold truncate">All caught up! No impending deadlines 🎉</p>
-        </>
-      )}
-
-      {/* Right-edge schedule trigger */}
-      <button onClick={onViewSchedule}
-        className="ml-auto shrink-0 flex items-center gap-1.5 px-3 py-2 bg-slate-800/80 hover:bg-slate-700 border border-slate-600/60 text-slate-200 hover:text-white text-xs font-semibold rounded-xl transition-all active:scale-95">
-        View Schedule
-        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
     </div>
   );
 }
@@ -501,48 +466,42 @@ function CalendarDrawer({
     setSelectedDate(toLocalDateKey(today));
   };
 
-  const filterPills = [
-    { key: 'all' as FilterType,        label: 'All',         icon: '🗓️' },
-    { key: 'test' as FilterType,       label: 'Tests',       icon: '📝' },
-    { key: 'assignment' as FilterType, label: 'Assignments', icon: '📋' },
-    { key: 'task' as FilterType,       label: 'Tasks',       icon: '✅' },
+  const filterPills: { key: FilterType; label: string; icon: string }[] = [
+    { key: 'all',        label: 'All',         icon: '🗓️' },
+    { key: 'test',       label: 'Tests',       icon: '📝' },
+    { key: 'assignment', label: 'Assignments', icon: '📋' },
+    { key: 'task',       label: 'Tasks',       icon: '✅' },
   ];
 
   const selectedDateLabel = formatFullDate(`${selectedDate}T12:00:00`);
-  const upcomingTasks = tasks
-    .filter(t => { const d = new Date(t.due_date).getTime() - today.getTime(); return d >= 0 && d <= 7 * 86400000 && !t.is_completed; })
-    .slice(0, 4);
 
   return (
     <>
-      {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-sm transition-opacity duration-300 ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
-      {/* Drawer panel */}
       <div
-        className={`fixed right-0 top-0 h-full z-50 w-full sm:w-[560px] bg-slate-900 border-l border-slate-800 flex flex-col shadow-2xl transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-full'}`}>
+        className={`fixed right-0 top-0 h-full z-50 w-full sm:w-[560px] bg-white border-l border-slate-200 flex flex-col shadow-2xl transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-full'}`}>
 
-        {/* Drawer header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-indigo-600/20 border border-indigo-500/30 rounded-xl flex items-center justify-center">
-              <svg className="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="w-8 h-8 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-center">
+              <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            <h2 className="text-white font-bold text-base">Academic Calendar</h2>
+            <h2 className="text-slate-900 font-bold text-base">Academic Calendar</h2>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => onAddForDate()}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition-all">
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-all shadow-sm shadow-indigo-200">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               Add Event
             </button>
-            <button onClick={onClose} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all">
+            <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -550,17 +509,14 @@ function CalendarDrawer({
           </div>
         </div>
 
-        {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto">
 
-          {/* DB missing banner */}
           {dbMissing && (
-            <div className="m-4 border border-red-500/30 bg-red-500/8 rounded-xl p-4">
-              <p className="text-red-300 font-bold text-sm mb-1">⚠️ <code className="bg-red-500/20 px-1 rounded text-red-200 font-mono text-xs">user_tasks</code> table missing or wrong schema</p>
-              <p className="text-slate-400 text-xs mb-3">Go to <strong className="text-slate-300">Supabase → SQL Editor → New Query</strong>, paste and run:</p>
+            <div className="m-4 border border-red-200 bg-red-50 rounded-xl p-4">
+              <p className="text-red-700 font-bold text-sm mb-1">⚠️ <code className="bg-red-100 px-1 rounded text-red-800 font-mono text-xs">user_tasks</code> table missing or wrong schema</p>
+              <p className="text-slate-600 text-xs mb-3">Go to <strong className="text-slate-800">Supabase → SQL Editor → New Query</strong>, paste and run:</p>
               <pre className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-[10px] text-emerald-300 font-mono overflow-x-auto whitespace-pre leading-relaxed">
-{`DROP TABLE IF EXISTS public.user_tasks CASCADE;
-CREATE TABLE public.user_tasks (
+{`CREATE TABLE IF NOT EXISTS public.user_tasks (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id      uuid NOT NULL,
   title        text NOT NULL,
@@ -576,28 +532,27 @@ CREATE POLICY "own" ON public.user_tasks
   USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);`}
               </pre>
               <button onClick={() => { setDbMissing(false); fetchTasks(); }}
-                className="mt-3 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-semibold rounded-xl transition-all">
+                className="mt-3 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition-all">
                 ↻ I ran it — Retry
               </button>
             </div>
           )}
 
           <div className="p-4 space-y-4">
-            {/* Month navigation */}
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-1.5">
-                <button onClick={prevMonth} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all">
+                <button onClick={prevMonth} className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
-                <h3 className="text-white font-bold text-base min-w-[130px] text-center">{MONTH_NAMES[viewMonth]} {viewYear}</h3>
-                <button onClick={nextMonth} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all">
+                <h3 className="text-slate-900 font-bold text-base min-w-[130px] text-center">{MONTH_NAMES[viewMonth]} {viewYear}</h3>
+                <button onClick={nextMonth} className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
-                <button onClick={goToToday} className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-all">
+                <button onClick={goToToday} className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition-all">
                   Today
                 </button>
               </div>
@@ -606,8 +561,8 @@ CREATE POLICY "own" ON public.user_tasks
                   <button key={p.key} onClick={() => setFilter(p.key)}
                     className={`px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all ${
                       filter === p.key
-                        ? 'bg-indigo-600/25 border-indigo-500/50 text-indigo-300'
-                        : 'bg-slate-800/60 border-slate-700/50 text-slate-400 hover:text-white'
+                        ? 'bg-indigo-600 border-indigo-600 text-white'
+                        : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800'
                     }`}>
                     {p.icon}
                   </button>
@@ -615,18 +570,16 @@ CREATE POLICY "own" ON public.user_tasks
               </div>
             </div>
 
-            {/* Grid header */}
             <div className="grid grid-cols-7">
               {DAYS_OF_WEEK.map(d => (
-                <div key={d} className="py-1 text-center text-[10px] font-semibold text-slate-600 uppercase tracking-wider">{d}</div>
+                <div key={d} className="py-1 text-center text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{d}</div>
               ))}
             </div>
 
-            {/* Calendar grid */}
             {tasksLoading ? (
               <div className="grid grid-cols-7 gap-1" style={{ minHeight: 300 }}>
                 {Array.from({ length: 35 }).map((_, i) => (
-                  <div key={i} className="bg-slate-800/40 border border-slate-700/30 rounded-xl animate-pulse min-h-[58px]" />
+                  <div key={i} className="bg-slate-50 border border-slate-100 rounded-xl animate-pulse min-h-[58px]" />
                 ))}
               </div>
             ) : (
@@ -648,9 +601,8 @@ CREATE POLICY "own" ON public.user_tasks
               </div>
             )}
 
-            {/* Legend */}
             <div className="flex items-center gap-3 flex-wrap pt-1">
-              {(Object.entries(EVENT_COLORS) as [AcademicTask['event_type'], typeof EVENT_COLORS[keyof typeof EVENT_COLORS]][]).map(([type, c]) => (
+              {(Object.entries(EVENT_COLORS) as [AcademicTask['event_type'], typeof EVENT_COLORS[AcademicTask['event_type']]][]).map(([type, c]) => (
                 <div key={type} className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full" style={{ background: c.dot }} />
                   <span className="text-[10px] text-slate-500">{c.label}</span>
@@ -658,15 +610,14 @@ CREATE POLICY "own" ON public.user_tasks
               ))}
             </div>
 
-            {/* Selected day agenda */}
-            <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/50">
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
                 <div>
-                  <p className="text-white font-bold text-sm">{selectedDateLabel}</p>
+                  <p className="text-slate-900 font-bold text-sm">{selectedDateLabel}</p>
                   <p className="text-slate-500 text-xs">{selectedDayTasks.length === 0 ? 'No events' : `${selectedDayTasks.length} event${selectedDayTasks.length > 1 ? 's' : ''}`}</p>
                 </div>
                 <button onClick={() => onAddForDate(selectedDate)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 text-xs font-semibold rounded-xl transition-all">
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-all">
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
@@ -677,9 +628,9 @@ CREATE POLICY "own" ON public.user_tasks
                 {selectedDayTasks.length === 0 ? (
                   <div className="text-center py-8">
                     <div className="text-4xl mb-2 opacity-30">📅</div>
-                    <p className="text-slate-500 text-sm mb-4">Nothing scheduled</p>
+                    <p className="text-slate-400 text-sm mb-4">Nothing scheduled</p>
                     <button onClick={() => onAddForDate(selectedDate)}
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 mx-auto">
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 mx-auto">
                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       </svg>
@@ -696,44 +647,9 @@ CREATE POLICY "own" ON public.user_tasks
               </div>
             </div>
 
-            {/* Upcoming 7-day strip */}
-            {upcomingTasks.length > 0 && (
-              <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden">
-                <div className="px-4 py-3 border-b border-slate-700/50 flex items-center gap-2">
-                  <span className="text-amber-400 text-sm">⚡</span>
-                  <p className="text-white font-bold text-sm">This Week</p>
-                  <span className="ml-auto text-xs text-slate-500">{upcomingTasks.length} pending</span>
-                </div>
-                <div className="p-3 space-y-1.5">
-                  {upcomingTasks.map(t => {
-                    const c = EVENT_COLORS[t.event_type];
-                    const dl = Math.ceil((new Date(t.due_date).getTime() - today.getTime()) / 86400000);
-                    return (
-                      <button key={t.id} onClick={() => {
-                        setSelectedDate(isoToDateKey(t.due_date));
-                        setViewYear(new Date(t.due_date).getFullYear());
-                        setViewMonth(new Date(t.due_date).getMonth());
-                      }}
-                        className="w-full flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-slate-700/40 transition-all text-left group">
-                        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: c.dot }} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white text-xs font-medium truncate group-hover:text-indigo-300 transition-colors">{t.title}</p>
-                          <p className="text-slate-500 text-[10px]">{t.subject_code ? `${t.subject_code} · ` : ''}{formatFullDate(t.due_date)}</p>
-                        </div>
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
-                          dl === 0 ? 'bg-red-500/20 text-red-400' : dl <= 2 ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-700 text-slate-400'
-                        }`}>{dl === 0 ? 'Today' : dl === 1 ? 'Tmr' : `${dl}d`}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Load demo data */}
             {tasks.length === 0 && !tasksLoading && !dbMissing && (
               <button onClick={seedDemoData} disabled={seedingDemo}
-                className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-slate-700 hover:border-indigo-500/50 text-slate-500 hover:text-indigo-400 text-sm rounded-2xl transition-all disabled:opacity-60">
+                className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-slate-300 hover:border-indigo-400 text-slate-400 hover:text-indigo-600 text-sm rounded-2xl transition-all disabled:opacity-60">
                 {seedingDemo ? <Spinner size={14} /> : '🧪'}
                 {seedingDemo ? 'Loading demo data...' : 'Load Demo Data to explore'}
               </button>
@@ -745,22 +661,444 @@ CREATE POLICY "own" ON public.user_tasks
   );
 }
 
-// ─── Main Dashboard ───────────────────────────────────────────────────────────
+// ─── Timetable Card (Right) ───────────────────────────────────────────────────
 
-interface EnrolledSubject {
-  id: string;
-  subject_name: string;
-  subject_code: string;
-  is_lab: boolean;
+interface TimetableCardProps {
+  allSlots: ClassSlot[];
+  loading: boolean;
+  missing: boolean;
 }
 
-// Fallback shown if the subjects table has no rows for this branch/semester
-const FALLBACK_SUBJECTS: EnrolledSubject[] = [
-  { id: 'fb-mpmc', subject_name: 'Microprocessors',      subject_code: 'MPMC',  is_lab: false },
-  { id: 'fb-os',   subject_name: 'Operating Systems',    subject_code: 'OS',    is_lab: false },
-  { id: 'fb-oops', subject_name: 'Object Oriented Prog.',subject_code: 'OOPs',  is_lab: false },
-  { id: 'fb-cn',   subject_name: 'Computer Networks',    subject_code: 'CN',    is_lab: false },
-];
+function TimetableCard({ allSlots, loading, missing }: TimetableCardProps) {
+  const now = new Date();
+  const todayLabel = DAY_NAMES[now.getDay()];
+  const isWeekend = now.getDay() === 0 || now.getDay() === 6;
+  const slots = allSlots
+    .filter(s => s.day_of_week === todayLabel)
+    .sort((a, b) => a.start_time.localeCompare(b.start_time));
+
+  return (
+    <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <h2 className="text-sm font-bold text-slate-900">Today's Schedule</h2>
+          <p className="text-xs text-slate-500 mt-0.5">{todayLabel} · {formatFullDate(`${toLocalDateKey(new Date())}T12:00:00`)}</p>
+        </div>
+        <span className="text-xs font-semibold text-slate-500 bg-slate-100 border border-slate-200 rounded-full px-2.5 py-1 shrink-0">
+          {slots.length} class{slots.length === 1 ? '' : 'es'}
+        </span>
+      </div>
+
+      <div>
+        {loading ? (
+          <div className="divide-y divide-slate-100">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="flex items-center gap-4 px-5 py-4 animate-pulse">
+                <div className="w-[86px] h-8 bg-slate-100 rounded-lg" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3.5 bg-slate-100 rounded w-2/3" />
+                  <div className="h-3 bg-slate-100 rounded w-1/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : missing ? (
+          <div className="px-5 py-10 text-center">
+            <div className="text-3xl mb-2 opacity-40">🗓️</div>
+            <p className="text-sm font-semibold text-slate-900 mb-1">Timetable not set up yet</p>
+            <p className="text-xs text-slate-500 max-w-xs mx-auto">
+              Run <code className="bg-slate-100 px-1 rounded font-mono text-[10px]">supabase/migrations/013_class_schedule.sql</code> in your Supabase SQL Editor to load the weekly routine.
+            </p>
+          </div>
+        ) : slots.length === 0 ? (
+          <div className="px-5 py-10 text-center">
+            <div className="text-3xl mb-2 opacity-40">{isWeekend ? '🎉' : '☕'}</div>
+            <p className="text-sm font-semibold text-slate-900">
+              {isWeekend ? `It's ${todayLabel} — weekend!` : 'No classes scheduled'}
+            </p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {isWeekend ? 'No regular classes on weekends. Check back Monday!' : 'Enjoy your free day!'}
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {slots.map(s => (
+              <div key={s.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50 transition-colors">
+                <div className="w-[86px] shrink-0">
+                  <p className="text-xs font-bold text-slate-700 tabular-nums">{formatTime12(s.start_time)}</p>
+                  <p className="text-[10px] text-slate-400 tabular-nums">{formatTime12(s.end_time)}</p>
+                </div>
+                <div className="flex-1 min-w-0 border-l border-slate-100 pl-4">
+                  <p className="text-sm font-semibold text-slate-900 truncate">{s.subject_name}</p>
+                  <p className="text-xs text-slate-500 mt-0.5 truncate">
+                    👨‍🏫 {s.teacher_name ?? 'Faculty TBD'}
+                  </p>
+                </div>
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-md px-1.5 py-0.5">
+                    {s.subject_code}
+                  </span>
+                  {s.room_number && (
+                    <span className="text-[10px] text-slate-600 bg-slate-100 border border-slate-200 rounded-md px-1.5 py-0.5">
+                      📍 {s.room_number}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ─── Priority Feed (Top Right) ────────────────────────────────────────────────
+
+interface PriorityFeedProps {
+  urgent: AcademicTask[];
+  recent: FeedUpload[];
+  general: FeedUpload[];
+  tasksLoading: boolean;
+  uploadsLoading: boolean;
+  onSelectTask: (t: AcademicTask) => void;
+  onBrowse: () => void;
+}
+
+function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, onSelectTask, onBrowse }: PriorityFeedProps) {
+  const sectionTitle = "text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5";
+
+  return (
+    <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="px-5 py-4 border-b border-slate-100">
+        <h2 className="text-sm font-bold text-slate-900">Recent Activity & Priorities</h2>
+        <p className="text-xs text-slate-500 mt-0.5">What needs your attention first</p>
+      </div>
+
+      <div className="divide-y divide-slate-100">
+
+        {/* Priority 1: Urgent deadlines */}
+        <div className="py-2">
+          <p className={`${sectionTitle} text-red-600 px-5 pt-2 pb-1`}>
+            🔴 Urgent Deadlines · Next 48h
+          </p>
+          {tasksLoading ? (
+            <div className="px-5 py-3 space-y-2">
+              {[0, 1].map(i => <div key={i} className="h-12 bg-slate-100 rounded-xl animate-pulse" />)}
+            </div>
+          ) : urgent.length === 0 ? (
+            <div className="mx-5 my-2 bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-medium rounded-xl px-3 py-2.5">
+              ✅ Nothing urgent — you're on top of it!
+            </div>
+          ) : (
+            <div className="pb-1">
+              {urgent.map(t => {
+                const c = EVENT_COLORS[t.event_type];
+                const tag = dueTag(t.due_date);
+                const overdue = tag.tone === 'overdue';
+                return (
+                  <button key={t.id} onClick={() => onSelectTask(t)}
+                    className={`w-full text-left flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors border-l-4 ${
+                      overdue ? 'border-l-red-500' : 'border-l-orange-400'
+                    }`}>
+                    <span className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-sm"
+                      style={{ background: c.bg, border: `1px solid ${c.border}` }}>
+                      {c.icon}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-900 truncate">{t.title}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        {t.subject_code && <span className="font-medium text-slate-600">{t.subject_code} · </span>}
+                        {formatDisplayTime(t.due_date)}
+                      </p>
+                    </div>
+                    <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-full ${DUE_TAG_STYLES[tag.tone]}`}>
+                      {tag.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Priority 2: Recent notes & PYQs */}
+        <div className="py-2">
+          <p className={`${sectionTitle} text-indigo-600 px-5 pt-2 pb-1`}>
+            🟣 New Notes & PYQs · Last 7 Days
+          </p>
+          {uploadsLoading ? (
+            <div className="px-5 py-3 space-y-2">
+              {[0, 1].map(i => <div key={i} className="h-11 bg-slate-100 rounded-xl animate-pulse" />)}
+            </div>
+          ) : recent.length === 0 ? (
+            <p className="px-5 py-2 text-xs text-slate-400">No new material this week.</p>
+          ) : (
+            <div className="pb-1">
+              {recent.map(u => {
+                const meta = UPLOAD_META[u.category] ?? FALLBACK_UPLOAD_META;
+                const sub = relOne(u.subjects);
+                const uploader = relOne(u.users);
+                return (
+                  <button key={u.id} onClick={onBrowse}
+                    className="w-full text-left flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors">
+                    <span className={`shrink-0 w-8 h-8 rounded-lg border flex items-center justify-center text-sm ${meta.chip}`}>
+                      {meta.icon}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-900 truncate">{u.title_syllabus}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                        {sub ? `${sub.subject_name} · ` : ''}
+                        {uploader?.full_name ?? 'Peer upload'}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-[10px] text-slate-400">{timeAgo(u.created_at)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Priority 3: General peer uploads */}
+        {(general.length > 0 || !uploadsLoading) && (
+          <div className="py-2 pb-3">
+            <p className={`${sectionTitle} text-slate-500 px-5 pt-2 pb-1`}>
+              ⚪ Earlier Peer Uploads
+            </p>
+            {!uploadsLoading && general.length === 0 ? (
+              <p className="px-5 py-1 text-xs text-slate-400">Nothing else in the vault yet.</p>
+            ) : (
+              <div className="pb-1 opacity-80">
+                {general.map(u => {
+                  const meta = UPLOAD_META[u.category] ?? FALLBACK_UPLOAD_META;
+                  const sub = relOne(u.subjects);
+                  return (
+                    <button key={u.id} onClick={onBrowse}
+                      className="w-full text-left flex items-center gap-3 px-5 py-2 hover:bg-slate-50 transition-colors">
+                      <span className={`shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center text-xs ${meta.chip}`}>
+                        {meta.icon}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-slate-700 truncate">{u.title_syllabus}</p>
+                        <p className="text-[10px] text-slate-400">{sub?.subject_name ?? meta.label}</p>
+                      </div>
+                      <span className="shrink-0 text-[10px] text-slate-400">{timeAgo(u.created_at)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ─── Upcoming Events Timeline (Bottom) ────────────────────────────────────────
+
+interface UpcomingTimelineProps {
+  milestones: AcademicTask[];
+  loading: boolean;
+  onSelect: (t: AcademicTask) => void;
+}
+
+function UpcomingTimeline({ milestones, loading, onSelect }: UpcomingTimelineProps) {
+  return (
+    <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <h2 className="text-sm font-bold text-slate-900">Upcoming Events & Tests</h2>
+          <p className="text-xs text-slate-500 mt-0.5">Your next milestones beyond the 48-hour window</p>
+        </div>
+        {milestones.length > 0 && (
+          <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-2.5 py-1">
+            {milestones.length} scheduled
+          </span>
+        )}
+      </div>
+      <div className="px-5 py-4">
+        {loading ? (
+          <div className="flex gap-3 overflow-hidden">
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className="min-w-[180px] h-[120px] bg-slate-100 rounded-xl animate-pulse" />
+            ))}
+          </div>
+        ) : milestones.length === 0 ? (
+          <div className="py-6 text-center">
+            <div className="text-3xl mb-2 opacity-40">🎯</div>
+            <p className="text-sm font-semibold text-slate-900">No upcoming milestones</p>
+            <p className="text-xs text-slate-500 mt-0.5">Add tests & submissions from the calendar to track them here.</p>
+          </div>
+        ) : (
+          <div className="relative">
+            <div className="absolute top-[22px] left-4 right-4 h-px bg-slate-200 hidden md:block" />
+            <div className="flex gap-3 overflow-x-auto pb-2 relative">
+              {milestones.map(t => {
+                const c = EVENT_COLORS[t.event_type];
+                const d = new Date(t.due_date);
+                const tag = dueTag(t.due_date);
+                return (
+                  <button key={t.id} onClick={() => onSelect(t)}
+                    className="min-w-[180px] max-w-[180px] text-left p-3.5 rounded-xl border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-md transition-all shrink-0">
+                    <div className="flex items-start justify-between mb-2.5">
+                      <div className="w-9 h-9 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 flex flex-col items-center justify-center leading-none shrink-0">
+                        <span className="text-[8px] font-bold uppercase tracking-wide">{MONTHS_SHORT[d.getMonth()]}</span>
+                        <span className="text-sm font-extrabold mt-0.5">{d.getDate()}</span>
+                      </div>
+                      <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full border bg-white"
+                        style={{ color: c.text, borderColor: c.border }}>
+                        {c.icon} {c.label}
+                      </span>
+                    </div>
+                    <p className="text-xs font-semibold text-slate-900 line-clamp-2 min-h-[2rem]">{t.title}</p>
+                    <div className="mt-2.5 flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-medium text-slate-500 truncate">
+                        {t.subject_code ?? formatDisplayTime(t.due_date)}
+                      </span>
+                      <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${DUE_TAG_STYLES[tag.tone]}`}>
+                        {tag.label}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ─── Profile Modal ────────────────────────────────────────────────────────────
+
+interface ProfileModalProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+function ProfileModal({ open, onClose }: ProfileModalProps) {
+  const { profile, fetchProfile } = useAuth();
+  const [fullName, setFullName]   = useState('');
+  const [saving, setSaving]       = useState(false);
+  const [branches, setBranches]   = useState<{ id: string; branch_code: string; branch_name: string }[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    setFullName(profile?.full_name ?? '');
+    supabase.from('branches').select('id, branch_code, branch_name').order('branch_code')
+      .then(({ data }) => { if (data) setBranches(data); });
+  }, [open, profile?.full_name]);
+
+  if (!open || !profile) return null;
+
+  const branch = branches.find(b => b.id === profile.branch_id);
+  const inputCls = "w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 text-sm outline-none cursor-not-allowed";
+  const editCls  = "w-full bg-white border border-slate-300 text-slate-900 placeholder-slate-400 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all";
+
+  const handleSave = async () => {
+    if (!fullName.trim()) { toast.error('Name cannot be empty'); return; }
+    setSaving(true);
+    // RLS (users_update_own_limited + column grants) only permits updating full_name
+    const { error } = await supabase
+      .from('users')
+      .update({ full_name: fullName.trim() })
+      .eq('id', profile.id);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      await fetchProfile(profile.auth_id);
+      toast.success('Profile updated!');
+      onClose();
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white border border-slate-200 w-full max-w-md rounded-2xl shadow-xl overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <h2 className="text-slate-900 font-bold text-lg flex items-center gap-2">
+            <span>👤</span> My Profile
+          </h2>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="px-6 py-5 space-y-4">
+          <div className="flex items-center gap-4 pb-4 border-b border-slate-100">
+            <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-md shadow-indigo-100 shrink-0">
+              {profile.full_name?.[0]?.toUpperCase() ?? '?'}
+            </div>
+            <div className="min-w-0">
+              <p className="text-slate-900 font-bold truncate">{profile.full_name}</p>
+              <p className="text-slate-500 text-xs truncate">{profile.email}</p>
+              <span className="inline-block mt-1 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-2 py-0.5">
+                {profile.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Student'}
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Full Name</label>
+            <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} className={editCls} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Email</label>
+              <input type="text" value={profile.email} readOnly className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Enrollment ID</label>
+              <input type="text" value={profile.enrollment_id ?? '—'} readOnly className={inputCls} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Branch</label>
+              <input type="text" value={branch ? `${branch.branch_code}` : '—'} readOnly className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Semester</label>
+              <input type="text" value={profile.semester ?? '—'} readOnly className={inputCls} />
+            </div>
+          </div>
+
+          <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex items-center justify-between">
+            <span className="text-xs text-slate-500">Karma points earned</span>
+            <span className="text-amber-600 font-bold text-lg">⭐ {profile.karma_points}</span>
+          </div>
+
+          <p className="text-[11px] text-slate-400 leading-relaxed">
+            Academic details (branch, semester, enrollment) are managed by your admin and cannot be edited here.
+          </p>
+
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose}
+              className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-sm font-medium transition-all">
+              Cancel
+            </button>
+            <button onClick={handleSave} disabled={saving}
+              className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-sm shadow-indigo-200">
+              {saving ? <Spinner size={14} /> : null}
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 export default function Dashboard() {
   const navigate   = useNavigate();
@@ -780,17 +1118,23 @@ export default function Dashboard() {
   const [togglingId, setTogglingId]     = useState<string | null>(null);
   const [dbMissing, setDbMissing]       = useState(false);
 
+  // ── Timetable state
+  const [schedule, setSchedule]         = useState<ClassSlot[]>([]);
+  const [schedLoading, setSchedLoading] = useState(true);
+  const [schedMissing, setSchedMissing] = useState(false);
+
+  // ── Activity feed state
+  const [feedUploads, setFeedUploads]     = useState<FeedUpload[]>([]);
+  const [uploadsLoading, setUploadsLoading] = useState(true);
+
   // ── UI state
   const [drawerOpen, setDrawerOpen]     = useState(false);
   const [sidebarOpen, setSidebarOpen]   = useState(false);
+  const [profileOpen, setProfileOpen]   = useState(false);
   const [modalOpen, setModalOpen]       = useState(false);
   const [modalDate, setModalDate]       = useState<string | undefined>();
   const [editTask, setEditTask]         = useState<AcademicTask | null>(null);
   const [seedingDemo, setSeedingDemo]   = useState(false);
-
-  // ── Upload counts, keyed as `${subject_id}:${category}` (for subject hub)
-  const [uploadCounts, setUploadCounts] = useState<Record<string, number>>({});
-  const [subjects, setSubjects]         = useState<EnrolledSubject[]>([]);
 
   // ─── Fetch tasks ──────────────────────────────────────────────────────────
 
@@ -798,7 +1142,6 @@ export default function Dashboard() {
     if (!profile?.auth_id) return;
     setTasksLoading(true);
 
-    // Fetch 3 months centered on current view
     const start = new Date(viewYear, viewMonth - 1, 1).toISOString();
     const end   = new Date(viewYear, viewMonth + 2, 0, 23, 59, 59).toISOString();
 
@@ -809,13 +1152,7 @@ export default function Dashboard() {
       .order('due_date', { ascending: true });
 
     if (error) {
-      const isSchemaIssue =
-        (error as any).code === '42P01' ||
-        error.message?.includes('does not exist') ||
-        error.message?.includes('column') ||
-        error.message?.includes('schema cache') ||
-        (error as any).code?.startsWith('42');
-      if (isSchemaIssue) setDbMissing(true);
+      if (isTableMissing(error)) setDbMissing(true);
       else toast.error('Failed to load events: ' + error.message);
       setTasks([]);
     } else {
@@ -827,49 +1164,64 @@ export default function Dashboard() {
 
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
 
-  // ─── Fetch enrolled subjects + per-subject upload counts ──────────────────
+  // ─── Fetch weekly schedule ────────────────────────────────────────────────
 
   useEffect(() => {
     if (!profile?.branch_id || !profile?.semester) return;
     (async () => {
-      const [subjectsRes, uploadsRes] = await Promise.all([
-        supabase
-          .from('subjects')
-          .select('id, subject_name, subject_code, is_lab')
-          .eq('branch_id', profile.branch_id!)
-          .eq('semester', profile.semester!)
-          .order('subject_name'),
-        supabase
-          .from('uploads')
-          .select('category, subject_id')
-          .eq('branch_id', profile.branch_id!)
-          .eq('semester', profile.semester!)
-          .neq('status', 'PURGED'),
-      ]);
-      if (subjectsRes.data) setSubjects(subjectsRes.data as EnrolledSubject[]);
-      if (uploadsRes.data) {
-        const counts: Record<string, number> = {};
-        uploadsRes.data.forEach((r: { category: string; subject_id: string | null }) => {
-          if (!r.subject_id) return;
-          const key = `${r.subject_id}:${r.category}`;
-          counts[key] = (counts[key] ?? 0) + 1;
-        });
-        setUploadCounts(counts);
+      setSchedLoading(true);
+      const { data, error } = await supabase
+        .from('class_schedule')
+        .select('*')
+        .eq('branch_id', profile.branch_id!)
+        .eq('semester', profile.semester!);
+      if (error) {
+        if (isTableMissing(error)) setSchedMissing(true);
+        setSchedule([]);
+      } else {
+        setSchedMissing(false);
+        setSchedule((data ?? []) as ClassSlot[]);
       }
+      setSchedLoading(false);
     })();
   }, [profile?.branch_id, profile?.semester]);
 
-  // ─── Derived ──────────────────────────────────────────────────────────────
+  // ─── Fetch activity feed uploads ──────────────────────────────────────────
 
-  const nearestTask: AcademicTask | null = tasks
-    .filter(t => !t.is_completed && new Date(t.due_date).getTime() >= today.getTime())
-    .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0] ?? null;
+  useEffect(() => {
+    if (!profile?.branch_id || !profile?.semester) return;
+    (async () => {
+      setUploadsLoading(true);
+      const { data, error } = await supabase
+        .from('uploads')
+        .select('id, title_syllabus, category, created_at, users(full_name), subjects(subject_name, subject_code)')
+        .eq('branch_id', profile.branch_id!)
+        .eq('semester', profile.semester!)
+        .neq('status', 'PURGED')
+        .order('created_at', { ascending: false })
+        .limit(25);
+      if (!error) setFeedUploads((data ?? []) as FeedUpload[]);
+      setUploadsLoading(false);
+    })();
+  }, [profile?.branch_id, profile?.semester]);
 
-  // Subjects for the hub: real enrolled subjects, falling back to demo list
-  const hubSubjects: EnrolledSubject[] =
-    subjects.length > 0 ? subjects
-    : (profile?.branch_id && profile?.semester) ? FALLBACK_SUBJECTS
-    : [];
+  // ─── Derived buckets ──────────────────────────────────────────────────────
+
+  const isUrgent = (t: AcademicTask) => {
+    const tone = dueTag(t.due_date).tone;
+    return tone === 'overdue' || tone === 'urgent';
+  };
+
+  const urgentTasks   = tasks.filter(t => !t.is_completed && isUrgent(t)).sort(byDueAsc);
+  const upcomingMilestones = tasks
+    .filter(t => !t.is_completed && !isUrgent(t) && new Date(t.due_date).getTime() >= startOfTodayMs())
+    .sort(byDueAsc)
+    .slice(0, 8);
+
+  const recentUploads  = feedUploads.filter(u => daysAgo(u.created_at) <= 7).slice(0, 5);
+  const generalUploads = feedUploads.filter(u => daysAgo(u.created_at) > 7).slice(0, 5);
+
+  const pendingCount = tasks.filter(t => !t.is_completed).length;
 
   // ─── Task operations ──────────────────────────────────────────────────────
 
@@ -896,7 +1248,14 @@ export default function Dashboard() {
   const handleEdit = (task: AcademicTask) => { setEditTask(task); setModalOpen(true); };
   const handleSignOut = async () => { await signOut(); navigate('/'); };
   const openAddModal = (date?: string) => {
-    setEditTask(null); setModalDate(date ?? selectedDate); setModalOpen(true);
+    setEditTask(null); setModalDate(date ?? toLocalDateKey(new Date())); setModalOpen(true);
+  };
+
+  const openDrawerAtTask = (task: AcademicTask) => {
+    setSelectedDate(isoToDateKey(task.due_date));
+    setViewYear(new Date(task.due_date).getFullYear());
+    setViewMonth(new Date(task.due_date).getMonth());
+    setDrawerOpen(true);
   };
 
   // ─── Seed demo data ───────────────────────────────────────────────────────
@@ -904,40 +1263,33 @@ export default function Dashboard() {
   const seedDemoData = async () => {
     if (!profile?.auth_id) return;
     setSeedingDemo(true);
-    const y = 2026; const m = 7;
+    const y = today.getFullYear(); const m = today.getMonth();
     const row = (title: string, event_type: AcademicTask['event_type'], due_date: Date, is_completed: boolean) => ({
       user_id: profile!.auth_id, title, event_type, due_date: due_date.toISOString(), is_completed,
     });
     const samples = [
-      row('MPMC Lab Report Submission', 'assignment', new Date(y, m,  5, 23, 59), true),
-      row('Data Structures Quiz',        'test',       new Date(y, m,  8, 10,  0), true),
-      row('OOPs Practical File',         'assignment', new Date(y, m, 12, 17,  0), true),
-      row('Read Chapter 4 – OS',         'task',       new Date(y, m, 14,  9,  0), true),
-      row('Mathematics-III Assignment',  'assignment', new Date(y, m, 22, 23, 59), false),
-      row('DBMS Internal Exam',          'exam',       new Date(y, m, 23,  9, 30), false),
-      row('Revise OS Deadlocks',         'task',       new Date(y, m, 23, 18,  0), false),
-      row('CN Lab – Socket Programming', 'assignment', new Date(y, m, 24, 14,  0), false),
-      row('OOPs Mid-Semester Exam',      'exam',       new Date(y, m, 27, 10,  0), false),
-      row('MPMC Unit Test – Unit 3',     'test',       new Date(y, m, 28, 11, 30), false),
-      row('Complete DS Project Report',  'task',       new Date(y, m, 29, 20,  0), false),
-      row('CN Assignment – Subnetting',  'assignment', new Date(y, m, 30, 23, 59), false),
-      row('DBMS Final Project Demo',     'exam',       new Date(y,  8,  3, 14,  0), false),
-      row('Mathematics-III End-Sem',     'exam',       new Date(y,  8,  8,  9,  0), false),
+      row('CN-II Quiz – Unit 3',          'test',       new Date(y, m,  2, 10,  0), false),
+      row('SE SRS Document Submission',   'assignment', new Date(y, m,  3, 23, 59), false),
+      row('Compiler Design Mid-Sem',      'exam',       new Date(y, m,  8, 10,  0), false),
+      row('TOC Assignment 2',             'assignment', new Date(y, m, 12, 17,  0), false),
+      row('Revise CN Routing Algorithms', 'task',       new Date(y, m, 15,  9,  0), false),
+      row('Networks Lab Test',            'test',       new Date(y, m, 20, 14,  0), false),
+      row('Elective-I Presentation',      'task',       new Date(y, m, 25, 11, 30), false),
+      row('SE Mid-Semester Exam',         'exam',       new Date(y, m + 1, 2, 10, 0), false),
     ];
     const { error } = await supabase.from('user_tasks').insert(samples);
     await fetchTasks();
     if (error) {
-      if ((error as any).code === '42P01' || error.message?.includes('does not exist') || error.message?.includes('column') || error.message?.includes('schema cache')) {
-        setDbMissing(true); toast.error('Table not found — run the SQL in the drawer!');
-      } else { toast.error('Seed failed: ' + error.message); }
-    } else { setDbMissing(false); toast.success('🎉 14 demo tasks loaded!'); }
+      if (isTableMissing(error)) { setDbMissing(true); toast.error('Table not found — run the SQL in the drawer!'); }
+      else toast.error('Seed failed: ' + error.message);
+    } else { setDbMissing(false); toast.success('🎉 Demo milestones loaded!'); }
     setSeedingDemo(false);
   };
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
 
       {/* Task Modal */}
       {profile && (
@@ -951,7 +1303,7 @@ export default function Dashboard() {
         />
       )}
 
-      {/* Calendar Drawer */}
+      {/* Slide-over Calendar Drawer */}
       <CalendarDrawer
         open={drawerOpen} onClose={() => setDrawerOpen(false)}
         tasks={tasks} tasksLoading={tasksLoading} dbMissing={dbMissing}
@@ -966,49 +1318,54 @@ export default function Dashboard() {
         seedDemoData={seedDemoData} seedingDemo={seedingDemo}
       />
 
-      {/* Sidebar */}
+      {/* Profile Modal */}
+      <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
+
+      {/* Side navigation drawer */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 flex">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <div className="relative w-72 bg-slate-900 border-r border-slate-800 flex flex-col h-full z-50 shadow-2xl">
-            <div className="p-6 border-b border-slate-800">
-              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-xl mb-4 shadow-lg shadow-indigo-500/20">
-                {profile?.full_name?.[0]?.toUpperCase() ?? '?'}
+          <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+          <div className="relative w-72 bg-white border-r border-slate-200 flex flex-col h-full z-50 shadow-xl">
+            <div className="p-6 border-b border-slate-100">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-11 h-11 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl flex items-center justify-center text-lg text-white font-bold shadow-md shadow-indigo-100 shrink-0">
+                  {profile?.full_name?.[0]?.toUpperCase() ?? '?'}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-slate-900 font-bold truncate">{profile?.full_name}</p>
+                  <p className="text-slate-500 text-xs truncate">{profile?.email}</p>
+                </div>
               </div>
-              <p className="text-white font-bold truncate">{profile?.full_name}</p>
-              <p className="text-slate-500 text-sm truncate">{profile?.email}</p>
-              <div className="mt-3 flex items-center gap-2">
-                <span className="text-emerald-400 font-bold text-sm">⭐ {profile?.karma_points ?? 0}</span>
-                <span className="text-slate-500 text-xs">karma points</span>
-              </div>
-            </div>
-            <div className="px-4 py-3 border-b border-slate-800 grid grid-cols-2 gap-2">
-              <div className="bg-slate-800/60 rounded-xl p-3 text-center">
-                <p className="text-white font-bold text-lg">{tasks.filter(t => !t.is_completed).length}</p>
-                <p className="text-slate-500 text-xs">Pending</p>
-              </div>
-              <div className="bg-slate-800/60 rounded-xl p-3 text-center">
-                <p className="text-emerald-400 font-bold text-lg">{tasks.filter(t => t.is_completed).length}</p>
-                <p className="text-slate-500 text-xs">Done</p>
+              <div className="mt-3 flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+                <span className="text-amber-500 font-bold text-sm">⭐ {profile?.karma_points ?? 0}</span>
+                <span className="text-slate-400 text-xs">karma points</span>
               </div>
             </div>
             <nav className="flex-1 p-4 space-y-1">
-              <button onClick={() => { navigate('/dashboard'); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white bg-indigo-600/20 border border-indigo-500/30 text-sm font-medium">
+              <button onClick={() => { setSidebarOpen(false); setProfileOpen(true); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-indigo-700 bg-indigo-50 border border-indigo-100 text-sm font-semibold">
+                <span>👤</span> Profile
+              </button>
+              <button onClick={() => setSidebarOpen(false)}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
                 <span>🏠</span> Dashboard
               </button>
-              <button onClick={() => { navigate('/upload'); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 text-sm transition-all">
-                <span>⬆️</span> Upload Content
+              <button onClick={() => navigate('/upload')}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+                <span>📝</span> Notes
               </button>
-              <button onClick={() => { setDrawerOpen(true); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 text-sm transition-all">
-                <span>📅</span> Academic Calendar
+              <button onClick={() => toast('Karma Poll coming soon!', { icon: '🗳️' })}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+                <span>🗳️</span> Karma Poll
+              </button>
+              <button onClick={() => toast('Settings coming soon!', { icon: '⚙️' })}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+                <span>⚙️</span> Settings
               </button>
             </nav>
-            <div className="p-4 border-t border-slate-800">
+            <div className="p-4 border-t border-slate-100">
               <button onClick={handleSignOut}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 text-sm transition-all">
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 text-sm font-medium transition-all">
                 <span>🚪</span> Sign Out
               </button>
             </div>
@@ -1016,139 +1373,88 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Top Nav ──────────────────────────────────────────────────────── */}
-      <header className="border-b border-slate-800 bg-slate-900/95 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+      {/* ── Top Navigation Bar ─────────────────────────────────────────────── */}
+      <header className="bg-white/95 backdrop-blur border-b border-slate-200 sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
             <button onClick={() => setSidebarOpen(true)}
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all" aria-label="Menu">
+              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all shrink-0" aria-label="Menu">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <div className="flex items-center gap-2">
-              <span className="text-xl">📚</span>
-              <span className="text-white font-bold text-lg">SemSav</span>
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-lg font-bold text-slate-900 truncate">
+                Welcome back, {profile?.full_name?.split(' ')[0] ?? 'Student'} 👋
+              </h1>
+              <div className="hidden xs:flex sm:flex items-center gap-1.5 mt-0.5">
+                <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 rounded-full px-2 py-0.5">
+                  Semester {profile?.semester ?? '—'}
+                </span>
+                <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                  ⭐ {profile?.karma_points ?? 0} karma
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="hidden sm:flex items-center gap-3 text-sm">
-            <span className="text-slate-500">Sem {profile?.semester}</span>
-            <span className="text-slate-700">•</span>
-            <span className="text-emerald-400 font-semibold">⭐ {profile?.karma_points ?? 0} karma</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Calendar toggle button */}
+          <div className="flex items-center gap-2 shrink-0">
             <button onClick={() => setDrawerOpen(true)}
-              className="relative flex items-center gap-2 px-3 py-2 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 text-slate-300 hover:text-white text-sm font-medium rounded-xl transition-all">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              className="relative p-2.5 rounded-xl border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 text-indigo-600 transition-all" aria-label="Calendar">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <span className="hidden sm:inline">Calendar</span>
-              {tasks.filter(t => !t.is_completed).length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                  {Math.min(tasks.filter(t => !t.is_completed).length, 9)}
+              {pendingCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  {Math.min(pendingCount, 9)}
                 </span>
               )}
             </button>
             <button onClick={() => navigate('/upload')}
-              id="upload-btn"
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              className="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-200 transition-all active:scale-95" aria-label="Upload">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
               </svg>
-              <span className="hidden sm:inline">Upload</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* ── Main viewport ─────────────────────────────────────────────────── */}
-      <div className="max-w-6xl mx-auto px-4 py-6 space-y-8">
+      {/* ── Main Content ───────────────────────────────────────────────────── */}
+      <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
 
-        {/* Greeting row */}
-        <div className="space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-white font-bold text-2xl sm:text-3xl">
-                Welcome back, {profile?.full_name?.split(' ')[0] ?? 'Student'} 👋
-              </h1>
-              <p className="text-slate-400 text-sm mt-1">
-                Semester {profile?.semester} · Here's what's on your plate today.
-              </p>
-            </div>
-            <div className="hidden md:flex items-center gap-3 shrink-0">
-              <div className="text-center bg-slate-800/60 border border-slate-700/50 rounded-2xl px-4 py-3">
-                <p className="text-white font-bold text-xl">{tasks.filter(t => !t.is_completed).length}</p>
-                <p className="text-slate-500 text-xs">Pending</p>
-              </div>
-              <div className="text-center bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-4 py-3">
-                <p className="text-emerald-400 font-bold text-xl">{tasks.filter(t => t.is_completed).length}</p>
-                <p className="text-slate-500 text-xs">Completed</p>
-              </div>
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Top Left: Recent Activity & Priorities */}
+          <div className="lg:col-span-7">
+            <PriorityFeed
+              urgent={urgentTasks}
+              recent={recentUploads}
+              general={generalUploads}
+              tasksLoading={tasksLoading}
+              uploadsLoading={uploadsLoading}
+              onSelectTask={openDrawerAtTask}
+              onBrowse={() => navigate('/upload')}
+            />
           </div>
 
-          {/* Up Next banner */}
-          <UpNextBanner
-            task={nearestTask}
-            loading={tasksLoading}
-            onViewSchedule={() => {
-              if (nearestTask) {
-                setSelectedDate(isoToDateKey(nearestTask.due_date));
-                setViewYear(new Date(nearestTask.due_date).getFullYear());
-                setViewMonth(new Date(nearestTask.due_date).getMonth());
-              }
-              setDrawerOpen(true);
-            }}
-          />
-        </div>
-
-        {/* Subject Resource Hub */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-white font-bold text-lg">Subject Resource Hub</h2>
-              <p className="text-slate-500 text-sm mt-0.5">Your enrolled subjects · quick access to study material</p>
-            </div>
-            <button onClick={() => navigate('/upload')}
-              className="text-indigo-400 hover:text-indigo-300 text-sm font-medium flex items-center gap-1 transition-colors">
-              Upload
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
+          {/* Top Right: Daily Schedule */}
+          <div className="lg:col-span-5">
+            <TimetableCard
+              allSlots={schedule}
+              loading={schedLoading}
+              missing={schedMissing}
+            />
           </div>
-
-          {hubSubjects.length === 0 ? (
-            <div className="bg-slate-800/40 border border-dashed border-slate-700/50 rounded-2xl p-8 text-center">
-              <div className="text-4xl mb-3 opacity-40">🎓</div>
-              <p className="text-white font-semibold mb-1">Complete your onboarding</p>
-              <p className="text-slate-500 text-sm">Set your branch & semester to unlock your subjects.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              {hubSubjects.map(s => {
-                const sid = uploadCounts[`${s.id}:NOTES`];
-                const pyq = uploadCounts[`${s.id}:TEST`];
-                return (
-                  <SubjectHubCard
-                    key={s.id}
-                    name={s.subject_name}
-                    code={s.subject_code}
-                    isLab={s.is_lab}
-                    notesCount={sid}
-                    pyqCount={pyq}
-                    onQuickAccess={(cat) => navigate(`/upload?subject=${encodeURIComponent(s.subject_code)}&category=${cat}`)}
-                  />
-                );
-              })}
-            </div>
-          )}
         </div>
 
-      </div>
+        {/* Bottom: Upcoming Events & Tests timeline */}
+        <UpcomingTimeline
+          milestones={upcomingMilestones}
+          loading={tasksLoading}
+          onSelect={openDrawerAtTask}
+        />
+
+      </main>
     </div>
   );
 }
