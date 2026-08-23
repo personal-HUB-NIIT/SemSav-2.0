@@ -9,6 +9,7 @@ import AdminLogin from './pages/AdminLogin';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import Upload from './pages/Upload';
+import Notes from './pages/Notes';
 import KarmaPoll from './pages/KarmaPoll';
 import AdminDashboard from './pages/AdminDashboard';
 import AuthCallback from './pages/AuthCallback';
@@ -69,6 +70,12 @@ export default function App() {
         <Route path="/upload" element={
           <ProtectedRoute>
             <Upload />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/notes" element={
+          <ProtectedRoute>
+            <Notes />
           </ProtectedRoute>
         } />
 

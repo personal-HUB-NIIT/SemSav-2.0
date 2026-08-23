@@ -1601,9 +1601,13 @@ export default function Dashboard() {
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
                 <span>🏠</span> Dashboard
               </button>
-              <button onClick={() => navigate('/upload')}
+              <button onClick={() => { setSidebarOpen(false); navigate('/notes'); }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
-                <span>📝</span> Notes
+                <span>📚</span> Study Materials
+              </button>
+              <button onClick={() => { setSidebarOpen(false); navigate('/upload'); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+                <span>📝</span> Upload Notes
               </button>
               <button onClick={() => { setSidebarOpen(false); navigate('/karma-poll'); }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all relative">
