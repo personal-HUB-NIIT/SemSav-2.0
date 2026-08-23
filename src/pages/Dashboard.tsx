@@ -35,7 +35,7 @@ interface FeedUpload {
   title_syllabus: string;
   category: string;
   created_at: string;
-  users?: { full_name: string } | { full_name: string }[] | null;
+  users?: { full_name: string; avatar_url: string | null } | { full_name: string; avatar_url: string | null }[] | null;
   subjects?: { subject_name: string; subject_code: string } | { subject_name: string; subject_code: string }[] | null;
 }
 
@@ -1005,13 +1005,17 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
   const [fullName, setFullName]   = useState('');
   const [saving, setSaving]       = useState(false);
   const [branches, setBranches]   = useState<{ id: string; branch_code: string; branch_name: string }[]>([]);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
     setFullName(profile?.full_name ?? '');
+    setAvatarPreview(profile?.avatar_url ?? null);
     supabase.from('branches').select('id, branch_code, branch_name').order('branch_code')
       .then(({ data }) => { if (data) setBranches(data); });
-  }, [open, profile?.full_name]);
+  }, [open, profile?.full_name, profile?.avatar_url]);
 
   if (!open || !profile) return null;
 
@@ -1019,10 +1023,63 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
   const inputCls = "w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 text-sm outline-none cursor-not-allowed";
   const editCls  = "w-full bg-white border border-slate-300 text-slate-900 placeholder-slate-400 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all";
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error('Image must be under 5 MB'); return; }
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { toast.error('Only JPG, PNG, WebP allowed'); return; }
+
+    setUploading(true);
+    const ext = file.name.split('.').pop() ?? 'jpg';
+    const filePath = `${profile.auth_id}/avatar.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(filePath, file, { upsert: true, contentType: file.type });
+
+    if (uploadError) {
+      toast.error('Upload failed: ' + uploadError.message);
+      setUploading(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+    const publicUrl = urlData.publicUrl;
+
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ avatar_url: publicUrl })
+      .eq('id', profile.id);
+
+    if (updateError) {
+      toast.error('Failed to save avatar: ' + updateError.message);
+    } else {
+      setAvatarPreview(publicUrl);
+      await fetchProfile(profile.auth_id);
+      toast.success('Avatar updated!');
+    }
+    setUploading(false);
+  };
+
+  const handleRemoveAvatar = async () => {
+    setUploading(true);
+    const { error } = await supabase
+      .from('users')
+      .update({ avatar_url: null })
+      .eq('id', profile.id);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      setAvatarPreview(null);
+      await fetchProfile(profile.auth_id);
+      toast.success('Avatar removed');
+    }
+    setUploading(false);
+  };
+
   const handleSave = async () => {
     if (!fullName.trim()) { toast.error('Name cannot be empty'); return; }
     setSaving(true);
-    // RLS (users_update_own_limited + column grants) only permits updating full_name
     const { error } = await supabase
       .from('users')
       .update({ full_name: fullName.trim() })
@@ -1036,6 +1093,8 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
     }
     setSaving(false);
   };
+
+  const initials = profile.full_name?.[0]?.toUpperCase() ?? '?';
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true">
@@ -1053,16 +1112,46 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
         </div>
 
         <div className="px-6 py-5 space-y-4">
+          {/* Avatar + Name header */}
           <div className="flex items-center gap-4 pb-4 border-b border-slate-100">
-            <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-md shadow-indigo-100 shrink-0">
-              {profile.full_name?.[0]?.toUpperCase() ?? '?'}
-            </div>
-            <div className="min-w-0">
+            <button onClick={() => fileInputRef.current?.click()}
+              className="relative group w-16 h-16 shrink-0 rounded-2xl overflow-hidden border-2 border-dashed border-slate-300 hover:border-indigo-400 transition-all"
+              title="Change avatar">
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white text-2xl font-bold">
+                  {initials}
+                </div>
+              )}
+              <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              {uploading && (
+                <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                  <Spinner size={20} />
+                </div>
+              )}
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp"
+              className="hidden" onChange={handleAvatarUpload} />
+            <div className="min-w-0 flex-1">
               <p className="text-slate-900 font-bold truncate">{profile.full_name}</p>
               <p className="text-slate-500 text-xs truncate">{profile.email}</p>
-              <span className="inline-block mt-1 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-2 py-0.5">
-                {profile.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Student'}
-              </span>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-2 py-0.5">
+                  {profile.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Student'}
+                </span>
+                {avatarPreview && (
+                  <button onClick={handleRemoveAvatar} disabled={uploading}
+                    className="text-[10px] text-red-500 hover:text-red-700 font-medium disabled:opacity-50">
+                    Remove photo
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1375,8 +1464,12 @@ export default function Dashboard() {
           <div className="relative w-72 bg-white border-r border-slate-200 flex flex-col h-full z-50 shadow-xl">
             <div className="p-6 border-b border-slate-100">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-11 h-11 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl flex items-center justify-center text-lg text-white font-bold shadow-md shadow-indigo-100 shrink-0">
-                  {profile?.full_name?.[0]?.toUpperCase() ?? '?'}
+                <div className="w-11 h-11 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl flex items-center justify-center text-lg text-white font-bold shadow-md shadow-indigo-100 shrink-0 overflow-hidden">
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    profile?.full_name?.[0]?.toUpperCase() ?? '?'
+                  )}
                 </div>
                 <div className="min-w-0">
                   <p className="text-slate-900 font-bold truncate">{profile?.full_name}</p>

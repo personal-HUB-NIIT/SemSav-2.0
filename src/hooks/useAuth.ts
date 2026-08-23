@@ -15,6 +15,7 @@ export interface UserProfile {
   is_verified: boolean;
   is_banned: boolean;
   onboarding_completed: boolean;
+  avatar_url: string | null;
 }
 
 interface AuthState {
