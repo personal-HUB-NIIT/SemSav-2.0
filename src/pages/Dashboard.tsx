@@ -1001,27 +1001,36 @@ interface ProfileModalProps {
 }
 
 function ProfileModal({ open, onClose }: ProfileModalProps) {
-  const { profile, fetchProfile } = useAuth();
-  const [fullName, setFullName]   = useState('');
-  const [saving, setSaving]       = useState(false);
-  const [branches, setBranches]   = useState<{ id: string; branch_code: string; branch_name: string }[]>([]);
+  const { profile, fetchProfile, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [fullName, setFullName]       = useState('');
+  const [semester, setSemester]       = useState<number>(5);
+  const [saving, setSaving]           = useState(false);
+  const [branches, setBranches]       = useState<{ id: string; branch_code: string; branch_name: string }[]>([]);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading]     = useState(false);
+  const [deleteOpen, setDeleteOpen]   = useState(false);
+  const [deleteText, setDeleteText]   = useState('');
+  const [deleting, setDeleting]       = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
     setFullName(profile?.full_name ?? '');
+    setSemester(profile?.semester ?? 5);
     setAvatarPreview(profile?.avatar_url ?? null);
+    setDeleteOpen(false);
+    setDeleteText('');
     supabase.from('branches').select('id, branch_code, branch_name').order('branch_code')
       .then(({ data }) => { if (data) setBranches(data); });
-  }, [open, profile?.full_name, profile?.avatar_url]);
+  }, [open, profile?.full_name, profile?.avatar_url, profile?.semester]);
 
   if (!open || !profile) return null;
 
   const branch = branches.find(b => b.id === profile.branch_id);
   const inputCls = "w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 text-sm outline-none cursor-not-allowed";
   const editCls  = "w-full bg-white border border-slate-300 text-slate-900 placeholder-slate-400 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all";
+  const selectCls = "w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all appearance-none cursor-pointer";
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1081,6 +1090,21 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
     setUploading(false);
   };
 
+  const handleSemesterChange = async (newSemester: number) => {
+    setSemester(newSemester);
+    const { error } = await supabase
+      .from('users')
+      .update({ semester: newSemester })
+      .eq('id', profile.id);
+    if (error) {
+      toast.error('Failed to update semester: ' + error.message);
+      setSemester(profile.semester ?? 5);
+    } else {
+      await fetchProfile(profile.auth_id);
+      toast.success(`Semester updated to ${newSemester}`);
+    }
+  };
+
   const handleSave = async () => {
     if (!fullName.trim()) { toast.error('Name cannot be empty'); return; }
     setSaving(true);
@@ -1098,13 +1122,32 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
     setSaving(false);
   };
 
+  const handleDeleteAccount = async () => {
+    if (deleteText !== 'DELETE') return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase.rpc('delete_user_account', {
+        p_user_id: profile.auth_id,
+      });
+      if (error) throw error;
+      await signOut();
+      localStorage.clear();
+      sessionStorage.clear();
+      navigate('/auth/student');
+      toast.success('Account deleted');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete account');
+    }
+    setDeleting(false);
+  };
+
   const initials = profile.full_name?.[0]?.toUpperCase() ?? '?';
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true">
       <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white border border-slate-200 w-full max-w-md rounded-2xl shadow-xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+      <div className="relative bg-white border border-slate-200 w-full max-w-md rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
           <h2 className="text-slate-900 font-bold text-lg flex items-center gap-2">
             <span>👤</span> My Profile
           </h2>
@@ -1115,7 +1158,7 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
           </button>
         </div>
 
-        <div className="px-6 py-5 space-y-4">
+        <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
           {/* Avatar + Name header */}
           <div className="flex items-center gap-4 pb-4 border-b border-slate-100">
             <button onClick={() => fileInputRef.current?.click()}
@@ -1182,7 +1225,19 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
             </div>
             <div>
               <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Semester</label>
-              <input type="text" value={profile.semester ?? '—'} readOnly className={inputCls} />
+              <div className="relative">
+                <select value={semester} onChange={e => handleSemesterChange(Number(e.target.value))}
+                  className={selectCls}>
+                  {[1,2,3,4,5,6,7,8].map(s => (
+                    <option key={s} value={s}>Semester {s}</option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                  <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1192,7 +1247,7 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
           </div>
 
           <p className="text-[11px] text-slate-400 leading-relaxed">
-            Academic details (branch, semester, enrollment) are managed by your admin and cannot be edited here.
+            Branch and enrollment are managed by your admin. Semester can be updated as you progress.
           </p>
 
           <div className="flex gap-3 pt-1">
@@ -1206,8 +1261,60 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
               Save Changes
             </button>
           </div>
+
+          {/* Danger Zone */}
+          <div className="border border-red-200 bg-red-50 rounded-2xl p-4 mt-2">
+            <h3 className="text-sm font-bold text-red-800 mb-1">Danger Zone</h3>
+            <p className="text-xs text-red-600 mb-3">
+              Permanently delete your account and all associated data. This action cannot be undone.
+            </p>
+            <button onClick={() => setDeleteOpen(true)}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-xl transition-all">
+              Delete Account
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Delete Account Confirmation Dialog */}
+      {deleteOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => { setDeleteOpen(false); setDeleteText(''); }} />
+          <div className="relative bg-white border border-slate-200 w-full max-w-sm rounded-2xl shadow-xl p-6 space-y-4">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">Delete Account?</h3>
+              <p className="text-sm text-slate-500 mt-1">
+                This will permanently remove your account, uploaded files, and all data. This cannot be undone.
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Type <span className="font-mono bg-red-100 text-red-700 px-1 rounded">DELETE</span> to confirm:
+              </label>
+              <input type="text" value={deleteText} onChange={e => setDeleteText(e.target.value)}
+                placeholder="DELETE"
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 transition-all font-mono" />
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => { setDeleteOpen(false); setDeleteText(''); }}
+                className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-sm font-medium transition-all">
+                Cancel
+              </button>
+              <button onClick={handleDeleteAccount}
+                disabled={deleteText !== 'DELETE' || deleting}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-all flex items-center justify-center gap-2">
+                {deleting ? <Spinner size={14} /> : null}
+                {deleting ? 'Deleting...' : 'Delete Forever'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
