@@ -19,7 +19,7 @@ interface QueueItem {
   downvotes: number;
   status: 'pending' | 'verified' | 'rejected';
   created_at: string;
-  users?: { full_name: string } | { full_name: string }[] | null;
+  users?: { full_name: string; avatar_url: string | null } | { full_name: string; avatar_url: string | null }[] | null;
 }
 
 type FilterTab = 'all' | 'TEST_DATE' | 'ASSIGNMENT' | 'NOTE_PYQ';
@@ -154,8 +154,12 @@ function QueueCard({ item, myVote, requiredVotes, onVote, voting }: QueueCardPro
       {/* Header row: uploader + type badge */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-sm shadow-indigo-100 shrink-0">
-            {uploader?.full_name?.[0]?.toUpperCase() ?? '?'}
+          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-sm shadow-indigo-100 shrink-0 overflow-hidden">
+            {uploader?.avatar_url ? (
+              <img src={uploader.avatar_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              uploader?.full_name?.[0]?.toUpperCase() ?? '?'
+            )}
           </div>
           <div className="min-w-0">
             <p className="text-xs font-medium text-slate-700 truncate">{uploader?.full_name ?? 'Anonymous'}</p>
@@ -274,7 +278,7 @@ export default function KarmaPoll() {
 
     const { data, error } = await supabase
       .from('verification_queue')
-      .select('*, users(full_name)')
+      .select('*, users(full_name, avatar_url)')
       .eq('branch_id', profile.branch_id!)
       .eq('semester', profile.semester!)
       .eq('status', 'pending')
@@ -415,8 +419,12 @@ export default function KarmaPoll() {
         {/* Header card with karma balance + rank */}
         <div className="mb-6 bg-white border border-slate-200 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center gap-5">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-indigo-200 shrink-0">
-              {profile?.full_name?.[0]?.toUpperCase() ?? '?'}
+            <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-indigo-200 shrink-0 overflow-hidden">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                profile?.full_name?.[0]?.toUpperCase() ?? '?'
+              )}
             </div>
             <div>
               <p className="text-xs text-slate-500 mb-0.5">Your Karma Balance</p>

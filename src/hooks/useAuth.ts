@@ -15,6 +15,7 @@ export interface UserProfile {
   is_verified: boolean;
   is_banned: boolean;
   onboarding_completed: boolean;
+  avatar_url: string | null;
 }
 
 interface AuthState {
@@ -33,13 +34,25 @@ export function useAuth() {
   });
 
   const fetchProfile = async (authId: string): Promise<UserProfile | null> => {
-    const { data, error } = await supabase
+    // Try with avatar_url first; fall back if column doesn't exist yet (migration pending)
+    let { data, error } = await supabase
       .from('users')
-      .select('*')
+      .select('id, auth_id, enrollment_id, full_name, email, branch_id, semester, karma_points, role, is_verified, is_banned, onboarding_completed, avatar_url')
       .eq('auth_id', authId)
       .single();
+
+    if (error && (error.message?.includes('avatar_url') || error.code === '42703')) {
+      const fallback = await supabase
+        .from('users')
+        .select('id, auth_id, enrollment_id, full_name, email, branch_id, semester, karma_points, role, is_verified, is_banned, onboarding_completed')
+        .eq('auth_id', authId)
+        .single();
+      data = fallback.data;
+      error = fallback.error;
+    }
+
     if (error) return null;
-    const fresh = data as UserProfile;
+    const fresh = { ...data, avatar_url: (data as Record<string, unknown>).avatar_url ?? null } as UserProfile;
     // Keep global state in sync so consumers re-render with fresh profile data
     setState(prev => (prev.user ? { ...prev, profile: fresh } : prev));
     return fresh;
