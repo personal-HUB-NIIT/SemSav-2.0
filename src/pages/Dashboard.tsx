@@ -1038,7 +1038,11 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
       .upload(filePath, file, { upsert: true, contentType: file.type });
 
     if (uploadError) {
-      toast.error('Upload failed: ' + uploadError.message);
+      if (uploadError.message?.includes('Bucket not found') || uploadError.message?.includes('bucket')) {
+        toast.error('Storage not configured. Run migration 015 in Supabase SQL Editor first.');
+      } else {
+        toast.error('Upload failed: ' + uploadError.message);
+      }
       setUploading(false);
       return;
     }
@@ -1307,7 +1311,7 @@ export default function Dashboard() {
       setUploadsLoading(true);
       const { data, error } = await supabase
         .from('uploads')
-        .select('id, title_syllabus, category, created_at, users(full_name), subjects(subject_name, subject_code)')
+        .select('id, title_syllabus, category, created_at, users(full_name, avatar_url), subjects(subject_name, subject_code)')
         .eq('branch_id', profile.branch_id!)
         .eq('semester', profile.semester!)
         .neq('status', 'PURGED')

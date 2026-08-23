@@ -278,7 +278,7 @@ export default function KarmaPoll() {
 
     const { data, error } = await supabase
       .from('verification_queue')
-      .select('*, users(full_name)')
+      .select('*, users(full_name, avatar_url)')
       .eq('branch_id', profile.branch_id!)
       .eq('semester', profile.semester!)
       .eq('status', 'pending')
