@@ -39,7 +39,10 @@ export function useAuth() {
       .eq('auth_id', authId)
       .single();
     if (error) return null;
-    return data as UserProfile;
+    const fresh = data as UserProfile;
+    // Keep global state in sync so consumers re-render with fresh profile data
+    setState(prev => (prev.user ? { ...prev, profile: fresh } : prev));
+    return fresh;
   };
 
   useEffect(() => {
