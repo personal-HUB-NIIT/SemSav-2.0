@@ -9,6 +9,7 @@ import AdminLogin from './pages/AdminLogin';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import Upload from './pages/Upload';
+import KarmaPoll from './pages/KarmaPoll';
 import AdminDashboard from './pages/AdminDashboard';
 import AuthCallback from './pages/AuthCallback';
 import Unauthorized from './pages/Unauthorized';
@@ -68,6 +69,12 @@ export default function App() {
         <Route path="/upload" element={
           <ProtectedRoute>
             <Upload />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/karma-poll" element={
+          <ProtectedRoute>
+            <KarmaPoll />
           </ProtectedRoute>
         } />
 
