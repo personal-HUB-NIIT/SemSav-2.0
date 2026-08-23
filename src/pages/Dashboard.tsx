@@ -1418,7 +1418,7 @@ export default function Dashboard() {
             <div className="p-4 border-t border-slate-100">
               <button onClick={handleSignOut}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 text-sm font-medium transition-all">
-                <span>🚪</span> Sign Out
+                <span>🚪</span> Log Out
               </button>
             </div>
           </div>
