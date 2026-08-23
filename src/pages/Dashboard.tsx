@@ -763,9 +763,11 @@ interface PriorityFeedProps {
   uploadsLoading: boolean;
   onSelectTask: (t: AcademicTask) => void;
   onBrowse: () => void;
+  unvotedCount?: number;
+  onNavigateKarma?: () => void;
 }
 
-function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, onSelectTask, onBrowse }: PriorityFeedProps) {
+function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, onSelectTask, onBrowse, unvotedCount = 0, onNavigateKarma }: PriorityFeedProps) {
   const sectionTitle = "text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5";
 
   return (
@@ -776,6 +778,25 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
       </div>
 
       <div className="divide-y divide-slate-100">
+
+        {/* Priority 0: Community Verification Alert */}
+        {unvotedCount > 0 && onNavigateKarma && (
+          <div className="py-3 px-5 bg-amber-50 border-b border-amber-200">
+            <div className="flex items-center gap-3">
+              <span className="text-lg shrink-0">⚡</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-amber-900">
+                  {unvotedCount} new upload{unvotedCount !== 1 ? 's' : ''} need your verification vote
+                </p>
+                <p className="text-xs text-amber-700 mt-0.5">Help your peers by verifying shared resources. Earn +2 karma per vote.</p>
+              </div>
+              <button onClick={onNavigateKarma}
+                className="shrink-0 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl transition-all shadow-sm shadow-amber-200">
+                Review & Vote
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Priority 1: Urgent deadlines */}
         <div className="py-2">
@@ -1136,6 +1157,9 @@ export default function Dashboard() {
   const [editTask, setEditTask]         = useState<AcademicTask | null>(null);
   const [seedingDemo, setSeedingDemo]   = useState(false);
 
+  // ── Karma poll state
+  const [unvotedCount, setUnvotedCount] = useState(0);
+
   // ─── Fetch tasks ──────────────────────────────────────────────────────────
 
   const fetchTasks = useCallback(async () => {
@@ -1204,6 +1228,29 @@ export default function Dashboard() {
       setUploadsLoading(false);
     })();
   }, [profile?.branch_id, profile?.semester]);
+
+  // ─── Fetch unvoted queue count ─────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!profile?.branch_id || !profile?.semester || !profile?.auth_id) return;
+    (async () => {
+      const { data: pending } = await supabase
+        .from('verification_queue')
+        .select('id')
+        .eq('branch_id', profile.branch_id!)
+        .eq('semester', profile.semester!)
+        .eq('status', 'pending');
+      if (!pending || pending.length === 0) { setUnvotedCount(0); return; }
+      const pendingIds = pending.map((r: { id: string }) => r.id);
+      const { data: votes } = await supabase
+        .from('queue_votes')
+        .select('queue_id')
+        .eq('user_id', profile.auth_id!)
+        .in('queue_id', pendingIds);
+      const votedIds = new Set((votes ?? []).map((v: { queue_id: string }) => v.queue_id));
+      setUnvotedCount(pendingIds.filter(id => !votedIds.has(id)).length);
+    })();
+  }, [profile?.branch_id, profile?.semester, profile?.auth_id]);
 
   // ─── Derived buckets ──────────────────────────────────────────────────────
 
@@ -1354,9 +1401,14 @@ export default function Dashboard() {
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
                 <span>📝</span> Notes
               </button>
-              <button onClick={() => toast('Karma Poll coming soon!', { icon: '🗳️' })}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+              <button onClick={() => { setSidebarOpen(false); navigate('/karma-poll'); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all relative">
                 <span>🗳️</span> Karma Poll
+                {unvotedCount > 0 && (
+                  <span className="ml-auto min-w-[18px] h-[18px] px-1 bg-amber-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                    {Math.min(unvotedCount, 99)}
+                  </span>
+                )}
               </button>
               <button onClick={() => toast('Settings coming soon!', { icon: '⚙️' })}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
@@ -1434,6 +1486,8 @@ export default function Dashboard() {
               uploadsLoading={uploadsLoading}
               onSelectTask={openDrawerAtTask}
               onBrowse={() => navigate('/upload')}
+              unvotedCount={unvotedCount}
+              onNavigateKarma={() => navigate('/karma-poll')}
             />
           </div>
 
