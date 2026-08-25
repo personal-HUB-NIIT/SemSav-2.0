@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
@@ -10,7 +9,6 @@ const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
 const TOTAL_STEPS = 2;
 
 export default function Onboarding() {
-  const navigate = useNavigate();
   const { user, profile, fetchProfile } = useAuth();
 
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -33,10 +31,6 @@ export default function Onboarding() {
       setFullName(user.user_metadata.full_name);
     }
   }, [user, fullName]);
-
-  useEffect(() => {
-    if (profile?.onboarding_completed) navigate('/dashboard');
-  }, [profile, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +56,8 @@ export default function Onboarding() {
     // Refresh profile so ProtectedRoute sees onboarding_completed=true
     await fetchProfile(user.id);
     toast.success('Profile complete! Welcome to SemSav 🎉');
-    navigate('/dashboard');
+    // Hard redirect to ensure fresh profile load and avoid stale context race
+    window.location.href = '/dashboard';
   };
 
   const progress = (step / TOTAL_STEPS) * 100;
