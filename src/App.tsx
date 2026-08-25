@@ -10,6 +10,7 @@ import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import Upload from './pages/Upload';
 import Notes from './pages/Notes';
+import Attendance from './pages/Attendance';
 import KarmaPoll from './pages/KarmaPoll';
 import AdminDashboard from './pages/AdminDashboard';
 import AuthCallback from './pages/AuthCallback';
@@ -76,6 +77,12 @@ export default function App() {
         <Route path="/notes" element={
           <ProtectedRoute>
             <Notes />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/attendance" element={
+          <ProtectedRoute>
+            <Attendance />
           </ProtectedRoute>
         } />
 
