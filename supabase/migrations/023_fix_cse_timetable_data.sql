@@ -1,6 +1,6 @@
 -- ============================================================
 -- FIX: Replace wrong CSE sem-5 data with real IIITA timetable
--- Source: CSE Department Class Routine (IIITA) Odd Sem 2026-2027
+-- Source: User-provided CSE 5th Sem exact routine
 -- ============================================================
 
 -- Step 1: Delete wrong CSE sem-5 subjects (cascades to attendance_logs)
@@ -29,56 +29,44 @@ DELETE FROM public.class_schedule
 WHERE branch_id = (SELECT id FROM branches WHERE branch_code = 'CSE')
   AND semester = 5;
 
--- Step 4: Insert correct CSE sem-5 timetable from IIITA routine
+-- Step 4: Insert correct CSE sem-5 timetable
 WITH cse AS (SELECT id FROM branches WHERE branch_code = 'CSE')
 INSERT INTO public.class_schedule
   (branch_id, semester, day_of_week, start_time, end_time,
    subject_name, subject_code, teacher_name, room_number)
-SELECT cse.id, 5, day, start::time, finish::time, s_name, s_code, teacher, room
+SELECT cse.id, 5, day, start_time::time, end_time::time, s_name, s_code, teacher, room
 FROM cse, (VALUES
-  -- ═══════════════════ MONDAY ═══════════════════
-  -- OS Lab Group 1 + DBMS Lab Group 2 (parallel)
-  ('Monday', '09:00', '11:00', 'OS Lab',              'CS501L', 'Dr. Prarthana Dutta',              'ABS 117'),
-  ('Monday', '09:00', '11:00', 'DBMS Lab',            'CS502L', 'Dr. Samhita Sharma',               'PMD 107'),
-  -- Elective I
-  ('Monday', '11:00', '13:00', 'Elective I: Foundation of Cryptography', 'CS506', 'Prof. Mrinal Kanti Deb Barma', 'L203'),
-  -- Post-break
-  ('Monday', '14:00', '15:00', 'Engineering Economics & Costing', 'CS505', 'Nabendu Debnath', 'L101'),
-  ('Monday', '15:00', '17:00', 'Operating System',    'CS501',  'Dr. Prarthana Dutta',              'L202'),
+  -- MONDAY
+  ('Monday',    '09:00', '12:00', 'OS Lab',              'CS501L', 'Group 1',  'Lab Room'),
+  ('Monday',    '09:00', '12:00', 'DBMS Lab',            'CS502L', 'Group 2',  'Lab Room'),
+  ('Monday',    '12:00', '13:00', 'Elective I: Foundation of Cryptography', 'CS506', '-', '-'),
+  ('Monday',    '14:00', '15:00', 'Engineering Economics & Costing', 'CS505', '-', '-'),
+  ('Monday',    '15:00', '17:00', 'Operating System',    'CS501',  '-', '-'),
 
-  -- ═══════════════════ TUESDAY ═══════════════════
-  -- COA Lab Group 1
-  ('Tuesday', '09:00', '11:00', 'COA Lab',             'CS503L', 'Dr. Prarthana Dutta',              'PMD 222'),
-  -- EEC
-  ('Tuesday', '11:00', '13:00', 'Engineering Economics & Costing', 'CS505', 'Kaju Nath', 'G07'),
-  -- Post-break
-  ('Tuesday', '14:00', '15:00', 'Database Management System', 'CS502', 'Dr. Samhita Sharma', 'L103'),
-  ('Tuesday', '15:00', '17:00', 'Computer Architecture & Organization', 'CS503', 'Dr. Serda Zerat Maroshboolla', 'L103'),
+  -- TUESDAY
+  ('Tuesday',   '12:00', '13:00', 'Engineering Economics & Costing', 'CS505', '-', '-'),
+  ('Tuesday',   '14:00', '15:00', 'Database Management System', 'CS502', '-', '-'),
+  ('Tuesday',   '15:00', '17:00', 'Computer Architecture & Organization', 'CS503', '-', '-'),
 
-  -- ═══════════════════ WEDNESDAY ═══════════════════
-  ('Wednesday', '09:00', '10:00', 'Operating System',  'CS501',  'Dr. Prarthana Dutta',              'G07'),
-  ('Wednesday', '10:00', '11:00', 'Digital Image Processing', 'CS504', 'Dr. Prarthana Dutta', 'G07'),
-  -- Elective I
-  ('Wednesday', '11:00', '13:00', 'Elective I: Foundation of Cryptography', 'CS506', 'Prof. Mrinal Kanti Deb Barma', 'L204'),
-  -- Post-break
-  ('Wednesday', '14:00', '15:00', 'Engineering Economics & Costing', 'CS505', 'Nabendu Debnath', 'L101'),
-  ('Wednesday', '15:00', '17:00', 'Database Management System', 'CS502', 'Dr. Samhita Sharma', 'L101'),
+  -- WEDNESDAY
+  ('Wednesday', '10:00', '11:00', 'Operating System',    'CS501',  '-', '-'),
+  ('Wednesday', '11:00', '13:00', 'Elective I: Foundation of Cryptography', 'CS506', '-', '-'),
+  ('Wednesday', '11:00', '13:00', 'Digital Image Processing', 'CS504', '-', '-'),
+  ('Wednesday', '14:00', '15:00', 'Engineering Economics & Costing', 'CS505', '-', '-'),
+  ('Wednesday', '15:00', '17:00', 'Database Management System', 'CS502', '-', '-'),
 
-  -- ═══════════════════ THURSDAY ═══════════════════
-  -- DBMS Lab Group 1 + OS Lab Group 2 (parallel)
-  ('Thursday', '10:00', '12:00', 'DBMS Lab',           'CS502L', 'Dr. Samhita Sharma',               'PMD 107'),
-  ('Thursday', '10:00', '12:00', 'OS Lab',             'CS501L', 'Dr. Prarthana Dutta',              'ABS 117'),
-  -- Post-break
-  ('Thursday', '14:00', '15:00', 'Operating System',   'CS501',  'Dr. Prarthana Dutta',              'L103'),
-  ('Thursday', '15:00', '17:00', 'Database Management System', 'CS502', 'Dr. Samhita Sharma', 'L103'),
+  -- THURSDAY
+  ('Thursday',  '10:00', '13:00', 'DBMS Lab',            'CS502L', 'Group 1',  'Lab Room'),
+  ('Thursday',  '10:00', '13:00', 'OS Lab',              'CS501L', 'Group 2',  'Lab Room'),
+  ('Thursday',  '14:00', '15:00', 'Operating System',    'CS501',  '-', '-'),
+  ('Thursday',  '15:00', '16:00', 'Database Management System', 'CS502', '-', '-'),
 
-  -- ═══════════════════ FRIDAY ═══════════════════
-  ('Friday', '09:00', '11:00', 'Computer Architecture & Organization', 'CS503', 'Dr. Serda Zerat Maroshboolla', 'L101'),
-  ('Friday', '11:00', '13:00', 'COA Lab',             'CS503L', 'Dr. Prarthana Dutta',              'PMD 107'),
-  -- Post-break
-  ('Friday', '14:00', '15:00', 'Digital Image Processing', 'CS504', 'Dr. Prarthana Dutta', 'L102'),
-  ('Friday', '15:00', '17:00', 'Seminar',             'CS506',  '-',                                'L102')
-) AS t(day, start, finish, s_name, s_code, teacher, room);
+  -- FRIDAY
+  ('Friday',    '09:00', '10:00', 'Computer Architecture & Organization', 'CS503', '-', '-'),
+  ('Friday',    '10:00', '13:00', 'COA Lab',             'CS503L', 'Group 2',  'Lab Room'),
+  ('Friday',    '14:00', '15:00', 'Digital Image Processing', 'CS504', '-', '-'),
+  ('Friday',    '15:00', '16:00', 'Seminar',             '-',      '-', '-')
+) AS t(day, start_time, end_time, s_name, s_code, teacher, room);
 
 -- Step 5: Verify
 SELECT b.branch_code, s.subject_code, s.subject_name, s.is_lab
@@ -88,7 +76,7 @@ WHERE b.branch_code = 'CSE' AND s.semester = 5
 ORDER BY s.subject_code;
 
 SELECT b.branch_code, cs.subject_code, cs.subject_name, cs.day_of_week,
-       cs.start_time, cs.end_time, cs.teacher_name, cs.room_number
+       cs.start_time, cs.end_time
 FROM public.class_schedule cs
 JOIN public.branches b ON b.id = cs.branch_id
 WHERE cs.semester = 5 AND b.branch_code = 'CSE'
