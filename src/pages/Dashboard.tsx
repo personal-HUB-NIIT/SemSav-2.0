@@ -1003,19 +1003,26 @@ interface ProfileModalProps {
 function ProfileModal({ open, onClose }: ProfileModalProps) {
   const { profile, fetchProfile, signOut } = useAuth();
   const navigate = useNavigate();
-  const [fullName, setFullName]       = useState('');
-  const [semester, setSemester]       = useState<number>(5);
-  const [saving, setSaving]           = useState(false);
-  const [branches, setBranches]       = useState<{ id: string; branch_code: string; branch_name: string }[]>([]);
+
+  // View/Edit mode
+  const [editing, setEditing]           = useState(false);
+
+  // Edit state
+  const [fullName, setFullName]         = useState('');
+  const [semester, setSemester]         = useState<number>(5);
+  const [saving, setSaving]             = useState(false);
+  const [branches, setBranches]         = useState<{ id: string; branch_code: string; branch_name: string }[]>([]);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [uploading, setUploading]     = useState(false);
-  const [deleteOpen, setDeleteOpen]   = useState(false);
-  const [deleteText, setDeleteText]   = useState('');
-  const [deleting, setDeleting]       = useState(false);
+  const [uploading, setUploading]       = useState(false);
+  const [deleteOpen, setDeleteOpen]     = useState(false);
+  const [deleteText, setDeleteText]     = useState('');
+  const [deleting, setDeleting]         = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Reset on open
   useEffect(() => {
     if (!open) return;
+    setEditing(false);
     setFullName(profile?.full_name ?? '');
     setSemester(profile?.semester ?? 5);
     setAvatarPreview(profile?.avatar_url ?? null);
@@ -1028,14 +1035,14 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
   if (!open || !profile) return null;
 
   const branch = branches.find(b => b.id === profile.branch_id);
-  const inputCls = "w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 text-sm outline-none cursor-not-allowed";
-  const editCls  = "w-full bg-white border border-slate-300 text-slate-900 placeholder-slate-400 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all";
-  const selectCls = "w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all appearance-none cursor-pointer";
+  const initials = profile.full_name?.[0]?.toUpperCase() ?? '?';
+
+  // ─── Handlers ────────────────────────────────────────────────────────────
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error('Image must be under 5 MB'); return; }
+    if (file.size > 2 * 1024 * 1024) { toast.error('Image must be under 2 MB'); return; }
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { toast.error('Only JPG, PNG, WebP allowed'); return; }
 
     setUploading(true);
@@ -1047,11 +1054,9 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
       .upload(filePath, file, { upsert: true, contentType: file.type });
 
     if (uploadError) {
-      if (uploadError.message?.includes('Bucket not found') || uploadError.message?.includes('bucket')) {
-        toast.error('Storage not configured. Run migration 015 in Supabase SQL Editor first.');
-      } else {
-        toast.error('Upload failed: ' + uploadError.message);
-      }
+      toast.error(uploadError.message?.includes('Bucket not found')
+        ? 'Storage not configured. Run migration 015 first.'
+        : 'Upload failed: ' + uploadError.message);
       setUploading(false);
       return;
     }
@@ -1074,50 +1079,19 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
     setUploading(false);
   };
 
-  const handleRemoveAvatar = async () => {
-    setUploading(true);
-    const { error } = await supabase
-      .from('users')
-      .update({ avatar_url: null })
-      .eq('id', profile.id);
-    if (error) {
-      toast.error(error.message);
-    } else {
-      setAvatarPreview(null);
-      await fetchProfile(profile.auth_id);
-      toast.success('Avatar removed');
-    }
-    setUploading(false);
-  };
-
-  const handleSemesterChange = async (newSemester: number) => {
-    setSemester(newSemester);
-    const { error } = await supabase
-      .from('users')
-      .update({ semester: newSemester })
-      .eq('id', profile.id);
-    if (error) {
-      toast.error('Failed to update semester: ' + error.message);
-      setSemester(profile.semester ?? 5);
-    } else {
-      await fetchProfile(profile.auth_id);
-      toast.success(`Semester updated to ${newSemester}`);
-    }
-  };
-
   const handleSave = async () => {
     if (!fullName.trim()) { toast.error('Name cannot be empty'); return; }
     setSaving(true);
     const { error } = await supabase
       .from('users')
-      .update({ full_name: fullName.trim() })
+      .update({ full_name: fullName.trim(), semester })
       .eq('id', profile.id);
     if (error) {
       toast.error(error.message);
     } else {
       await fetchProfile(profile.auth_id);
       toast.success('Profile updated!');
-      onClose();
+      setEditing(false);
     }
     setSaving(false);
   };
@@ -1126,9 +1100,7 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
     if (deleteText !== 'DELETE') return;
     setDeleting(true);
     try {
-      const { error } = await supabase.rpc('delete_user_account', {
-        p_user_id: profile.auth_id,
-      });
+      const { error } = await supabase.rpc('delete_user_account', { p_user_id: profile.auth_id });
       if (error) throw error;
       await signOut();
       localStorage.clear();
@@ -1141,16 +1113,145 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
     setDeleting(false);
   };
 
-  const initials = profile.full_name?.[0]?.toUpperCase() ?? '?';
+  // ─── Avatar Component ────────────────────────────────────────────────────
+
+  const AvatarDisplay = ({ size = 'lg', editable = false }: { size?: 'lg' | 'md'; editable?: boolean }) => {
+    const dim = size === 'lg' ? 'w-20 h-20' : 'w-16 h-16';
+    const textSize = size === 'lg' ? 'text-3xl' : 'text-2xl';
+    const src = avatarPreview ?? profile.avatar_url;
+
+    if (editable) {
+      return (
+        <button onClick={() => fileInputRef.current?.click()}
+          className={`relative group ${dim} shrink-0 rounded-full overflow-hidden border-2 border-dashed border-slate-300 hover:border-indigo-400 transition-all`}
+          title="Change avatar">
+          {src ? (
+            <img src={src} alt="Avatar" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white font-bold" style={{ fontSize: size === 'lg' ? 32 : 24 }}>
+              {initials}
+            </div>
+          )}
+          <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+          {uploading && (
+            <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+              <Spinner size={20} />
+            </div>
+          )}
+        </button>
+      );
+    }
+
+    return (
+      <div className={`${dim} shrink-0 rounded-full overflow-hidden`}>
+        {src ? (
+          <img src={src} alt="Avatar" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white font-bold" style={{ fontSize: size === 'lg' ? 32 : 24 }}>
+            {initials}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ─── VIEW MODE ───────────────────────────────────────────────────────────
+
+  if (!editing) {
+    return (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
+        <div className="relative bg-white border border-slate-200 w-full max-w-md rounded-2xl shadow-xl overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <h2 className="text-slate-900 font-bold text-lg flex items-center gap-2">
+              <span>👤</span> My Profile
+            </h2>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setEditing(true)}
+                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Edit profile">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+              <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="px-6 py-6 space-y-5">
+            {/* Avatar + Identity */}
+            <div className="flex items-center gap-4 pb-5 border-b border-slate-100">
+              <AvatarDisplay size="lg" />
+              <div className="min-w-0">
+                <p className="text-slate-900 font-bold text-lg truncate">{profile.full_name}</p>
+                <p className="text-slate-500 text-sm truncate">{profile.email}</p>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-2.5 py-0.5">
+                    {profile.role === 'SUPER_ADMIN' ? '🛡️ Super Admin' : '🎓 Student'}
+                  </span>
+                  <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-0.5">
+                    ⭐ {profile.karma_points} karma
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Info Grid */}
+            <div className="space-y-3">
+              {[
+                { label: 'Full Name', value: profile.full_name },
+                { label: 'Email', value: profile.email },
+                { label: 'Enrollment ID', value: profile.enrollment_id ?? '—' },
+                { label: 'Branch', value: branch?.branch_code ?? '—' },
+                { label: 'Current Semester', value: profile.semester ? `Semester ${profile.semester}` : '—' },
+              ].map(field => (
+                <div key={field.label} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
+                  <span className="text-xs text-slate-400 font-medium">{field.label}</span>
+                  <span className="text-sm font-semibold text-slate-900">{field.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-slate-100">
+            <button onClick={onClose}
+              className="w-full py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-sm font-medium transition-all">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── EDIT MODE ───────────────────────────────────────────────────────────
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setEditing(false)} />
       <div className="relative bg-white border border-slate-200 w-full max-w-md rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
+        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
-          <h2 className="text-slate-900 font-bold text-lg flex items-center gap-2">
-            <span>👤</span> My Profile
-          </h2>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setEditing(false)}
+              className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <h2 className="text-slate-900 font-bold text-lg">Edit Profile</h2>
+          </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1158,121 +1259,101 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
           </button>
         </div>
 
+        {/* Content */}
         <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
-          {/* Avatar + Name header */}
+          {/* Avatar Upload */}
           <div className="flex items-center gap-4 pb-4 border-b border-slate-100">
-            <button onClick={() => fileInputRef.current?.click()}
-              className="relative group w-16 h-16 shrink-0 rounded-2xl overflow-hidden border-2 border-dashed border-slate-300 hover:border-indigo-400 transition-all"
-              title="Change avatar">
-              {avatarPreview ? (
-                <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white text-2xl font-bold">
-                  {initials}
-                </div>
+            <AvatarDisplay size="md" editable />
+            <div className="min-w-0 flex-1">
+              <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
+                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 disabled:opacity-50 transition-colors">
+                {uploading ? 'Uploading...' : avatarPreview ? 'Update Photo' : 'Upload Photo'}
+              </button>
+              {avatarPreview && (
+                <button onClick={async () => {
+                  setUploading(true);
+                  const { error } = await supabase.from('users').update({ avatar_url: null }).eq('id', profile.id);
+                  if (!error) { setAvatarPreview(null); await fetchProfile(profile.auth_id); toast.success('Photo removed'); }
+                  setUploading(false);
+                }} disabled={uploading}
+                  className="block text-[10px] text-red-500 hover:text-red-700 font-medium mt-1 disabled:opacity-50">
+                  Remove photo
+                </button>
               )}
-              <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              {uploading && (
-                <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                  <Spinner size={20} />
-                </div>
-              )}
-            </button>
+              <p className="text-[10px] text-slate-400 mt-1">JPG, PNG, or WebP. Max 2 MB.</p>
+            </div>
             <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp"
               className="hidden" onChange={handleAvatarUpload} />
-            <div className="min-w-0 flex-1">
-              <p className="text-slate-900 font-bold truncate">{profile.full_name}</p>
-              <p className="text-slate-500 text-xs truncate">{profile.email}</p>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-2 py-0.5">
-                  {profile.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Student'}
-                </span>
-                {avatarPreview && (
-                  <button onClick={handleRemoveAvatar} disabled={uploading}
-                    className="text-[10px] text-red-500 hover:text-red-700 font-medium disabled:opacity-50">
-                    Remove photo
-                  </button>
-                )}
+          </div>
+
+          {/* Editable: Full Name */}
+          <div>
+            <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Full Name</label>
+            <input type="text" value={fullName} onChange={e => setFullName(e.target.value)}
+              className="w-full bg-white border border-slate-300 text-slate-900 placeholder-slate-400 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all" />
+          </div>
+
+          {/* Editable: Semester */}
+          <div>
+            <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Semester</label>
+            <div className="relative">
+              <select value={semester} onChange={e => setSemester(Number(e.target.value))}
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all appearance-none cursor-pointer">
+                {[1,2,3,4,5,6,7,8].map(s => (
+                  <option key={s} value={s}>Semester {s}</option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
+            </div>
+          </div>
+
+          {/* Read-only fields */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Email</label>
+              <input type="text" value={profile.email} readOnly
+                className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 text-sm outline-none cursor-not-allowed" />
+            </div>
+            <div>
+              <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Enrollment ID</label>
+              <input type="text" value={profile.enrollment_id ?? '—'} readOnly
+                className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 text-sm outline-none cursor-not-allowed" />
             </div>
           </div>
 
           <div>
-            <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Full Name</label>
-            <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} className={editCls} />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Email</label>
-              <input type="text" value={profile.email} readOnly className={inputCls} />
-            </div>
-            <div>
-              <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Enrollment ID</label>
-              <input type="text" value={profile.enrollment_id ?? '—'} readOnly className={inputCls} />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Branch</label>
-              <input type="text" value={branch ? `${branch.branch_code}` : '—'} readOnly className={inputCls} />
-            </div>
-            <div>
-              <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Semester</label>
-              <div className="relative">
-                <select value={semester} onChange={e => handleSemesterChange(Number(e.target.value))}
-                  className={selectCls}>
-                  {[1,2,3,4,5,6,7,8].map(s => (
-                    <option key={s} value={s}>Semester {s}</option>
-                  ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-                  <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex items-center justify-between">
-            <span className="text-xs text-slate-500">Karma points earned</span>
-            <span className="text-amber-600 font-bold text-lg">⭐ {profile.karma_points}</span>
-          </div>
-
-          <p className="text-[11px] text-slate-400 leading-relaxed">
-            Branch and enrollment are managed by your admin. Semester can be updated as you progress.
-          </p>
-
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-sm font-medium transition-all">
-              Cancel
-            </button>
-            <button onClick={handleSave} disabled={saving}
-              className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-sm shadow-indigo-200">
-              {saving ? <Spinner size={14} /> : null}
-              Save Changes
-            </button>
+            <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Branch</label>
+            <input type="text" value={branch ? `${branch.branch_code} — ${branch.branch_name}` : '—'} readOnly
+              className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 text-sm outline-none cursor-not-allowed" />
+            <p className="text-[10px] text-slate-400 mt-1">Managed by admin</p>
           </div>
 
           {/* Danger Zone */}
-          <div className="border border-red-200 bg-red-50 rounded-2xl p-4 mt-2">
+          <div className="border border-red-200 bg-red-50 rounded-2xl p-4">
             <h3 className="text-sm font-bold text-red-800 mb-1">Danger Zone</h3>
-            <p className="text-xs text-red-600 mb-3">
-              Permanently delete your account and all associated data. This action cannot be undone.
-            </p>
+            <p className="text-xs text-red-600 mb-3">Permanently delete your account and all data. This cannot be undone.</p>
             <button onClick={() => setDeleteOpen(true)}
               className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-xl transition-all">
               Delete Account
             </button>
           </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-slate-100 shrink-0 flex gap-3">
+          <button onClick={() => setEditing(false)}
+            className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-sm font-medium transition-all">
+            Cancel
+          </button>
+          <button onClick={handleSave} disabled={saving}
+            className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-sm shadow-indigo-200">
+            {saving ? <Spinner size={14} /> : null}
+            Save Changes
+          </button>
         </div>
       </div>
 
@@ -1288,9 +1369,7 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
                 </svg>
               </div>
               <h3 className="text-lg font-bold text-slate-900">Delete Account?</h3>
-              <p className="text-sm text-slate-500 mt-1">
-                This will permanently remove your account, uploaded files, and all data. This cannot be undone.
-              </p>
+              <p className="text-sm text-slate-500 mt-1">This will permanently remove your account, uploaded files, and all data.</p>
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1.5">
