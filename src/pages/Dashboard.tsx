@@ -1684,6 +1684,10 @@ export default function Dashboard() {
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
                 <span>📚</span> Study Materials
               </button>
+              <button onClick={() => { setSidebarOpen(false); navigate('/attendance'); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+                <span>📅</span> Attendance
+              </button>
               <button onClick={() => { setSidebarOpen(false); navigate('/upload'); }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
                 <span>📝</span> Upload Notes
