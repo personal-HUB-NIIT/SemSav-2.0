@@ -112,9 +112,13 @@ export async function fetchSemesterSubjects(branchId: string, semester: number):
   return (data ?? []) as AttendanceSubject[];
 }
 
-/** Aggregated per-subject counts via DB RPC (efficient grouping on load). */
-export async function fetchAttendanceSummary(userId: string): Promise<Map<string, SubjectSummary>> {
-  const { data, error } = await supabase.rpc('get_attendance_summary', { p_user_id: userId });
+/** Aggregated per-subject counts via DB RPC (efficient grouping on load). Scoped to branch + semester. */
+export async function fetchAttendanceSummary(userId: string, branchId: string, semester: number): Promise<Map<string, SubjectSummary>> {
+  const { data, error } = await supabase.rpc('get_attendance_summary', {
+    p_user_id: userId,
+    p_branch_id: branchId,
+    p_semester: semester,
+  });
   const map = new Map<string, SubjectSummary>();
   if (!error && Array.isArray(data)) {
     for (const row of data as { subject_id: string; total_held: number | string; attended: number | string; cancelled: number | string }[]) {
@@ -129,12 +133,23 @@ export async function fetchAttendanceSummary(userId: string): Promise<Map<string
   return map;
 }
 
-/** Full log list — powers the history view and "already marked today" state. */
-export async function fetchAttendanceLogs(userId: string, limit = 500): Promise<AttendanceLogRow[]> {
+/** Full log list — powers the history view and "already marked today" state. Scoped to branch + semester. */
+export async function fetchAttendanceLogs(userId: string, branchId: string, semester: number, limit = 500): Promise<AttendanceLogRow[]> {
+  // First get subject IDs for this branch+semester
+  const { data: subRows, error: subErr } = await supabase
+    .from('subjects')
+    .select('id')
+    .eq('branch_id', branchId)
+    .eq('semester', semester);
+  if (subErr) throw subErr;
+  const subjectIds = (subRows ?? []).map((s: { id: string }) => s.id);
+  if (subjectIds.length === 0) return [];
+
   const { data, error } = await supabase
     .from('attendance_logs')
     .select('id, subject_id, date, status')
     .eq('user_id', userId)
+    .in('subject_id', subjectIds)
     .order('date', { ascending: false })
     .limit(limit);
   if (error) throw error;

@@ -42,8 +42,8 @@ async function loadAttendance(args: LoadArgs): Promise<{
 }> {
   const [subs, summaryMap, logRows] = await Promise.all([
     fetchSemesterSubjects(args.branch_id, args.semester),
-    fetchAttendanceSummary(args.auth_id),
-    fetchAttendanceLogs(args.auth_id),
+    fetchAttendanceSummary(args.auth_id, args.branch_id, args.semester),
+    fetchAttendanceLogs(args.auth_id, args.branch_id, args.semester),
   ]);
   return { subs, summaryMap, logRows };
 }
