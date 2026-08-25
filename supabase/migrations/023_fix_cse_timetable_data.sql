@@ -34,7 +34,7 @@ WITH cse AS (SELECT id FROM branches WHERE branch_code = 'CSE')
 INSERT INTO public.class_schedule
   (branch_id, semester, day_of_week, start_time, end_time,
    subject_name, subject_code, teacher_name, room_number)
-SELECT cse.id, 5, day, start::time, end::time, s_name, s_code, teacher, room
+SELECT cse.id, 5, day, start::time, finish::time, s_name, s_code, teacher, room
 FROM cse, (VALUES
   -- ═══════════════════ MONDAY ═══════════════════
   -- OS Lab Group 1 + DBMS Lab Group 2 (parallel)
@@ -78,7 +78,7 @@ FROM cse, (VALUES
   -- Post-break
   ('Friday', '14:00', '15:00', 'Digital Image Processing', 'CS504', 'Dr. Prarthana Dutta', 'L102'),
   ('Friday', '15:00', '17:00', 'Seminar',             'CS506',  '-',                                'L102')
-) AS t(day, start, end, s_name, s_code, teacher, room);
+) AS t(day, start, finish, s_name, s_code, teacher, room);
 
 -- Step 5: Verify
 SELECT b.branch_code, s.subject_code, s.subject_name, s.is_lab
