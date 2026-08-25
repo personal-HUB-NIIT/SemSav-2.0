@@ -1110,7 +1110,8 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
       navigate('/auth/student');
       toast.success('Account deleted');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete account');
+      const msg = (err as { message?: string })?.message;
+      toast.error(msg ? `Failed to delete account: ${msg}` : 'Failed to delete account');
     }
     setDeleting(false);
   };
