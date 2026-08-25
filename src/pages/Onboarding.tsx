@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 interface Branch { id: string; branch_name: string; branch_code: string; }
 
 const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
-const GPA_OPTIONS = ['< 6.0', '6.0 - 7.0', '7.0 - 8.0', '8.0 - 9.0', '9.0+'];
+const TOTAL_STEPS = 2;
 
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -18,10 +18,9 @@ export default function Onboarding() {
   const [loading, setLoading] = useState(false);
 
   // Form state
-  const [fullName, setFullName]     = useState(profile?.full_name || '');
-  const [branchId, setBranchId]     = useState('');
-  const [semester, setSemester]     = useState<number>(1);
-  const [targetGpa, setTargetGpa]   = useState('');
+  const [fullName, setFullName]         = useState(profile?.full_name || '');
+  const [branchId, setBranchId]         = useState('');
+  const [semester, setSemester]         = useState<number>(1);
   const [enrollmentId, setEnrollmentId] = useState('');
 
   useEffect(() => {
@@ -42,14 +41,14 @@ export default function Onboarding() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (!fullName.trim()) { toast.error('Please enter your name'); return; }
     if (!branchId) { toast.error('Please select your branch'); return; }
-    if (!targetGpa) { toast.error('Please select your target GPA'); return; }
     setLoading(true);
 
     const { error } = await supabase
       .from('users')
       .update({
-        full_name: fullName,
+        full_name: fullName.trim(),
         branch_id: branchId,
         semester,
         enrollment_id: enrollmentId || null,
@@ -64,7 +63,7 @@ export default function Onboarding() {
     navigate('/dashboard');
   };
 
-  const progress = (step / 3) * 100;
+  const progress = (step / TOTAL_STEPS) * 100;
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -88,7 +87,7 @@ export default function Onboarding() {
         {/* Progress bar */}
         <div className="mb-6">
           <div className="flex justify-between text-xs text-slate-500 mb-2">
-            <span>Step {step} of 3</span>
+            <span>Step {step} of {TOTAL_STEPS}</span>
             <span>{Math.round(progress)}% complete</span>
           </div>
           <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
@@ -137,7 +136,7 @@ export default function Onboarding() {
               </div>
             )}
 
-            {/* Step 2: Academic Info */}
+            {/* Step 2: Academic Info (Final) */}
             {step === 2 && (
               <div className="space-y-5">
                 <div>
@@ -181,45 +180,8 @@ export default function Onboarding() {
                     className="flex-1 bg-slate-700/50 hover:bg-slate-700 text-slate-300 font-medium py-3 rounded-xl transition-all">
                     ← Back
                   </button>
-                  <button type="button" onClick={() => { if (!branchId) { toast.error('Please select your branch'); return; } setStep(3); }}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl transition-all">
-                    Continue →
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Goals */}
-            {step === 3 && (
-              <div className="space-y-5">
-                <div>
-                  <h2 className="text-lg font-semibold text-white mb-1">Your Academic Goal</h2>
-                  <p className="text-slate-400 text-sm">What GPA are you targeting this semester?</p>
-                </div>
-                <div className="grid grid-cols-1 gap-2">
-                  {GPA_OPTIONS.map(g => (
-                    <button
-                      key={g} type="button" onClick={() => setTargetGpa(g)}
-                      className={`w-full py-3 px-4 rounded-xl text-sm font-medium border text-left transition-all duration-150 ${
-                        targetGpa === g
-                          ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
-                          : 'bg-slate-900/50 border-slate-700 text-slate-400 hover:border-slate-600 hover:text-white'
-                      }`}
-                    >
-                      <span className={`inline-block w-4 h-4 rounded-full border mr-3 align-middle ${
-                        targetGpa === g ? 'bg-indigo-500 border-indigo-400' : 'border-slate-600'
-                      }`} />
-                      GPA {g}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex gap-3">
-                  <button type="button" onClick={() => setStep(2)}
-                    className="flex-1 bg-slate-700/50 hover:bg-slate-700 text-slate-300 font-medium py-3 rounded-xl transition-all">
-                    ← Back
-                  </button>
                   <button
-                    type="submit" disabled={loading || !targetGpa}
+                    type="submit" disabled={loading || !branchId}
                     className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
