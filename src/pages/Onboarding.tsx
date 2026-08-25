@@ -11,7 +11,7 @@ const TOTAL_STEPS = 2;
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, profile, fetchProfile } = useAuth();
 
   const [branches, setBranches] = useState<Branch[]>([]);
   const [step, setStep] = useState(1);
@@ -59,6 +59,8 @@ export default function Onboarding() {
     setLoading(false);
     if (error) { toast.error('Failed to save profile: ' + error.message); return; }
 
+    // Refresh profile so ProtectedRoute sees onboarding_completed=true
+    await fetchProfile(user.id);
     toast.success('Profile complete! Welcome to SemSav 🎉');
     navigate('/dashboard');
   };
