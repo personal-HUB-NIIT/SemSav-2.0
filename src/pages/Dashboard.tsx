@@ -5,9 +5,10 @@ import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 import {
   ThumbsUp, ThumbsDown, ShieldQuestion, FileText, ClipboardList,
-  GraduationCap, BookOpen, CheckCircle2, CalendarDays,
+  GraduationCap, BookOpen, CheckCircle2, CalendarDays, ExternalLink,
   FlaskConical, PartyPopper, Coffee, User, Star, Home, Calendar,
   History, Settings, LogOut, Clock, Pencil, Plus, Target, Folder, UserCheck,
+  Eye, X, MapPin,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -52,6 +53,10 @@ interface PendingReviewItem {
   title_syllabus: string;
   category: string;
   created_at: string;
+  file_url: string | null;
+  test_type: string | null;
+  due_date_time: string | null;
+  room_no: string | null;
   subjects?: { subject_name: string; subject_code: string } | { subject_name: string; subject_code: string }[] | null;
   votes?: VoteEntry[];
 }
@@ -801,6 +806,8 @@ interface ReviewFeedProps {
 }
 
 function ReviewFeed({ items, loading, profileId, votingId, onVote }: ReviewFeedProps) {
+  const [previewItem, setPreviewItem] = useState<PendingReviewItem | null>(null);
+
   return (
     <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
@@ -870,8 +877,13 @@ function ReviewFeed({ items, loading, profileId, votingId, onVote }: ReviewFeedP
                     )}
                   </div>
 
-                  {/* Inline vote actions */}
+                  {/* Inline actions: preview before voting */}
                   <div className="shrink-0 flex items-center gap-1.5">
+                    <button onClick={() => setPreviewItem(item)} disabled={busy}
+                      title="Preview this content before voting"
+                      className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 transition-all active:scale-95">
+                      <Eye className="w-4 h-4" />
+                    </button>
                     <button onClick={() => onVote(item.id, 'UP')} disabled={isOwn || busy}
                       title={isOwn ? 'You cannot vote on your own upload' : 'Upvote — verify this content'}
                       className="p-2 rounded-xl border border-emerald-200 text-emerald-700 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95">
@@ -889,6 +901,91 @@ function ReviewFeed({ items, loading, profileId, votingId, onVote }: ReviewFeedP
           })
         )}
       </div>
+
+      {/* Pre-vote content preview modal */}
+      {previewItem && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setPreviewItem(null)} />
+          <div className="relative bg-white border border-slate-200 w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-slate-900 truncate">{previewItem.title_syllabus}</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  {REVIEW_TYPE_META[previewItem.category]?.label ?? 'Upload'}
+                  {relOne(previewItem.subjects) ? ` · ${relOne(previewItem.subjects)!.subject_name}` : ''}
+                  {' · '}uploaded {timeAgo(previewItem.created_at)}
+                </p>
+              </div>
+              <button onClick={() => setPreviewItem(null)}
+                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all shrink-0" aria-label="Close preview">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-auto bg-slate-50">
+              {previewItem.file_url ? (
+                <iframe
+                  src={`${previewItem.file_url}#view=FitH`}
+                  title="Content preview"
+                  className="w-full h-[60vh] border-0"
+                />
+              ) : previewItem.category === 'TEST' ? (
+                <div className="p-6 space-y-3">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Exam date submission — nothing to preview</p>
+                  <div className="flex flex-wrap gap-2">
+                    {previewItem.test_type && (
+                      <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-red-50 border border-red-200 text-red-700">
+                        {previewItem.test_type.replace(/_/g, ' ')}
+                      </span>
+                    )}
+                    {previewItem.due_date_time && (
+                      <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 inline-flex items-center gap-1">
+                        <CalendarDays className="w-3.5 h-3.5" />
+                        {new Date(previewItem.due_date_time).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    )}
+                    {previewItem.room_no && (
+                      <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 inline-flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5" /> Room {previewItem.room_no}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500">Evaluate whether these exam details look correct before voting.</p>
+                </div>
+              ) : (
+                <div className="p-10 text-center">
+                  <FileText className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+                  <p className="text-sm font-medium text-slate-600">No file attached to this upload.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-between gap-3 bg-white">
+              <p className="text-[11px] text-slate-500">Review the content, then vote below or from the card.</p>
+              <div className="flex items-center gap-2">
+                {previewItem.file_url && (
+                  <a href={previewItem.file_url} target="_blank" rel="noopener noreferrer"
+                    className="px-3.5 py-2 rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-semibold transition-all inline-flex items-center gap-1.5">
+                    <ExternalLink className="w-3.5 h-3.5" /> Open in new tab
+                  </a>
+                )}
+                <button
+                  onClick={() => { onVote(previewItem.id, 'UP'); setPreviewItem(null); }}
+                  disabled={previewItem.user_id === profileId || votingId === previewItem.id}
+                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold transition-all inline-flex items-center gap-1.5">
+                  <ThumbsUp className="w-3.5 h-3.5" /> Verify
+                </button>
+                <button
+                  onClick={() => { onVote(previewItem.id, 'DOWN'); setPreviewItem(null); }}
+                  disabled={previewItem.user_id === profileId || votingId === previewItem.id}
+                  className="px-3.5 py-2 rounded-xl bg-red-500 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold transition-all inline-flex items-center gap-1.5">
+                  <ThumbsDown className="w-3.5 h-3.5" /> Flag
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -1709,7 +1806,7 @@ export default function Dashboard() {
     setReviewLoading(true);
     const { data: pending, error: pendingErr } = await supabase
       .from('uploads')
-      .select('id, user_id, title_syllabus, category, created_at, subjects(subject_name, subject_code), votes(vote_type, users(full_name, avatar_url))')
+      .select('id, user_id, title_syllabus, category, created_at, file_url, test_type, due_date_time, room_no, subjects(subject_name, subject_code), votes(vote_type, users(full_name, avatar_url))')
       .eq('branch_id', profile.branch_id!)
       .eq('semester', profile.semester!)
       .eq('status', 'UNVERIFIED')
