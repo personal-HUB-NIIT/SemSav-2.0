@@ -30,7 +30,7 @@ export default function RoleSelection() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <span className="text-2xl">🎓</span>
+                  <span className="text-2xl font-bold text-indigo-600">ST</span>
                 </div>
                 <div className="text-left">
                   <h3 className="text-lg font-semibold text-white group-hover:text-indigo-300 transition-colors">I'm a Student</h3>
@@ -50,7 +50,7 @@ export default function RoleSelection() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <span className="text-2xl">🛡️</span>
+                  <span className="text-2xl font-bold text-purple-600">AD</span>
                 </div>
                 <div className="text-left">
                   <h3 className="text-lg font-semibold text-white group-hover:text-emerald-300 transition-colors">I'm Admin / Owner</h3>

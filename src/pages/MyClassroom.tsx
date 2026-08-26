@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
+import { Users, GraduationCap, Search, School } from 'lucide-react';
 
 interface Classmate {
   id: string;
@@ -109,7 +110,7 @@ export default function MyClassroom() {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-xl text-white shadow-md shadow-indigo-100">
-                  👥
+                  <Users className="w-6 h-6" />
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-slate-900">My Classroom</h1>
@@ -120,7 +121,7 @@ export default function MyClassroom() {
               </div>
             </div>
             <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-2.5">
-              <span className="text-lg">🎓</span>
+              <GraduationCap className="w-5 h-5 text-indigo-500" />
               <div className="text-right">
                 <p className="text-lg font-bold text-indigo-700">{classmates.length}</p>
                 <p className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wide">Students Enrolled</p>
@@ -146,7 +147,7 @@ export default function MyClassroom() {
         {/* Empty search */}
         {filtered.length === 0 && classmates.length > 0 && (
           <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center mb-6">
-            <div className="text-4xl mb-3 opacity-40">🔍</div>
+            <Search className="w-8 h-8 mx-auto mb-3 text-slate-300" />
             <p className="text-sm font-semibold text-slate-900 mb-1">No classmates found</p>
             <p className="text-xs text-slate-500">Try a different search term</p>
           </div>
@@ -155,7 +156,7 @@ export default function MyClassroom() {
         {/* Empty classroom */}
         {classmates.length === 0 && (
           <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center">
-            <div className="text-4xl mb-3 opacity-40">🏫</div>
+            <School className="w-8 h-8 mx-auto mb-3 text-slate-300" />
             <p className="text-sm font-semibold text-slate-900 mb-1">No classmates yet</p>
             <p className="text-xs text-slate-500">Other students from your branch and semester will appear here once they sign up.</p>
           </div>
@@ -205,7 +206,7 @@ export default function MyClassroom() {
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                        ⭐ {student.karma_points} karma
+                        {student.karma_points} karma
                       </span>
                       {student.role === 'SUPER_ADMIN' && (
                         <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">

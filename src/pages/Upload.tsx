@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
+import { FileText, ClipboardList, CalendarDays, Sparkles, Rocket } from 'lucide-react';
 
 interface Subject {
   id: string;
@@ -14,10 +15,10 @@ interface Subject {
 type Category = 'NOTES' | 'ASSIGNMENT' | 'TEST';
 type TestType = 'MID_SEM' | 'QUIZ' | 'LAB_TEST' | 'VIVA' | 'RESCHEDULED';
 
-const CATEGORIES: { value: Category; label: string; icon: string; desc: string }[] = [
-  { value: 'NOTES',      label: 'Notes',      icon: '📝', desc: 'Lecture notes, handouts' },
-  { value: 'ASSIGNMENT', label: 'Assignment',  icon: '📋', desc: 'Homework, projects with deadline' },
-  { value: 'TEST',       label: 'Test / Exam', icon: '📅', desc: 'Exam schedule, room & syllabus' },
+const CATEGORIES: { value: Category; label: string; Icon: typeof FileText; desc: string }[] = [
+  { value: 'NOTES',      label: 'Notes',      Icon: FileText,      desc: 'Lecture notes, handouts' },
+  { value: 'ASSIGNMENT', label: 'Assignment',  Icon: ClipboardList, desc: 'Homework, projects with deadline' },
+  { value: 'TEST',       label: 'Test / Exam', Icon: CalendarDays,  desc: 'Exam schedule, room & syllabus' },
 ];
 
 const TEST_TYPES: { value: TestType; label: string }[] = [
@@ -79,7 +80,7 @@ export default function Upload() {
   const handleAiExtract = async () => {
     if (!selectedFile) return;
     setAiExtracting(true);
-    const loadingToast = toast.loading('✨ AI is reading your file...');
+    const loadingToast = toast.loading('AI is reading your file...');
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Not authenticated");
@@ -162,7 +163,7 @@ export default function Upload() {
 
       if (dbError) throw dbError;
 
-      toast.success('Upload successful! It will appear once verified 🎉');
+      toast.success('Upload successful! It will appear once verified.');
       navigate('/dashboard');
     } catch (err: any) {
       toast.error('Upload failed: ' + err.message);
@@ -207,7 +208,7 @@ export default function Upload() {
                       : 'bg-slate-900/50 border-slate-700 text-slate-400 hover:border-slate-600 hover:text-white'
                   }`}
                 >
-                  <span className="text-2xl">{cat.icon}</span>
+                  <cat.Icon className="w-6 h-6" />
                   <span className="text-sm font-medium">{cat.label}</span>
                   <span className="text-xs text-center opacity-70">{cat.desc}</span>
                 </button>
@@ -335,7 +336,7 @@ export default function Upload() {
               />
               {selectedFile ? (
                 <div className="space-y-2">
-                  <div className="text-3xl">📄</div>
+                  
                   <p className="text-white font-medium text-sm">{selectedFile.name}</p>
                   <p className="text-slate-500 text-xs">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
                   <div className="flex items-center justify-center gap-4 mt-2">
@@ -358,14 +359,14 @@ export default function Upload() {
                           Extracting...
                         </>
                       ) : (
-                        '✨ Auto-Fill with AI'
+                        <span className="inline-flex items-center gap-1.5"><Sparkles className="w-4 h-4" /> Auto-Fill with AI</span>
                       )}
                     </button>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <div className="text-4xl opacity-40">☁️</div>
+                  
                   <p className="text-slate-400 text-sm font-medium">Drop your file here or click to browse</p>
                   <p className="text-slate-600 text-xs">PDF, Word, PPT, Images, ZIP — max 20 MB</p>
                 </div>
@@ -384,7 +385,7 @@ export default function Upload() {
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 Uploading...
               </>
-            ) : '🚀 Submit Upload'}
+            ) : <span className='inline-flex items-center gap-2'><Rocket className='w-4 h-4' /> Submit Upload</span>}
           </button>
 
           <p className="text-center text-slate-600 text-xs">

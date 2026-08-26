@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
+import { BookOpen, FileText, ClipboardList } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -200,7 +201,7 @@ export default function Notes() {
                 </svg>
               </button>
               <div className="min-w-0">
-                <h1 className="text-base sm:text-lg font-bold text-slate-900 truncate">📚 Study Materials</h1>
+                <h1 className="text-base sm:text-lg font-bold text-slate-900 truncate">Study Materials</h1>
                 <p className="text-[10px] text-slate-500 truncate">Semester {profile?.semester ?? '—'} · {subjects.length} subject{subjects.length !== 1 ? 's' : ''}</p>
               </div>
             </div>
@@ -214,7 +215,7 @@ export default function Notes() {
             </div>
           ) : subjects.length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center">
-              <div className="text-4xl mb-3 opacity-40">📚</div>
+              <BookOpen className="w-10 h-10 mx-auto mb-3 text-slate-300" />
               <p className="text-sm font-semibold text-slate-900 mb-1">No subjects found</p>
               <p className="text-xs text-slate-500">No subjects are configured for your branch & semester yet.</p>
             </div>
@@ -237,7 +238,7 @@ export default function Notes() {
                   <div className="flex items-center gap-2 mt-2">
                     {subject.is_lab && (
                       <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-50 border border-purple-200 text-purple-700">
-                        🧪 Lab
+                        Lab
                       </span>
                     )}
                     <span className="text-[10px] text-slate-400">
@@ -299,8 +300,8 @@ export default function Notes() {
         {/* Tabs */}
         <div className="flex items-center gap-2">
           {([
-            { key: 'notes' as TabType, label: 'Daily Notes', icon: '📄' },
-            { key: 'assignments' as TabType, label: 'Assignments & Labs', icon: '📋' },
+            { key: 'notes' as TabType, label: 'Daily Notes', Icon: FileText },
+            { key: 'assignments' as TabType, label: 'Assignments & Labs', Icon: ClipboardList },
           ]).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
@@ -308,7 +309,7 @@ export default function Notes() {
                   ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm shadow-indigo-200'
                   : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-700'
               }`}>
-              <span>{t.icon}</span>
+              <t.Icon className="w-3.5 h-3.5" />
               {t.label}
             </button>
           ))}
@@ -324,7 +325,7 @@ export default function Notes() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center">
-            <div className="text-4xl mb-3 opacity-40">{tab === 'notes' ? '📄' : '📋'}</div>
+            <FileText className="w-10 h-10 mx-auto mb-3 text-slate-300" />
             <p className="text-sm font-semibold text-slate-900 mb-1">
               {search ? 'No results found' : tab === 'notes' ? 'No verified notes yet' : 'No assignments uploaded yet'}
             </p>
@@ -339,7 +340,6 @@ export default function Notes() {
                 className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md transition-all">
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 rounded-xl border flex items-center justify-center text-sm shrink-0 bg-blue-50 border-blue-200 text-blue-700">
-                    📄
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-3">
@@ -379,7 +379,6 @@ export default function Notes() {
                 className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md transition-all">
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 rounded-xl border flex items-center justify-center text-sm shrink-0 bg-amber-50 border-amber-200 text-amber-700">
-                    📋
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-3">

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
+import { AlertTriangle, History, BookOpen } from 'lucide-react';
 import {
   fetchSemesterSubjects, fetchAttendanceSummary, fetchAttendanceLogs,
   markAttendance, clearAttendance, addExtraClass, computeStats, todayKey,
@@ -102,7 +103,7 @@ function StatusButtons({
               active ? ACTION_STYLES[s].active : `${ACTION_STYLES[s].idle} bg-white`
             }`}
           >
-            {STATUS_META[s].icon} {STATUS_META[s].label}
+            {STATUS_META[s].label}
           </button>
         );
       })}
@@ -338,7 +339,7 @@ export default function Attendance() {
             </svg>
           </button>
           <div className="min-w-0">
-            <h1 className="text-base sm:text-lg font-bold text-slate-900">📅 Attendance Tracker</h1>
+            <h1 className="text-base sm:text-lg font-bold text-slate-900">Attendance Tracker</h1>
             <p className="text-xs text-slate-500">Stay above the 75% mandate</p>
           </div>
           <button onClick={() => setReloadTick(t => t + 1)}
@@ -357,7 +358,7 @@ export default function Attendance() {
         {/* Missing table notice */}
         {missingTable && (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">
-            ⚠️ The <code className="font-mono">attendance_logs</code> table isn&apos;t set up yet.
+            <span className="inline-flex items-center gap-1.5"><AlertTriangle className="w-4 h-4 inline" /> The <code className="font-mono">attendance_logs</code> table isn&apos;t set up yet.</span>
             Run <code className="font-mono">supabase/migrations/017_attendance.sql</code> in the Supabase SQL Editor.
           </div>
         )}
@@ -365,7 +366,7 @@ export default function Attendance() {
         {/* Tabs */}
         <div className="flex items-center gap-2">
           <div className="flex gap-2 bg-white border border-slate-200 rounded-xl p-1 w-fit">
-            {([['today', '📌 Mark Today'], ['history', '🕓 History']] as const).map(([key, label]) => (
+            {([['today', 'Mark Today'], ['history', 'History']] as const).map(([key, label]) => (
               <button key={key} onClick={() => setTab(key)}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                   tab === key ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200' : 'text-slate-600 hover:bg-slate-100'
@@ -396,7 +397,7 @@ export default function Attendance() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {subjects.length === 0 && !missingTable && (
               <div className="md:col-span-2 text-center py-14 text-slate-500">
-                <p className="text-4xl mb-3">📚</p>
+                <BookOpen className="w-10 h-10 mx-auto mb-3 text-slate-300" />
                 <p className="font-medium">No subjects found for Semester {profile?.semester}</p>
                 <p className="text-sm mt-1">Ask an admin to seed subjects for your branch.</p>
               </div>
@@ -419,7 +420,7 @@ export default function Attendance() {
                       </div>
                       <p className="text-xs text-slate-400 font-mono">{sub.subject_code}</p>
                       <p className="mt-1 text-xs text-slate-500">
-                        ✅ {st.attended} · ❌ {st.total_held - st.attended}
+                        {st.attended} attended · {st.total_held - st.attended} absent
                       </p>
                       <span className={`inline-block mt-1.5 text-[10px] font-bold uppercase tracking-wide border rounded-full px-2 py-0.5 ${ZONE_COLORS[st.zone].chipBg}`}>
                         {st.zone === 'danger' ? 'Danger zone' : st.zone === 'borderline' ? 'Borderline' : 'Safe'}
@@ -453,7 +454,7 @@ export default function Attendance() {
           <div className="space-y-4">
             {groupedHistory.length === 0 && (
               <div className="text-center py-14 text-slate-500">
-                <p className="text-4xl mb-3">🕓</p>
+                <History className="w-10 h-10 mx-auto mb-3 text-slate-300" />
                 <p className="font-medium">No history yet</p>
                 <p className="text-sm mt-1">Marks you record will appear here.</p>
               </div>
@@ -547,7 +548,7 @@ export default function Attendance() {
                           : 'bg-red-500 border-red-500 text-white shadow-sm shadow-red-200'
                         : 'border-slate-200 text-slate-600 hover:bg-slate-100 bg-white'
                     }`}>
-                    {STATUS_META[s].icon} {STATUS_META[s].label}
+                    {STATUS_META[s].label}
                   </button>
                 ))}
               </div>

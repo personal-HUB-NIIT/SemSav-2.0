@@ -39,9 +39,9 @@ export interface SubjectStats extends SubjectSummary {
 
 export const ATTENDANCE_THRESHOLD = 75;
 
-export const STATUS_META: Record<AttendanceStatus, { label: string; icon: string }> = {
-  present: { label: 'Present', icon: '✅' },
-  absent:  { label: 'Absent',  icon: '❌' },
+export const STATUS_META: Record<AttendanceStatus, { label: string }> = {
+  present: { label: 'Present' },
+  absent:  { label: 'Absent' },
 };
 
 export const ZONE_COLORS: Record<AttendanceZone, {

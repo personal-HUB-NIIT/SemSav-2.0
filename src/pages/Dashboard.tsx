@@ -5,7 +5,9 @@ import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 import {
   ThumbsUp, ThumbsDown, ShieldQuestion, ShieldCheck, FileText, ClipboardList,
-  GraduationCap, ExternalLink, BookOpen,
+  GraduationCap, ExternalLink, BookOpen, CheckCircle2, CalendarDays,
+  FlaskConical, PartyPopper, Coffee, User, Star, Home, Calendar,
+  History, Settings, LogOut, Clock, Pencil, Plus, Target, Folder, UserCheck,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -79,12 +81,12 @@ type FilterType = 'all' | 'test' | 'assignment' | 'task';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const EVENT_COLORS: Record<AcademicTask['event_type'], {
-  bg: string; border: string; text: string; dot: string; label: string; icon: string;
+  bg: string; border: string; text: string; dot: string; label: string; Icon: typeof FileText;
 }> = {
-  test:       { bg: '#fef2f2', border: '#fecaca', text: '#dc2626', dot: '#ef4444', label: 'Test',       icon: '📝' },
-  exam:       { bg: '#f5f3ff', border: '#ddd6fe', text: '#7c3aed', dot: '#a855f7', label: 'Exam',       icon: '🎓' },
-  assignment: { bg: '#fffbeb', border: '#fde68a', text: '#b45309', dot: '#f59e0b', label: 'Assignment', icon: '📋' },
-  task:       { bg: '#eff6ff', border: '#bfdbfe', text: '#2563eb', dot: '#3b82f6', label: 'Task',       icon: '✅' },
+  test:       { bg: '#fef2f2', border: '#fecaca', text: '#dc2626', dot: '#ef4444', label: 'Test',       Icon: FileText },
+  exam:       { bg: '#f5f3ff', border: '#ddd6fe', text: '#7c3aed', dot: '#a855f7', label: 'Exam',       Icon: GraduationCap },
+  assignment: { bg: '#fffbeb', border: '#fde68a', text: '#b45309', dot: '#f59e0b', label: 'Assignment', Icon: ClipboardList },
+  task:       { bg: '#eff6ff', border: '#bfdbfe', text: '#2563eb', dot: '#3b82f6', label: 'Task',       Icon: CheckCircle2 },
 };
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -93,12 +95,12 @@ const MONTH_NAMES  = ['January','February','March','April','May','June',
 const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DAY_NAMES    = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
-const UPLOAD_META: Record<string, { label: string; icon: string; chip: string }> = {
-  NOTES:      { label: 'Notes',      icon: '📝', chip: 'bg-blue-50 border-blue-200 text-blue-700' },
-  TEST:       { label: 'PYQ',        icon: '📄', chip: 'bg-red-50 border-red-200 text-red-700' },
-  ASSIGNMENT: { label: 'Assignment', icon: '📋', chip: 'bg-amber-50 border-amber-200 text-amber-700' },
+const UPLOAD_META: Record<string, { label: string; Icon: typeof FileText; chip: string }> = {
+  NOTES:      { label: 'Notes',      Icon: FileText,      chip: 'bg-blue-50 border-blue-200 text-blue-700' },
+  TEST:       { label: 'PYQ',        Icon: FileText,      chip: 'bg-red-50 border-red-200 text-red-700' },
+  ASSIGNMENT: { label: 'Assignment', Icon: ClipboardList, chip: 'bg-amber-50 border-amber-200 text-amber-700' },
 };
-const FALLBACK_UPLOAD_META = { label: 'File', icon: '📁', chip: 'bg-slate-100 border-slate-200 text-slate-600' };
+const FALLBACK_UPLOAD_META = { label: 'File', Icon: Folder, chip: 'bg-slate-100 border-slate-200 text-slate-600' };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -274,7 +276,7 @@ function TaskModal({ open, initialDate, editTask, onClose, onSaved, userId }: Ta
       <div className="relative bg-white border border-slate-200 w-full max-w-lg rounded-2xl shadow-xl overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <h2 className="text-slate-900 font-bold text-lg flex items-center gap-2">
-            <span>{isEdit ? '✏️' : '➕'}</span>
+            {isEdit ? <Pencil className="w-4.5 h-4.5" /> : <Plus className="w-4.5 h-4.5" />}
             {isEdit ? 'Edit Event' : 'Add Academic Event'}
           </h2>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all">
@@ -300,7 +302,7 @@ function TaskModal({ open, initialDate, editTask, onClose, onSaved, userId }: Ta
                     className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border text-xs font-medium transition-all ${
                       eventType === et ? '' : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300'
                     }`}>
-                    <span className="text-lg">{c.icon}</span>{c.label}
+                    <c.Icon className="w-4.5 h-4.5 shrink-0" />
                   </button>
                 );
               })}
@@ -409,12 +411,12 @@ function AgendaCard({ task, onToggle, onEdit, onDelete, toggling }: AgendaCardPr
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
           <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border bg-white" style={{ color: c.text, borderColor: c.border }}>
-            {c.icon} {c.label}
+            <c.Icon className="w-3.5 h-3.5 inline mr-1" />{c.label}
           </span>
           {task.subject_code && (
             <span className="text-[10px] text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-full">{task.subject_code}</span>
           )}
-          <span className="text-[10px] text-slate-400 ml-auto">🕐 {formatDisplayTime(task.due_date)}</span>
+          <span className="text-[10px] text-slate-400 ml-auto inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {formatDisplayTime(task.due_date)}</span>
         </div>
         <p className={`text-sm font-semibold ${task.is_completed ? 'line-through text-slate-400' : 'text-slate-900'}`}>{task.title}</p>
         {task.description && <p className="text-xs text-slate-500 mt-0.5">{task.description}</p>}
@@ -501,11 +503,11 @@ function CalendarDrawer({
     setSelectedDate(toLocalDateKey(today));
   };
 
-  const filterPills: { key: FilterType; label: string; icon: string }[] = [
-    { key: 'all',        label: 'All',         icon: '🗓️' },
-    { key: 'test',       label: 'Tests',       icon: '📝' },
-    { key: 'assignment', label: 'Assignments', icon: '📋' },
-    { key: 'task',       label: 'Tasks',       icon: '✅' },
+  const filterPills: { key: FilterType; label: string; Icon: typeof FileText }[] = [
+    { key: 'all',        label: 'All',         Icon: CalendarDays },
+    { key: 'test',       label: 'Tests',       Icon: FileText },
+    { key: 'assignment', label: 'Assignments', Icon: ClipboardList },
+    { key: 'task',       label: 'Tasks',       Icon: CheckCircle2 },
   ];
 
   const selectedDateLabel = formatFullDate(`${selectedDate}T12:00:00`);
@@ -541,7 +543,7 @@ function CalendarDrawer({
 
           {dbMissing && (
             <div className="m-4 border border-red-200 bg-red-50 rounded-xl p-4">
-              <p className="text-red-700 font-bold text-sm mb-1">⚠️ <code className="bg-red-100 px-1 rounded text-red-800 font-mono text-xs">user_tasks</code> table missing or wrong schema</p>
+              <p className="text-red-700 font-bold text-sm mb-1"><code className="bg-red-100 px-1 rounded text-red-800 font-mono text-xs">user_tasks</code> table missing or wrong schema</p>
               <p className="text-slate-600 text-xs mb-3">Go to <strong className="text-slate-800">Supabase → SQL Editor → New Query</strong>, paste and run:</p>
               <pre className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-[10px] text-emerald-300 font-mono overflow-x-auto whitespace-pre leading-relaxed">
 {`CREATE TABLE IF NOT EXISTS public.user_tasks (
@@ -592,7 +594,7 @@ CREATE POLICY "own" ON public.user_tasks
                         ? 'bg-indigo-600 border-indigo-600 text-white'
                         : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800'
                     }`}>
-                    {p.icon}
+                    <p.Icon className="w-3.5 h-3.5" />
                   </button>
                 ))}
               </div>
@@ -655,7 +657,7 @@ CREATE POLICY "own" ON public.user_tasks
               <div className="p-3">
                 {selectedDayTasks.length === 0 ? (
                   <div className="text-center py-8">
-                    <div className="text-4xl mb-2 opacity-30">📅</div>
+                    <CalendarDays className="w-10 h-10 mx-auto mb-2 text-slate-300" />
                     <p className="text-slate-400 text-sm mb-4">Nothing scheduled</p>
                     <button onClick={() => onAddForDate(selectedDate)}
                       className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 mx-auto">
@@ -678,7 +680,7 @@ CREATE POLICY "own" ON public.user_tasks
             {tasks.length === 0 && !tasksLoading && !dbMissing && (
               <button onClick={seedDemoData} disabled={seedingDemo}
                 className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-slate-300 hover:border-indigo-400 text-slate-400 hover:text-indigo-600 text-sm rounded-2xl transition-all disabled:opacity-60">
-                {seedingDemo ? <Spinner size={14} /> : '🧪'}
+                {seedingDemo ? <Spinner size={14} /> : <FlaskConical className="w-3.5 h-3.5" />}
                 {seedingDemo ? 'Loading demo data...' : 'Load Demo Data to explore'}
               </button>
             )}
@@ -732,7 +734,7 @@ function TimetableCard({ allSlots, loading, missing }: TimetableCardProps) {
           </div>
         ) : missing ? (
           <div className="px-5 py-10 text-center">
-            <div className="text-3xl mb-2 opacity-40">🗓️</div>
+            <CalendarDays className="w-8 h-8 mx-auto mb-2 text-slate-300" />
             <p className="text-sm font-semibold text-slate-900 mb-1">Timetable not set up yet</p>
             <p className="text-xs text-slate-500 max-w-xs mx-auto">
               Run <code className="bg-slate-100 px-1 rounded font-mono text-[10px]">supabase/migrations/013_class_schedule.sql</code> in your Supabase SQL Editor to load the weekly routine.
@@ -740,7 +742,7 @@ function TimetableCard({ allSlots, loading, missing }: TimetableCardProps) {
           </div>
         ) : slots.length === 0 ? (
           <div className="px-5 py-10 text-center">
-            <div className="text-3xl mb-2 opacity-40">{isWeekend ? '🎉' : '☕'}</div>
+            {isWeekend ? <PartyPopper className="w-8 h-8 mx-auto mb-2 text-slate-300" /> : <Coffee className="w-8 h-8 mx-auto mb-2 text-slate-300" />}
             <p className="text-sm font-semibold text-slate-900">
               {isWeekend ? `It's ${todayLabel} — weekend!` : 'No classes scheduled'}
             </p>
@@ -759,7 +761,7 @@ function TimetableCard({ allSlots, loading, missing }: TimetableCardProps) {
                 <div className="flex-1 min-w-0 border-l border-slate-100 pl-4">
                   <p className="text-sm font-semibold text-slate-900 truncate">{s.subject_name}</p>
                   <p className="text-xs text-slate-500 mt-0.5 truncate">
-                    👨‍🏫 {s.teacher_name ?? 'Faculty TBD'}
+                    {'Faculty: '}{s.teacher_name ?? 'TBD'}
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-1 shrink-0">
@@ -768,7 +770,7 @@ function TimetableCard({ allSlots, loading, missing }: TimetableCardProps) {
                   </span>
                   {s.room_number && (
                     <span className="text-[10px] text-slate-600 bg-slate-100 border border-slate-200 rounded-md px-1.5 py-0.5">
-                      📍 {s.room_number}
+                      {s.room_number}
                     </span>
                   )}
                 </div>
@@ -985,7 +987,7 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
         {/* Priority 1: Urgent deadlines */}
         <div className="py-2">
           <p className={`${sectionTitle} text-red-600 px-5 pt-2 pb-1`}>
-            🔴 Urgent Deadlines · Next 48h
+            Urgent Deadlines · Next 48h
           </p>
           {tasksLoading ? (
             <div className="px-5 py-3 space-y-2">
@@ -993,7 +995,7 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
             </div>
           ) : urgent.length === 0 ? (
             <div className="mx-5 my-2 bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-medium rounded-xl px-3 py-2.5">
-              ✅ Nothing urgent — you're on top of it!
+              Nothing urgent — you're on top of it!
             </div>
           ) : (
             <div className="pb-1">
@@ -1006,9 +1008,9 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
                     className={`w-full text-left flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors border-l-4 ${
                       overdue ? 'border-l-red-500' : 'border-l-orange-400'
                     }`}>
-                    <span className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-sm"
-                      style={{ background: c.bg, border: `1px solid ${c.border}` }}>
-                      {c.icon}
+                    <span className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
+                      style={{ background: c.bg, border: `1px solid ${c.border}`, color: c.text }}>
+                      <c.Icon className="w-4 h-4" />
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-slate-900 truncate">{t.title}</p>
@@ -1030,7 +1032,7 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
         {/* Priority 2: Recent notes & PYQs */}
         <div className="py-2">
           <p className={`${sectionTitle} text-indigo-600 px-5 pt-2 pb-1`}>
-            🟣 New Notes & PYQs · Last 7 Days
+            New Notes & PYQs · Last 7 Days
           </p>
           {uploadsLoading ? (
             <div className="px-5 py-3 space-y-2">
@@ -1047,13 +1049,13 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
                 return (
                   <button key={u.id} onClick={onBrowse}
                     className="w-full text-left flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors">
-                    <span className={`shrink-0 w-8 h-8 rounded-lg border flex items-center justify-center text-sm ${meta.chip}`}>
-                      {meta.icon}
+                    <span className={`shrink-0 w-8 h-8 rounded-lg border flex items-center justify-center ${meta.chip}`}>
+                      <meta.Icon className="w-4 h-4" />
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-slate-900 truncate">{u.title_syllabus}
                         {u.status === 'UNVERIFIED' && u.user_id === profileId && (
-                          <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 align-middle">⏳ Pending</span>
+                          <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 align-middle inline-flex items-center gap-1"><Clock className="w-3 h-3" /> Pending</span>
                         )}
                       </p>
                       <p className="text-[11px] text-slate-500 mt-0.5 truncate">
@@ -1073,7 +1075,7 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
         {(general.length > 0 || !uploadsLoading) && (
           <div className="py-2 pb-3">
             <p className={`${sectionTitle} text-slate-500 px-5 pt-2 pb-1`}>
-              ⚪ Earlier Peer Uploads
+              Earlier Peer Uploads
             </p>
             {!uploadsLoading && general.length === 0 ? (
               <p className="px-5 py-1 text-xs text-slate-400">Nothing else in the vault yet.</p>
@@ -1085,13 +1087,13 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
                   return (
                     <button key={u.id} onClick={onBrowse}
                       className="w-full text-left flex items-center gap-3 px-5 py-2 hover:bg-slate-50 transition-colors">
-                      <span className={`shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center text-xs ${meta.chip}`}>
-                        {meta.icon}
+                      <span className={`shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center ${meta.chip}`}>
+                        <meta.Icon className="w-3.5 h-3.5" />
                       </span>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-slate-700 truncate">{u.title_syllabus}
                           {u.status === 'UNVERIFIED' && u.user_id === profileId && (
-                            <span className="ml-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 align-middle">⏳ Pending</span>
+                            <span className="ml-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 align-middle inline-flex items-center gap-1"><Clock className="w-3 h-3" /> Pending</span>
                           )}
                         </p>
                         <p className="text-[10px] text-slate-400">{sub?.subject_name ?? meta.label}</p>
@@ -1140,7 +1142,7 @@ function UpcomingTimeline({ milestones, loading, onSelect }: UpcomingTimelinePro
           </div>
         ) : milestones.length === 0 ? (
           <div className="py-6 text-center">
-            <div className="text-3xl mb-2 opacity-40">🎯</div>
+            <Target className="w-8 h-8 mx-auto mb-2 text-slate-300" />
             <p className="text-sm font-semibold text-slate-900">No upcoming milestones</p>
             <p className="text-xs text-slate-500 mt-0.5">Add tests & submissions from the calendar to track them here.</p>
           </div>
@@ -1162,7 +1164,7 @@ function UpcomingTimeline({ milestones, loading, onSelect }: UpcomingTimelinePro
                       </div>
                       <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full border bg-white"
                         style={{ color: c.text, borderColor: c.border }}>
-                        {c.icon} {c.label}
+                        <c.Icon className="w-3 h-3 inline" /> {c.label}
                       </span>
                     </div>
                     <p className="text-xs font-semibold text-slate-900 line-clamp-2 min-h-[2rem]">{t.title}</p>
@@ -1364,7 +1366,7 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
             <h2 className="text-slate-900 font-bold text-lg flex items-center gap-2">
-              <span>👤</span> My Profile
+              <User className="w-4.5 h-4.5" /> My Profile
             </h2>
             <div className="flex items-center gap-1">
               <button onClick={() => setEditing(true)}
@@ -1391,10 +1393,10 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
                 <p className="text-slate-500 text-sm truncate">{profile.email}</p>
                 <div className="flex items-center gap-2 mt-1.5">
                   <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-2.5 py-0.5">
-                    {profile.role === 'SUPER_ADMIN' ? '🛡️ Super Admin' : '🎓 Student'}
+                    {profile.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Student'}
                   </span>
                   <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-0.5">
-                    ⭐ {profile.karma_points} karma
+                    {profile.karma_points} karma points
                   </span>
                 </div>
               </div>
@@ -1887,7 +1889,7 @@ export default function Dashboard() {
     if (error) {
       if (isTableMissing(error)) { setDbMissing(true); toast.error('Table not found — run the SQL in the drawer!'); }
       else toast.error('Seed failed: ' + error.message);
-    } else { setDbMissing(false); toast.success('🎉 Demo milestones loaded!'); }
+    } else { setDbMissing(false); toast.success('Demo milestones loaded!'); }
     setSeedingDemo(false);
   };
 
@@ -1999,44 +2001,44 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="mt-3 flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
-                <span className="text-amber-500 font-bold text-sm">⭐ {profile?.karma_points ?? 0}</span>
+                <span className="text-amber-500 font-bold text-sm inline-flex items-center gap-1"><Star className="w-3.5 h-3.5" /> {profile?.karma_points ?? 0}</span>
                 <span className="text-slate-400 text-xs">karma points</span>
               </div>
             </div>
             <nav className="flex-1 p-4 space-y-1">
               <button onClick={() => { setSidebarOpen(false); setProfileOpen(true); }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-indigo-700 bg-indigo-50 border border-indigo-100 text-sm font-semibold">
-                <span>👤</span> Profile
+                <User className="w-4.5 h-4.5" /> Profile
               </button>
               <button onClick={() => setSidebarOpen(false)}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
-                <span>🏠</span> Dashboard
+                <Home className="w-4.5 h-4.5" /> Dashboard
               </button>
               <button onClick={() => { setSidebarOpen(false); navigate('/notes'); }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
-                <span>📚</span> Study Materials
+                <BookOpen className="w-4.5 h-4.5" /> Study Materials
               </button>
               <button onClick={() => { setSidebarOpen(false); navigate('/attendance'); }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
-                <span>📅</span> Attendance
+                <Calendar className="w-4.5 h-4.5" /> Attendance
               </button>
               <button onClick={() => { setSidebarOpen(false); navigate('/classroom'); }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
-                <span>👥</span> My Classroom
+                <UserCheck className="w-4.5 h-4.5" /> My Classroom
               </button>
               <button onClick={() => { setSidebarOpen(false); navigate('/karma-poll'); }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
-                <span>🗳️</span> My Contributions
+                <History className="w-4.5 h-4.5" /> My Contributions
               </button>
-              <button onClick={() => toast('Settings coming soon!', { icon: '⚙️' })}
+              <button onClick={() => toast('Settings coming soon!')}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
-                <span>⚙️</span> Settings
+                <Settings className="w-4.5 h-4.5" /> Settings
               </button>
             </nav>
             <div className="p-4 border-t border-slate-100">
               <button onClick={handleSignOut}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 text-sm font-medium transition-all">
-                <span>🚪</span> Log Out
+                <LogOut className="w-4.5 h-4.5" /> Log Out
               </button>
             </div>
           </div>
@@ -2055,14 +2057,14 @@ export default function Dashboard() {
             </button>
             <div className="min-w-0">
               <h1 className="text-base sm:text-lg font-bold text-slate-900 truncate">
-                Welcome back, {profile?.full_name?.split(' ')[0] ?? 'Student'} 👋
+                Welcome back, {profile?.full_name?.split(' ')[0] ?? 'Student'}
               </h1>
               <div className="hidden xs:flex sm:flex items-center gap-1.5 mt-0.5">
                 <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 rounded-full px-2 py-0.5">
                   {branchList.find(b => b.id === profile?.branch_id)?.branch_code ?? '—'} · Sem {profile?.semester ?? '—'}
                 </span>
                 <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
-                  ⭐ {profile?.karma_points ?? 0} karma
+                  {profile?.karma_points ?? 0} karma
                 </span>
               </div>
             </div>
