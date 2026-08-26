@@ -2006,10 +2006,6 @@ export default function Dashboard() {
               </div>
             </div>
             <nav className="flex-1 p-4 space-y-1">
-              <button onClick={() => { setSidebarOpen(false); setProfileOpen(true); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-indigo-700 bg-indigo-50 border border-indigo-100 text-sm font-semibold">
-                <User className="w-4.5 h-4.5" /> Profile
-              </button>
               <button onClick={() => setSidebarOpen(false)}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
                 <Home className="w-4.5 h-4.5" /> Dashboard
@@ -2035,7 +2031,11 @@ export default function Dashboard() {
                 <Settings className="w-4.5 h-4.5" /> Settings
               </button>
             </nav>
-            <div className="p-4 border-t border-slate-100">
+            <div className="p-4 border-t border-slate-100 space-y-1">
+              <button onClick={() => { setSidebarOpen(false); setProfileOpen(true); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+                <User className="w-4.5 h-4.5" /> View Profile
+              </button>
               <button onClick={handleSignOut}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 text-sm font-medium transition-all">
                 <LogOut className="w-4.5 h-4.5" /> Log Out
