@@ -767,9 +767,10 @@ interface PriorityFeedProps {
   onBrowse: () => void;
   unvotedCount?: number;
   onNavigateKarma?: () => void;
+  profileId?: string;
 }
 
-function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, onSelectTask, onBrowse, unvotedCount = 0, onNavigateKarma }: PriorityFeedProps) {
+function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, onSelectTask, onBrowse, unvotedCount = 0, onNavigateKarma, profileId }: PriorityFeedProps) {
   const sectionTitle = "text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5";
 
   return (
@@ -870,7 +871,7 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-slate-900 truncate">{u.title_syllabus}
-                        {u.status === 'UNVERIFIED' && u.user_id === profile?.id && (
+                        {u.status === 'UNVERIFIED' && u.user_id === profileId && (
                           <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 align-middle">⏳ Pending</span>
                         )}
                       </p>
@@ -908,7 +909,7 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
                       </span>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-slate-700 truncate">{u.title_syllabus}
-                          {u.status === 'UNVERIFIED' && u.user_id === profile?.id && (
+                          {u.status === 'UNVERIFIED' && u.user_id === profileId && (
                             <span className="ml-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 align-middle">⏳ Pending</span>
                           )}
                         </p>
@@ -1864,6 +1865,7 @@ export default function Dashboard() {
               onBrowse={() => navigate('/upload')}
               unvotedCount={unvotedCount}
               onNavigateKarma={() => navigate('/karma-poll')}
+              profileId={profile?.id}
             />
           </div>
 
