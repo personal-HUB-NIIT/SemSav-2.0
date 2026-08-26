@@ -2,9 +2,10 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
+import { AlertTriangle, History, BookOpen } from 'lucide-react';
 import {
   fetchSemesterSubjects, fetchAttendanceSummary, fetchAttendanceLogs,
-  markAttendance, computeStats, computeOverall, todayKey,
+  markAttendance, clearAttendance, addExtraClass, computeStats, todayKey,
   STATUS_META, ZONE_COLORS,
 } from '../hooks/useAttendance';
 import type {
@@ -32,7 +33,7 @@ function dayLabel(dateKey: string): string {
 }
 
 function emptySummary(subjectId: string): SubjectSummary {
-  return { subject_id: subjectId, total_held: 0, attended: 0, cancelled: 0 };
+  return { subject_id: subjectId, total_held: 0, attended: 0 };
 }
 
 interface LoadArgs { auth_id: string; branch_id: string; semester: number; }
@@ -41,9 +42,9 @@ async function loadAttendance(args: LoadArgs): Promise<{
   subs: AttendanceSubject[]; summaryMap: Map<string, SubjectSummary>; logRows: AttendanceLogRow[];
 }> {
   const [subs, summaryMap, logRows] = await Promise.all([
-    fetchSemesterSubjects(args.branch_id, args.semester),
-    fetchAttendanceSummary(args.auth_id, args.branch_id, args.semester),
-    fetchAttendanceLogs(args.auth_id, args.branch_id, args.semester),
+    fetchSemesterSubjects(args.branch_id, args.semester).catch(() => [] as AttendanceSubject[]),
+    fetchAttendanceSummary(args.auth_id, args.branch_id, args.semester).catch(() => new Map<string, SubjectSummary>()),
+    fetchAttendanceLogs(args.auth_id, args.branch_id, args.semester).catch(() => [] as AttendanceLogRow[]),
   ]);
   return { subs, summaryMap, logRows };
 }
@@ -77,16 +78,16 @@ function Gauge({ pct, zone, size = 84 }: { pct: number; zone: AttendanceZone; si
 // ─── Quick-action buttons ────────────────────────────────────────────────────
 
 const ACTION_STYLES: Record<AttendanceStatus, { idle: string; active: string }> = {
-  present:   { idle: 'border-emerald-200 text-emerald-700 hover:bg-emerald-50', active: 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-200' },
-  absent:    { idle: 'border-red-200 text-red-600 hover:bg-red-50',             active: 'bg-red-500 border-red-500 text-white shadow-sm shadow-red-200' },
-  cancelled: { idle: 'border-slate-200 text-slate-500 hover:bg-slate-100',      active: 'bg-slate-700 border-slate-700 text-white shadow-sm shadow-slate-300' },
+  present: { idle: 'border-emerald-200 text-emerald-700 hover:bg-emerald-50', active: 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-200' },
+  absent:  { idle: 'border-red-200 text-red-600 hover:bg-red-50',           active: 'bg-red-500 border-red-500 text-white shadow-sm shadow-red-200' },
 };
 
 function StatusButtons({
-  current, disabled, onPick,
+  current, disabled, onPick, onClear,
 }: {
   current?: AttendanceStatus; disabled: boolean;
   onPick: (s: AttendanceStatus) => void;
+  onClear: () => void;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -102,10 +103,20 @@ function StatusButtons({
               active ? ACTION_STYLES[s].active : `${ACTION_STYLES[s].idle} bg-white`
             }`}
           >
-            {STATUS_META[s].icon} {STATUS_META[s].label}
+            {STATUS_META[s].label}
           </button>
         );
       })}
+      {current && (
+        <button
+          disabled={disabled}
+          onClick={onClear}
+          title="Clear mark"
+          className="px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed border-slate-200 text-slate-500 hover:bg-slate-100 bg-white"
+        >
+          ↩ Clear
+        </button>
+      )}
     </div>
   );
 }
@@ -124,8 +135,14 @@ export default function Attendance() {
   const [logs, setLogs]           = useState<AttendanceLogRow[]>([]);
   const [loading, setLoading]     = useState(true);
   const [missingTable, setMissingTable] = useState(false);
-  const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [savingKeys, setSavingKeys] = useState<Set<string>>(new Set());
   const [reloadTick, setReloadTick] = useState(0);
+  const [extraModalOpen, setExtraModalOpen] = useState(false);
+  const [extraSubjectId, setExtraSubjectId] = useState('');
+  const [extraDate, setExtraDate] = useState(todayKey());
+  const [extraCount, setExtraCount] = useState(1);
+  const [extraStatus, setExtraStatus] = useState<AttendanceStatus>('present');
+  const [extraSaving, setExtraSaving] = useState(false);
 
   // ─── Load data ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -160,13 +177,10 @@ export default function Attendance() {
     [subjects, summary],
   );
 
-  const overall = computeOverall(allStats);
-  const dangerCount = allStats.filter(s => s.zone === 'danger').length;
-
   const today = todayKey();
   const statusToday = useMemo(() => {
     const m = new Map<string, AttendanceStatus>();
-    for (const l of logs) if (l.date === today) m.set(l.subject_id, l.status);
+    for (const l of logs) if (l.date === today && !l.is_extra) m.set(l.subject_id, l.status);
     return m;
   }, [logs, today]);
 
@@ -183,32 +197,130 @@ export default function Attendance() {
 
   // ─── Actions ───────────────────────────────────────────────────────────────
   const handleMark = async (subjectId: string, status: AttendanceStatus, dateKey: string = today) => {
-    if (!profile?.auth_id || savingKey) return;
+    if (!profile?.auth_id) return;
     const key = subjectId + dateKey;
-    const prevLogs = logs;
-    setSavingKey(key);
+    if (savingKeys.has(key)) return;
 
-    // Optimistic UI: reflect the new status instantly
+    const prevLogs = logs;
+    const prevSummary = new Map(summary);
+    setSavingKeys(prev => new Set(prev).add(key));
+
+    // Find the existing regular log for this subject+date
+    const oldLog = logs.find(l => l.subject_id === subjectId && l.date === dateKey && !l.is_extra);
+    const oldStatus = oldLog?.status;
+    const oldCount = oldLog?.class_count ?? 0;
+
+    // Optimistic: update logs — replace regular entry
     setLogs(prev => {
-      const rest = prev.filter(l => !(l.subject_id === subjectId && l.date === dateKey));
-      return [{ id: `tmp-${key}`, subject_id: subjectId, date: dateKey, status }, ...rest];
+      const rest = prev.filter(l => !(l.subject_id === subjectId && l.date === dateKey && !l.is_extra));
+      return [{ id: `tmp-${key}`, subject_id: subjectId, date: dateKey, status, class_count: 1, is_extra: false }, ...rest];
+    });
+
+    // Optimistic: update summary
+    setSummary(prev => {
+      const next = new Map(prev);
+      const cur = next.get(subjectId) ?? { subject_id: subjectId, total_held: 0, attended: 0 };
+      let { total_held, attended } = cur;
+
+      // Subtract old effect
+      if (oldStatus === 'present') { attended -= oldCount; total_held -= oldCount; }
+      else if (oldStatus === 'absent') { total_held -= oldCount; }
+
+      // Add new effect (class_count = 1 for regular marks)
+      if (status === 'present') { attended += 1; total_held += 1; }
+      else if (status === 'absent') { total_held += 1; }
+
+      next.set(subjectId, { subject_id: subjectId, total_held: Math.max(0, total_held), attended: Math.max(0, attended) });
+      return next;
     });
 
     try {
       await markAttendance(profile.auth_id, subjectId, dateKey, status);
       toast.success(dateKey === today ? `Marked ${STATUS_META[status].label.toLowerCase()}` : 'Entry updated');
-      // Re-aggregate server-side so gauges stay exact
-      if (profile.auth_id && profile.branch_id && profile.semester) {
-        const { subs, summaryMap, logRows } = await loadAttendance({
-          auth_id: profile.auth_id, branch_id: profile.branch_id, semester: profile.semester,
-        });
-        setSubjects(subs); setSummary(summaryMap); setLogs(logRows);
-      }
     } catch (err) {
       setLogs(prevLogs);
+      setSummary(prevSummary);
       toast.error(err instanceof Error ? err.message : 'Failed to save attendance');
     } finally {
-      setSavingKey(null);
+      setSavingKeys(prev => { const next = new Set(prev); next.delete(key); return next; });
+    }
+  };
+
+  const handleClear = async (subjectId: string, dateKey: string = today) => {
+    if (!profile?.auth_id) return;
+    const key = subjectId + dateKey;
+    if (savingKeys.has(key)) return;
+
+    const prevLogs = logs;
+    const prevSummary = new Map(summary);
+    setSavingKeys(prev => new Set(prev).add(key));
+
+    // Find the regular log to know what to subtract
+    const oldLog = logs.find(l => l.subject_id === subjectId && l.date === dateKey && !l.is_extra);
+    const oldStatus = oldLog?.status;
+    const oldCount = oldLog?.class_count ?? 0;
+
+    // Optimistic: remove regular entry
+    setLogs(prev => prev.filter(l => !(l.subject_id === subjectId && l.date === dateKey && !l.is_extra)));
+
+    setSummary(prev => {
+      const next = new Map(prev);
+      const cur = next.get(subjectId) ?? { subject_id: subjectId, total_held: 0, attended: 0 };
+      let { total_held, attended } = cur;
+
+      if (oldStatus === 'present') { attended -= oldCount; total_held -= oldCount; }
+      else if (oldStatus === 'absent') { total_held -= oldCount; }
+
+      next.set(subjectId, { subject_id: subjectId, total_held: Math.max(0, total_held), attended: Math.max(0, attended) });
+      return next;
+    });
+
+    try {
+      await clearAttendance(profile.auth_id, subjectId, dateKey);
+      toast.success(dateKey === today ? 'Mark cleared' : 'Entry cleared');
+    } catch (err) {
+      setLogs(prevLogs);
+      setSummary(prevSummary);
+      toast.error(err instanceof Error ? err.message : 'Failed to clear attendance');
+    } finally {
+      setSavingKeys(prev => { const next = new Set(prev); next.delete(key); return next; });
+    }
+  };
+
+  const handleExtraClass = async () => {
+    if (!profile?.auth_id || !extraSubjectId || !extraDate || extraCount < 1) return;
+    setExtraSaving(true);
+
+    const prevLogs = logs;
+    const prevSummary = new Map(summary);
+
+    // Optimistic: add extra log entry + update summary
+    const tmpId = `tmp-extra-${Date.now()}`;
+    setLogs(prev => [{ id: tmpId, subject_id: extraSubjectId, date: extraDate, status: extraStatus, class_count: extraCount, is_extra: true }, ...prev]);
+
+    setSummary(prev => {
+      const next = new Map(prev);
+      const cur = next.get(extraSubjectId) ?? { subject_id: extraSubjectId, total_held: 0, attended: 0 };
+      const newTotal = cur.total_held + extraCount;
+      const newAttended = cur.attended + (extraStatus === 'present' ? extraCount : 0);
+      next.set(extraSubjectId, { subject_id: extraSubjectId, total_held: newTotal, attended: newAttended });
+      return next;
+    });
+
+    try {
+      await addExtraClass(profile.auth_id, extraSubjectId, extraDate, extraStatus, extraCount);
+      toast.success(`Added ${extraCount} ${extraStatus} extra class${extraCount > 1 ? 'es' : ''}`);
+      setExtraModalOpen(false);
+      setExtraSubjectId('');
+      setExtraDate(todayKey());
+      setExtraCount(1);
+      setExtraStatus('present');
+    } catch (err) {
+      setLogs(prevLogs);
+      setSummary(prevSummary);
+      toast.error(err instanceof Error ? err.message : 'Failed to add extra class');
+    } finally {
+      setExtraSaving(false);
     }
   };
 
@@ -227,7 +339,7 @@ export default function Attendance() {
             </svg>
           </button>
           <div className="min-w-0">
-            <h1 className="text-base sm:text-lg font-bold text-slate-900">📅 Attendance Tracker</h1>
+            <h1 className="text-base sm:text-lg font-bold text-slate-900">Attendance Tracker</h1>
             <p className="text-xs text-slate-500">Stay above the 75% mandate</p>
           </div>
           <button onClick={() => setReloadTick(t => t + 1)}
@@ -246,62 +358,30 @@ export default function Attendance() {
         {/* Missing table notice */}
         {missingTable && (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">
-            ⚠️ The <code className="font-mono">attendance_logs</code> table isn&apos;t set up yet.
+            <span className="inline-flex items-center gap-1.5"><AlertTriangle className="w-4 h-4 inline" /> The <code className="font-mono">attendance_logs</code> table isn&apos;t set up yet.</span>
             Run <code className="font-mono">supabase/migrations/017_attendance.sql</code> in the Supabase SQL Editor.
           </div>
         )}
 
-        {/* Overall strip */}
-        {!loading && !missingTable && subjects.length > 0 && (
-          <div className={`rounded-2xl border p-5 flex flex-wrap items-center gap-5 ${
-            overall.zone === 'danger' ? 'bg-red-50 border-red-200'
-            : overall.zone === 'borderline' ? 'bg-amber-50 border-amber-200'
-            : 'bg-emerald-50 border-emerald-200'
-          }`}>
-            <Gauge pct={overall.pct} zone={overall.zone} size={96} />
-            <div className="min-w-0 space-y-1">
-              <h2 className="font-bold text-slate-900">Overall Attendance</h2>
-              <p className="text-sm text-slate-600">
-                ✅ {allStats.reduce((n, s) => n + s.attended, 0)} attended ·{' '}
-                ❌ {allStats.reduce((n, s) => n + s.total_held - s.attended, 0)} absent ·{' '}
-                🚫 {allStats.reduce((n, s) => n + s.cancelled, 0)} cancelled
-              </p>
-              <p className={`text-sm font-semibold ${
-                overall.zone === 'danger' ? 'text-red-700' : overall.zone === 'borderline' ? 'text-amber-700' : 'text-emerald-700'
-              }`}>
-                {overall.zone === 'danger'
-                  ? `⚠️ Below 75% — bunking is banned for you now!`
-                  : overall.zone === 'borderline'
-                    ? '⚡ Borderline zone — keep showing up'
-                    : '✅ Safe zone — great streak!'}
-              </p>
-              {statusToday.size > 0 && (
-                <span className="inline-block text-[11px] font-semibold bg-white/70 border border-slate-200 rounded-full px-2.5 py-0.5 text-slate-600">
-                  {statusToday.size}/{subjects.length} subjects marked today
-                </span>
-              )}
-            </div>
-            {dangerCount > 0 && (
-              <div className="ml-auto text-center bg-white/70 border border-red-200 rounded-xl px-4 py-3 shrink-0">
-                <p className="text-2xl font-bold text-red-600">{dangerCount}</p>
-                <p className="text-[11px] font-semibold text-red-700 uppercase tracking-wide">
-                  subject{dangerCount > 1 ? 's' : ''} at risk
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Tabs */}
-        <div className="flex gap-2 bg-white border border-slate-200 rounded-xl p-1 w-fit">
-          {([['today', '📌 Mark Today'], ['history', '🕓 History']] as const).map(([key, label]) => (
-            <button key={key} onClick={() => setTab(key)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                tab === key ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200' : 'text-slate-600 hover:bg-slate-100'
-              }`}>
-              {label}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="flex gap-2 bg-white border border-slate-200 rounded-xl p-1 w-fit">
+            {([['today', 'Mark Today'], ['history', 'History']] as const).map(([key, label]) => (
+              <button key={key} onClick={() => setTab(key)}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  tab === key ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200' : 'text-slate-600 hover:bg-slate-100'
+                }`}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => setExtraModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-all shadow-sm shadow-indigo-200">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Add Extra Class
+          </button>
         </div>
 
         {/* Loading */}
@@ -317,7 +397,7 @@ export default function Attendance() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {subjects.length === 0 && !missingTable && (
               <div className="md:col-span-2 text-center py-14 text-slate-500">
-                <p className="text-4xl mb-3">📚</p>
+                <BookOpen className="w-10 h-10 mx-auto mb-3 text-slate-300" />
                 <p className="font-medium">No subjects found for Semester {profile?.semester}</p>
                 <p className="text-sm mt-1">Ask an admin to seed subjects for your branch.</p>
               </div>
@@ -325,7 +405,7 @@ export default function Attendance() {
             {subjects.map((sub, i) => {
               const st = allStats[i];
               const cur = statusToday.get(sub.id);
-              const busy = savingKey === sub.id + today;
+              const busy = savingKeys.has(sub.id + today);
               return (
                 <div key={sub.id}
                   className="bg-white border border-slate-200 rounded-2xl p-4 hover:border-slate-300 hover:shadow-md hover:shadow-slate-100 transition-all">
@@ -340,7 +420,7 @@ export default function Attendance() {
                       </div>
                       <p className="text-xs text-slate-400 font-mono">{sub.subject_code}</p>
                       <p className="mt-1 text-xs text-slate-500">
-                        ✅ {st.attended} · ❌ {st.total_held - st.attended} · 🚫 {st.cancelled}
+                        {st.attended} attended · {st.total_held - st.attended} absent
                       </p>
                       <span className={`inline-block mt-1.5 text-[10px] font-bold uppercase tracking-wide border rounded-full px-2 py-0.5 ${ZONE_COLORS[st.zone].chipBg}`}>
                         {st.zone === 'danger' ? 'Danger zone' : st.zone === 'borderline' ? 'Borderline' : 'Safe'}
@@ -361,7 +441,7 @@ export default function Attendance() {
 
                   {/* Today's quick actions */}
                   <div className="mt-3">
-                    <StatusButtons current={cur} disabled={busy || missingTable} onPick={(s) => handleMark(sub.id, s)} />
+                    <StatusButtons current={cur} disabled={busy || missingTable} onPick={(s) => handleMark(sub.id, s)} onClear={() => handleClear(sub.id)} />
                   </div>
                 </div>
               );
@@ -374,7 +454,7 @@ export default function Attendance() {
           <div className="space-y-4">
             {groupedHistory.length === 0 && (
               <div className="text-center py-14 text-slate-500">
-                <p className="text-4xl mb-3">🕓</p>
+                <History className="w-10 h-10 mx-auto mb-3 text-slate-300" />
                 <p className="font-medium">No history yet</p>
                 <p className="text-sm mt-1">Marks you record will appear here.</p>
               </div>
@@ -388,7 +468,7 @@ export default function Attendance() {
                 <div className="divide-y divide-slate-100">
                   {entries.map(entry => {
                     const sub = subjectById.get(entry.subject_id);
-                    const busy = savingKey === entry.subject_id + entry.date;
+                    const busy = savingKeys.has(entry.subject_id + entry.date);
                     return (
                       <div key={entry.id} className="px-4 py-3 flex flex-wrap items-center gap-3">
                         <div className="min-w-0 flex-1">
@@ -401,6 +481,7 @@ export default function Attendance() {
                           current={entry.status}
                           disabled={busy || missingTable}
                           onPick={(s) => handleMark(entry.subject_id, s, entry.date)}
+                          onClear={() => handleClear(entry.subject_id, entry.date)}
                         />
                       </div>
                     );
@@ -412,6 +493,76 @@ export default function Attendance() {
         )}
 
       </main>
+
+      {/* ── Extra Class Modal ── */}
+      {extraModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm" onClick={() => { if (!extraSaving) setExtraModalOpen(false); }} />
+          <div className="relative bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-slate-900">Add Extra Class Attendance</h2>
+              <button onClick={() => setExtraModalOpen(false)} disabled={extraSaving}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-all disabled:opacity-50">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Subject */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Subject</label>
+              <select value={extraSubjectId} onChange={e => setExtraSubjectId(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400">
+                <option value="">Select subject…</option>
+                {subjects.map(s => (
+                  <option key={s.id} value={s.id}>{s.subject_name} ({s.subject_code})</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Date */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Date</label>
+              <input type="date" value={extraDate} onChange={e => setExtraDate(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400" />
+            </div>
+
+            {/* Classes conducted */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Number of Classes</label>
+              <input type="number" min={1} max={10} value={extraCount} onChange={e => setExtraCount(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400" />
+            </div>
+
+            {/* Status */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-2">Status</label>
+              <div className="flex gap-2">
+                {(['present', 'absent'] as AttendanceStatus[]).map(s => (
+                  <button key={s} onClick={() => setExtraStatus(s)}
+                    className={`flex-1 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
+                      extraStatus === s
+                        ? s === 'present'
+                          ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-200'
+                          : 'bg-red-500 border-red-500 text-white shadow-sm shadow-red-200'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-100 bg-white'
+                    }`}>
+                    {STATUS_META[s].label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Submit */}
+            <button onClick={handleExtraClass} disabled={!extraSubjectId || !extraDate || extraSaving}
+              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-all shadow-sm shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+              {extraSaving && <div className="border-2 border-white/30 border-t-white rounded-full animate-spin w-4 h-4" />}
+              {extraSaving ? 'Saving…' : 'Add Extra Class'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

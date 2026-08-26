@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabaseClient';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type AttendanceStatus = 'present' | 'absent' | 'cancelled';
+export type AttendanceStatus = 'present' | 'absent';
 
 export interface AttendanceSubject {
   id: string;
@@ -16,13 +16,14 @@ export interface AttendanceLogRow {
   subject_id: string;
   date: string; // 'YYYY-MM-DD'
   status: AttendanceStatus;
+  class_count: number;
+  is_extra: boolean;
 }
 
 export interface SubjectSummary {
   subject_id: string;
-  total_held: number; // present + absent (cancelled excluded)
-  attended: number;   // present only
-  cancelled: number;
+  total_held: number; // sum of class_count (present + absent)
+  attended: number;   // sum of class_count where present
 }
 
 export type AttendanceZone = 'safe' | 'borderline' | 'danger';
@@ -30,18 +31,17 @@ export type AttendanceZone = 'safe' | 'borderline' | 'danger';
 export interface SubjectStats extends SubjectSummary {
   pct: number;
   zone: AttendanceZone;
-  canMiss: number;    // classes that can still be skipped while staying >= 75%
-  needAttend: number; // consecutive classes needed to get back to >= 75%
+  canMiss: number;
+  needAttend: number;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 export const ATTENDANCE_THRESHOLD = 75;
 
-export const STATUS_META: Record<AttendanceStatus, { label: string; icon: string }> = {
-  present:   { label: 'Present',          icon: '✅' },
-  absent:    { label: 'Absent',           icon: '❌' },
-  cancelled: { label: 'Cancelled/Bunk',   icon: '🚫' },
+export const STATUS_META: Record<AttendanceStatus, { label: string }> = {
+  present: { label: 'Present' },
+  absent:  { label: 'Absent' },
 };
 
 export const ZONE_COLORS: Record<AttendanceZone, {
@@ -65,13 +65,6 @@ export function todayKey(): string {
   return toLocalDateKey(new Date());
 }
 
-/**
- * Core attendance math.
- * - pct      = attended / total_held * 100 (cancelled never counts)
- * - zone     : red < 75, yellow 75–80 (borderline), green > 80
- * - canMiss  = max classes skip-able keeping pct >= 75  → floor((4a − 3h) / 3)
- * - needAttend = consecutive presents to reach 75%      → ceil(3h − 4a)
- */
 export function computeStats(s: SubjectSummary): SubjectStats {
   const held = s.total_held;
   const att = s.attended;
@@ -86,17 +79,7 @@ export function computeStats(s: SubjectSummary): SubjectStats {
 
   const canMiss = Math.max(0, Math.floor((4 * att - 3 * held) / 3));
   const needAttend = pct >= ATTENDANCE_THRESHOLD ? 0 : Math.max(1, Math.ceil(3 * held - 4 * att));
-  return { ...s, pct, zone, canMiss, needAttend };
-}
-
-/** Overall percentage across all subjects (weighted by held classes). */
-export function computeOverall(stats: SubjectStats[]): { pct: number; zone: AttendanceZone } {
-  const held = stats.reduce((n, s) => n + s.total_held, 0);
-  const att = stats.reduce((n, s) => n + s.attended, 0);
-  if (held === 0) return { pct: 0, zone: 'borderline' };
-  const pct = Math.round((att / held) * 1000) / 10;
-  const zone: AttendanceZone = pct < ATTENDANCE_THRESHOLD ? 'danger' : pct <= 80 ? 'borderline' : 'safe';
-  return { pct, zone };
+  return { ...s, total_held: held, attended: att, pct, zone, canMiss, needAttend };
 }
 
 // ─── Data access ─────────────────────────────────────────────────────────────
@@ -112,30 +95,39 @@ export async function fetchSemesterSubjects(branchId: string, semester: number):
   return (data ?? []) as AttendanceSubject[];
 }
 
-/** Aggregated per-subject counts via DB RPC (efficient grouping on load). Scoped to branch + semester. */
 export async function fetchAttendanceSummary(userId: string, branchId: string, semester: number): Promise<Map<string, SubjectSummary>> {
-  const { data, error } = await supabase.rpc('get_attendance_summary', {
-    p_user_id: userId,
-    p_branch_id: branchId,
-    p_semester: semester,
-  });
-  const map = new Map<string, SubjectSummary>();
-  if (!error && Array.isArray(data)) {
-    for (const row of data as { subject_id: string; total_held: number | string; attended: number | string; cancelled: number | string }[]) {
-      map.set(row.subject_id, {
-        subject_id: row.subject_id,
-        total_held: Number(row.total_held),
-        attended: Number(row.attended),
-        cancelled: Number(row.cancelled),
-      });
+  try {
+    const { data, error } = await supabase.rpc('get_attendance_summary', {
+      p_user_id: userId,
+      p_branch_id: branchId,
+      p_semester: semester,
+    });
+    if (error) throw error;
+    const map = new Map<string, SubjectSummary>();
+    if (Array.isArray(data)) {
+      for (const row of data as { subject_id: string; total_held: number | string; attended: number | string }[]) {
+        map.set(row.subject_id, {
+          subject_id: row.subject_id,
+          total_held: Number(row.total_held),
+          attended: Number(row.attended),
+        });
+      }
     }
+    return map;
+  } catch {
+    const logs = await fetchAttendanceLogs(userId, branchId, semester, 2000);
+    const map = new Map<string, SubjectSummary>();
+    for (const l of logs) {
+      const cur = map.get(l.subject_id) ?? { subject_id: l.subject_id, total_held: 0, attended: 0 };
+      if (l.status === 'present' || l.status === 'absent') cur.total_held += l.class_count;
+      if (l.status === 'present') cur.attended += l.class_count;
+      map.set(l.subject_id, cur);
+    }
+    return map;
   }
-  return map;
 }
 
-/** Full log list — powers the history view and "already marked today" state. Scoped to branch + semester. */
 export async function fetchAttendanceLogs(userId: string, branchId: string, semester: number, limit = 500): Promise<AttendanceLogRow[]> {
-  // First get subject IDs for this branch+semester
   const { data: subRows, error: subErr } = await supabase
     .from('subjects')
     .select('id')
@@ -147,7 +139,7 @@ export async function fetchAttendanceLogs(userId: string, branchId: string, seme
 
   const { data, error } = await supabase
     .from('attendance_logs')
-    .select('id, subject_id, date, status')
+    .select('id, subject_id, date, status, class_count, is_extra')
     .eq('user_id', userId)
     .in('subject_id', subjectIds)
     .order('date', { ascending: false })
@@ -156,19 +148,67 @@ export async function fetchAttendanceLogs(userId: string, branchId: string, seme
   return (data ?? []) as AttendanceLogRow[];
 }
 
-/**
- * Insert or flip today's mark. The unique (user_id, subject_id, date)
- * constraint makes this a safe upsert — no duplicate rows possible.
- */
+/** Upsert today's regular class mark (class_count=1, is_extra=false).
+ *  Deletes any existing regular entry first, then inserts — partial unique
+ *  index prevents duplicates but can't be used as onConflict target. */
 export async function markAttendance(
   userId: string,
   subjectId: string,
   dateKey: string,
   status: AttendanceStatus,
 ): Promise<void> {
-  const { error } = await supabase.from('attendance_logs').upsert(
-    { user_id: userId, subject_id: subjectId, date: dateKey, status },
-    { onConflict: 'user_id,subject_id,date' },
-  );
+  // Delete existing regular entry for this subject+date
+  await supabase
+    .from('attendance_logs')
+    .delete()
+    .eq('user_id', userId)
+    .eq('subject_id', subjectId)
+    .eq('date', dateKey)
+    .eq('is_extra', false);
+
+  // Insert new regular entry
+  const { error } = await supabase.from('attendance_logs').insert({
+    user_id: userId,
+    subject_id: subjectId,
+    date: dateKey,
+    status,
+    class_count: 1,
+    is_extra: false,
+  });
+  if (error) throw error;
+}
+
+/** Delete today's regular entry (is_extra=false) for a subject. */
+export async function clearAttendance(
+  userId: string,
+  subjectId: string,
+  dateKey: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('attendance_logs')
+    .delete()
+    .eq('user_id', userId)
+    .eq('subject_id', subjectId)
+    .eq('date', dateKey)
+    .eq('is_extra', false);
+  if (error) throw error;
+}
+
+/** Insert an extra class entry (is_extra=true, class_count=N). */
+export async function addExtraClass(
+  userId: string,
+  subjectId: string,
+  dateKey: string,
+  status: AttendanceStatus,
+  count: number,
+): Promise<void> {
+  const { error } = await supabase.from('attendance_logs').insert({
+    user_id: userId,
+    subject_id: subjectId,
+    date: dateKey,
+    status,
+    class_count: count,
+    is_extra: true,
+  });
   if (error) throw error;
 }

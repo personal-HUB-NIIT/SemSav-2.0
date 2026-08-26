@@ -183,7 +183,7 @@ export default function AdminDashboard() {
       <header className="bg-slate-900 border-b border-slate-800 p-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-amber-600/20 border border-amber-600/30 rounded-xl flex items-center justify-center">
-            <span className="text-xl">🛡️</span>
+            
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">Admin Command Center</h1>
@@ -210,9 +210,9 @@ export default function AdminDashboard() {
                   : 'hover:bg-slate-900 text-slate-400 border border-transparent'
               }`}
             >
-              {tab === 'UPLOADS' && '📄 Manage Uploads'}
-              {tab === 'USERS' && '👥 User Directory'}
-              {tab === 'CURRICULUM' && '📚 Curriculum (Branches)'}
+              {tab === 'UPLOADS' && 'Manage Uploads'}
+              {tab === 'USERS' && 'User Directory'}
+              {tab === 'CURRICULUM' && 'Curriculum (Branches)'}
             </button>
           ))}
         </div>

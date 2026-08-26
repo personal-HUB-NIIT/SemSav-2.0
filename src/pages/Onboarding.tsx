@@ -55,7 +55,7 @@ export default function Onboarding() {
 
     // Refresh profile so ProtectedRoute sees onboarding_completed=true
     await fetchProfile(user.id);
-    toast.success('Profile complete! Welcome to SemSav 🎉');
+    toast.success('Profile complete! Welcome to SemSav');
     // Hard redirect to ensure fresh profile load and avoid stale context race
     window.location.href = '/dashboard';
   };
@@ -182,7 +182,7 @@ export default function Onboarding() {
                     className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
-                    {loading ? 'Saving...' : 'Complete Setup 🎉'}
+                    {loading ? 'Saving...' : 'Complete Setup'}
                   </button>
                 </div>
               </div>
