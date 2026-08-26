@@ -35,6 +35,8 @@ interface FeedUpload {
   title_syllabus: string;
   category: string;
   created_at: string;
+  status: string;
+  user_id: string;
   users?: { full_name: string; avatar_url: string | null } | { full_name: string; avatar_url: string | null }[] | null;
   subjects?: { subject_name: string; subject_code: string } | { subject_name: string; subject_code: string }[] | null;
 }
@@ -867,7 +869,11 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
                       {meta.icon}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-900 truncate">{u.title_syllabus}</p>
+                      <p className="text-sm font-semibold text-slate-900 truncate">{u.title_syllabus}
+                        {u.status === 'UNVERIFIED' && u.user_id === profile?.id && (
+                          <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 align-middle">⏳ Pending</span>
+                        )}
+                      </p>
                       <p className="text-[11px] text-slate-500 mt-0.5 truncate">
                         {sub ? `${sub.subject_name} · ` : ''}
                         {uploader?.full_name ?? 'Peer upload'}
@@ -901,7 +907,11 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
                         {meta.icon}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-slate-700 truncate">{u.title_syllabus}</p>
+                        <p className="text-xs font-medium text-slate-700 truncate">{u.title_syllabus}
+                          {u.status === 'UNVERIFIED' && u.user_id === profile?.id && (
+                            <span className="ml-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 align-middle">⏳ Pending</span>
+                          )}
+                        </p>
                         <p className="text-[10px] text-slate-400">{sub?.subject_name ?? meta.label}</p>
                       </div>
                       <span className="shrink-0 text-[10px] text-slate-400">{timeAgo(u.created_at)}</span>
@@ -1519,7 +1529,7 @@ export default function Dashboard() {
       setUploadsLoading(true);
       const { data, error } = await supabase
         .from('uploads')
-        .select('id, title_syllabus, category, created_at, users(full_name, avatar_url), subjects(subject_name, subject_code)')
+        .select('id, title_syllabus, category, created_at, status, user_id, users(full_name, avatar_url), subjects(subject_name, subject_code)')
         .eq('branch_id', profile.branch_id!)
         .eq('semester', profile.semester!)
         .neq('status', 'PURGED')

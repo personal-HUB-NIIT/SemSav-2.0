@@ -123,11 +123,11 @@ export default function Upload() {
     if (category === 'TEST' && !testType) { toast.error('Please select test type'); return; }
     if (category === 'TEST' && !dueDateTime) { toast.error('Please enter exam date & time'); return; }
     if (category === 'ASSIGNMENT' && !dueDateTime) { toast.error('Please enter submission deadline'); return; }
-    if (category !== 'TEST' && !selectedFile) { toast.error('Please attach a file'); return; }
+    if (category === 'NOTES' && !selectedFile) { toast.error('Please attach a file for notes'); return; }
 
     setLoading(true);
     try {
-      // 1. Upload file to Supabase Storage (optional for TEST)
+      // 1. Upload file to Supabase Storage (required for NOTES, optional for ASSIGNMENT/TEST)
       let publicUrl: string | null = null;
       if (selectedFile) {
         const ext = selectedFile.name.split('.').pop();
@@ -311,7 +311,7 @@ export default function Upload() {
           {/* File Upload */}
           <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-6">
             <label className="block text-slate-300 text-sm font-medium mb-3">
-              Attach File {category === 'TEST' && <span className="text-slate-500">(optional)</span>}
+              Attach File {category === 'NOTES' ? <span className="text-red-400">*</span> : <span className="text-slate-500">(optional)</span>}
             </label>
             <div
               onDragOver={e => { e.preventDefault(); setDragOver(true); }}

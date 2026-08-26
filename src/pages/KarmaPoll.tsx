@@ -8,21 +8,22 @@ import toast from 'react-hot-toast';
 
 interface QueueItem {
   id: string;
-  uploader_id: string;
-  branch_id: string;
-  semester: number;
-  item_type: 'NOTE' | 'ASSIGNMENT' | 'TEST_DATE' | 'PYQ';
-  title: string;
-  description: string | null;
-  payload: Record<string, unknown>;
+  user_id: string;
+  title_syllabus: string;
+  category: 'NOTES' | 'ASSIGNMENT' | 'TEST';
+  test_type: string | null;
+  due_date_time: string | null;
+  room_no: string | null;
+  file_url: string | null;
+  created_at: string;
+  status: string;
   upvotes: number;
   downvotes: number;
-  status: 'pending' | 'verified' | 'rejected';
-  created_at: string;
   users?: { full_name: string; avatar_url: string | null } | { full_name: string; avatar_url: string | null }[] | null;
+  subjects?: { subject_name: string; subject_code: string } | { subject_name: string; subject_code: string }[] | null;
 }
 
-type FilterTab = 'all' | 'TEST_DATE' | 'ASSIGNMENT' | 'NOTE_PYQ';
+type FilterTab = 'all' | 'TEST' | 'ASSIGNMENT' | 'NOTES';
 
 interface LeaderboardEntry {
   id: string;
@@ -33,19 +34,18 @@ interface LeaderboardEntry {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const TYPE_META: Record<string, { label: string; icon: string; chip: string; barColor: string }> = {
-  NOTE:       { label: 'Notes',       icon: '📄', chip: 'bg-blue-50 border-blue-200 text-blue-700',   barColor: 'bg-blue-500' },
-  PYQ:        { label: 'PYQ',         icon: '📝', chip: 'bg-purple-50 border-purple-200 text-purple-700', barColor: 'bg-purple-500' },
+  NOTES:      { label: 'Notes',       icon: '📄', chip: 'bg-blue-50 border-blue-200 text-blue-700',   barColor: 'bg-blue-500' },
   ASSIGNMENT: { label: 'Assignment',  icon: '📋', chip: 'bg-amber-50 border-amber-200 text-amber-700', barColor: 'bg-amber-500' },
-  TEST_DATE:  { label: 'Test / Exam', icon: '🎓', chip: 'bg-red-50 border-red-200 text-red-700',     barColor: 'bg-red-500' },
+  TEST:       { label: 'Test / Exam', icon: '🎓', chip: 'bg-red-50 border-red-200 text-red-700',     barColor: 'bg-red-500' },
 };
 
 const FALLBACK_TYPE_META = { label: 'Other', icon: '📁', chip: 'bg-slate-100 border-slate-200 text-slate-600', barColor: 'bg-slate-500' };
 
 const FILTER_TABS: { key: FilterTab; label: string; icon: string }[] = [
   { key: 'all',        label: 'All Pending',       icon: '🗳️' },
-  { key: 'TEST_DATE',  label: 'Test & Exam Dates', icon: '🎓' },
+  { key: 'TEST',       label: 'Test & Exam Dates', icon: '🎓' },
   { key: 'ASSIGNMENT', label: 'Assignments',        icon: '📋' },
-  { key: 'NOTE_PYQ',   label: 'Notes & PYQs',       icon: '📄' },
+  { key: 'NOTES',      label: 'Notes',              icon: '📄' },
 ];
 
 const KARMA_TIERS = [
@@ -87,18 +87,16 @@ function relOne<T>(rel: T | T[] | null | undefined): T | null {
 }
 
 function extractSubjectCode(item: QueueItem): string | null {
-  if (item.payload && typeof item.payload === 'object') {
-    const sc = item.payload.subject_code;
-    if (typeof sc === 'string' && sc.trim()) return sc.trim();
-  }
-  return null;
+  const sub = relOne(item.subjects);
+  return sub?.subject_code ?? null;
 }
 
 function extractPayloadChips(item: QueueItem): { key: string; value: string }[] {
-  if (!item.payload || typeof item.payload !== 'object') return [];
-  return Object.entries(item.payload)
-    .filter(([k, v]) => v != null && String(v).trim() !== '' && k !== 'subject_code')
-    .map(([k, v]) => ({ key: k.replace(/_/g, ' '), value: String(v) }));
+  const chips: { key: string; value: string }[] = [];
+  if (item.test_type) chips.push({ key: 'test type', value: item.test_type.replace(/_/g, ' ') });
+  if (item.due_date_time) chips.push({ key: 'date', value: new Date(item.due_date_time).toLocaleString() });
+  if (item.room_no) chips.push({ key: 'room', value: item.room_no });
+  return chips;
 }
 
 // ─── Spinner ─────────────────────────────────────────────────────────────────
@@ -120,37 +118,19 @@ interface QueueCardProps {
   requiredVotes: number;
   onVote: (queueId: string, voteType: 'UP' | 'DOWN') => void;
   voting: boolean;
+  isOwn: boolean;
 }
 
-function QueueCard({ item, myVote, requiredVotes, onVote, voting }: QueueCardProps) {
-  const meta = TYPE_META[item.item_type] ?? FALLBACK_TYPE_META;
+function QueueCard({ item, myVote, requiredVotes, onVote, voting, isOwn }: QueueCardProps) {
+  const meta = TYPE_META[item.category] ?? FALLBACK_TYPE_META;
   const uploader = relOne(item.users);
   const subjectCode = extractSubjectCode(item);
   const payloadChips = extractPayloadChips(item);
-  const totalVotes = item.upvotes + item.downvotes;
   const progressPct = Math.min(100, (item.upvotes / requiredVotes) * 100);
   const remaining = Math.max(0, requiredVotes - item.upvotes);
-  const isVerified = item.upvotes >= requiredVotes;
-  const isRejected = item.downvotes >= requiredVotes;
 
   return (
-    <div className={`bg-white border rounded-2xl p-5 transition-all hover:shadow-md ${
-      isVerified ? 'border-emerald-300 ring-1 ring-emerald-100'
-      : isRejected ? 'border-red-300 ring-1 ring-red-100 opacity-60'
-      : 'border-slate-200'
-    }`}>
-      {/* Status ribbon */}
-      {isVerified && (
-        <div className="mb-3 flex items-center gap-1.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1 w-fit">
-          ✅ Verified — Promoted to live data
-        </div>
-      )}
-      {isRejected && (
-        <div className="mb-3 flex items-center gap-1.5 text-[10px] font-bold text-red-700 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1 w-fit">
-          🚫 Rejected by community
-        </div>
-      )}
-
+    <div className="bg-white border border-slate-200 rounded-2xl p-5 transition-all hover:shadow-md">
       {/* Header row: uploader + type badge */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-3 min-w-0">
@@ -180,10 +160,7 @@ function QueueCard({ item, myVote, requiredVotes, onVote, voting }: QueueCardPro
 
       {/* Title + Description */}
       <div className="mb-3">
-        <h3 className="text-sm font-bold text-slate-900 leading-snug">{item.title}</h3>
-        {item.description && (
-          <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">{item.description}</p>
-        )}
+        <h3 className="text-sm font-bold text-slate-900 leading-snug">{item.title_syllabus}</h3>
       </div>
 
       {/* Payload chips */}
@@ -207,7 +184,7 @@ function QueueCard({ item, myVote, requiredVotes, onVote, voting }: QueueCardPro
             </span>
             <span className="text-[10px] text-slate-400">votes needed</span>
           </div>
-          {remaining > 0 && !isVerified && !isRejected && (
+          {remaining > 0 && (
             <span className="text-[10px] text-slate-400">
               {remaining} more to verify
             </span>
@@ -223,34 +200,42 @@ function QueueCard({ item, myVote, requiredVotes, onVote, voting }: QueueCardPro
 
       {/* Vote Buttons */}
       <div className="flex items-center gap-2">
-        <button
-          onClick={() => onVote(item.id, 'UP')}
-          disabled={voting || myVote === 'UP' || isVerified || isRejected}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
-            myVote === 'UP'
-              ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-sm shadow-emerald-100'
-              : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50'
-          } disabled:opacity-40 disabled:cursor-not-allowed`}
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
-          </svg>
-          {myVote === 'UP' ? 'Voted ✓' : 'Verify'} ({item.upvotes})
-        </button>
-        <button
-          onClick={() => onVote(item.id, 'DOWN')}
-          disabled={voting || myVote === 'DOWN' || isVerified || isRejected}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
-            myVote === 'DOWN'
-              ? 'bg-red-50 border-red-300 text-red-700 shadow-sm shadow-red-100'
-              : 'bg-white border-slate-200 text-slate-600 hover:border-red-300 hover:text-red-700 hover:bg-red-50'
-          } disabled:opacity-40 disabled:cursor-not-allowed`}
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-          {myVote === 'DOWN' ? 'Flagged ✓' : 'Flag'} ({item.downvotes})
-        </button>
+        {isOwn ? (
+          <div className="flex-1 text-center text-[11px] text-slate-400 py-2.5 rounded-xl bg-slate-50 border border-slate-200">
+            Waiting for classmates to verify...
+          </div>
+        ) : (
+          <>
+            <button
+              onClick={() => onVote(item.id, 'UP')}
+              disabled={voting || myVote === 'UP'}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
+                myVote === 'UP'
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-sm shadow-emerald-100'
+                  : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50'
+              } disabled:opacity-40 disabled:cursor-not-allowed`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+              </svg>
+              {myVote === 'UP' ? 'Voted ✓' : 'Verify'} ({item.upvotes})
+            </button>
+            <button
+              onClick={() => onVote(item.id, 'DOWN')}
+              disabled={voting || myVote === 'DOWN'}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
+                myVote === 'DOWN'
+                  ? 'bg-red-50 border-red-300 text-red-700 shadow-sm shadow-red-100'
+                  : 'bg-white border-slate-200 text-slate-600 hover:border-red-300 hover:text-red-700 hover:bg-red-50'
+              } disabled:opacity-40 disabled:cursor-not-allowed`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+              {myVote === 'DOWN' ? 'Flagged ✓' : 'Flag'} ({item.downvotes})
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -270,22 +255,36 @@ export default function KarmaPoll() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [requiredVotes, setRequired]  = useState(1);
 
-  // ─── Fetch queue items ─────────────────────────────────────────────────────
+  // ─── Fetch UNVERIFIED uploads ───────────────────────────────────────────────
 
   const fetchItems = useCallback(async () => {
     if (!profile?.branch_id || !profile?.semester) return;
     setLoading(true);
 
     const { data, error } = await supabase
-      .from('verification_queue')
-      .select('*, users(full_name, avatar_url)')
+      .from('uploads')
+      .select('id, user_id, title_syllabus, category, test_type, due_date_time, room_no, file_url, created_at, status, users(full_name, avatar_url), subjects(subject_name, subject_code)')
       .eq('branch_id', profile.branch_id!)
       .eq('semester', profile.semester!)
-      .eq('status', 'pending')
+      .eq('status', 'UNVERIFIED')
       .order('created_at', { ascending: false });
 
-    if (!error) {
-      setItems((data ?? []) as QueueItem[]);
+    if (!error && data) {
+      // Fetch vote counts for each upload
+      const itemsWithVotes: QueueItem[] = await Promise.all(
+        data.map(async (upload: any) => {
+          const { data: votes } = await supabase
+            .from('votes')
+            .select('vote_type')
+            .eq('upload_id', upload.id);
+
+          const upvotes = votes?.filter((v: any) => v.vote_type === 'UP').length ?? 0;
+          const downvotes = votes?.filter((v: any) => v.vote_type === 'DOWN').length ?? 0;
+
+          return { ...upload, upvotes, downvotes };
+        })
+      );
+      setItems(itemsWithVotes);
     }
 
     setLoading(false);
@@ -299,15 +298,15 @@ export default function KarmaPoll() {
     if (!profile?.auth_id || items.length === 0) return;
     const ids = items.map(i => i.id);
     supabase
-      .from('queue_votes')
-      .select('queue_id, vote_type')
-      .in('queue_id', ids)
+      .from('votes')
+      .select('upload_id, vote_type')
+      .in('upload_id', ids)
       .eq('user_id', profile.auth_id)
       .then(({ data }) => {
         if (!data) return;
         const map: Record<string, 'UP' | 'DOWN'> = {};
-        data.forEach((v: { queue_id: string; vote_type: string }) => {
-          map[v.queue_id] = v.vote_type as 'UP' | 'DOWN';
+        data.forEach((v: { upload_id: string; vote_type: string }) => {
+          map[v.upload_id] = v.vote_type as 'UP' | 'DOWN';
         });
         setMyVotes(map);
       });
@@ -348,12 +347,12 @@ export default function KarmaPoll() {
 
   // ─── Vote handler ──────────────────────────────────────────────────────────
 
-  const handleVote = async (queueId: string, voteType: 'UP' | 'DOWN') => {
+  const handleVote = async (uploadId: string, voteType: 'UP' | 'DOWN') => {
     if (!profile?.auth_id) { toast.error('Please sign in to vote'); return; }
-    setVotingId(queueId);
+    setVotingId(uploadId);
 
-    const { data, error } = await supabase.rpc('handle_queue_vote', {
-      p_queue_id:  queueId,
+    const { data, error } = await supabase.rpc('submit_queue_vote', {
+      p_upload_id: uploadId,
       p_user_id:   profile.auth_id,
       p_vote_type: voteType,
     });
@@ -364,7 +363,7 @@ export default function KarmaPoll() {
       toast.error(String(data.error));
     } else {
       toast.success(voteType === 'UP' ? 'Vote recorded! +2 karma' : 'Flag recorded! +2 karma');
-      setMyVotes(prev => ({ ...prev, [queueId]: voteType }));
+      setMyVotes(prev => ({ ...prev, [uploadId]: voteType }));
       fetchItems();
     }
 
@@ -375,8 +374,7 @@ export default function KarmaPoll() {
 
   const filtered = items.filter(item => {
     if (filter === 'all') return true;
-    if (filter === 'NOTE_PYQ') return item.item_type === 'NOTE' || item.item_type === 'PYQ';
-    return item.item_type === filter;
+    return item.category === filter;
   });
 
   const tier = getKarmaTier(profile?.karma_points ?? 0);
@@ -533,6 +531,7 @@ export default function KarmaPoll() {
                     requiredVotes={requiredVotes}
                     onVote={handleVote}
                     voting={votingId === item.id}
+                    isOwn={item.user_id === profile?.id}
                   />
                 ))}
               </div>
