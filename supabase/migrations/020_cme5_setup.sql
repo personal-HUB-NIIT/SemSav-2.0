@@ -67,8 +67,8 @@ from public.branches b, (values
   ('Tuesday',   '14:00', '15:00', 'Statistical Inference', 'CME504', 'Prof. Apu Kumar Saha', 'MA303'),
   ('Tuesday',   '15:00', '16:00', 'Statistical Inference', 'CME504', 'Prof. Apu Kumar Saha', 'MA303'),
   -- Wednesday — Financial Mathematics, Room MA302 (double period)
-  ('Wednesday', '09:00', '10:00', 'Financial Mathematics', 'CME505', 'Dr. Birojit Das', 'MA302'),
-  ('Wednesday', '10:00', '11:00', 'Financial Mathematics', 'CME505', 'Dr. Birojit Das', 'MA302'),
+  ('Wednesday', '09:00', '10:00', 'Financial Mathematics', 'CME505', 'Dr. Debashish Das', 'MA302'),
+  ('Wednesday', '10:00', '11:00', 'Financial Mathematics', 'CME505', 'Dr. Debashish Das', 'MA302'),
   -- Thursday
   ('Thursday',  '09:00', '10:00', 'Integral Transforms',   'CME502', 'Dr. Abhijit Baidya',   'MA305'),
   ('Thursday',  '10:00', '11:00', 'Integral Transforms',   'CME502', 'Dr. Abhijit Baidya',   'MA305'),
@@ -77,7 +77,7 @@ from public.branches b, (values
   ('Thursday',  '14:00', '15:00', 'Statistical Inference', 'CME504', 'Dr. Jayanta Debnath',  'MA311'),
   ('Thursday',  '15:00', '16:00', 'Statistical Inference', 'CME504', 'Dr. Jayanta Debnath',  'MA311'),
   -- Friday — Financial Mathematics, Room MA311 (double period)
-  ('Friday',    '09:00', '10:00', 'Financial Mathematics', 'CME505', 'Dr. Birojit Das', 'MA311'),
-  ('Friday',    '10:00', '11:00', 'Financial Mathematics', 'CME505', 'Dr. Birojit Das', 'MA311')
+  ('Friday',    '09:00', '10:00', 'Financial Mathematics', 'CME505', 'Dr. Debashish Das', 'MA311'),
+  ('Friday',    '10:00', '11:00', 'Financial Mathematics', 'CME505', 'Dr. Debashish Das', 'MA311')
 ) as v(day, start, end_t, s_name, s_code, teacher, room)
 where b.branch_code = 'CME';

@@ -4,8 +4,8 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 import {
-  ThumbsUp, ThumbsDown, ShieldQuestion, ShieldCheck, FileText, ClipboardList,
-  GraduationCap, ExternalLink, BookOpen, CheckCircle2, CalendarDays,
+  ThumbsUp, ThumbsDown, ShieldQuestion, FileText, ClipboardList,
+  GraduationCap, BookOpen, CheckCircle2, CalendarDays,
   FlaskConical, PartyPopper, Coffee, User, Star, Home, Calendar,
   History, Settings, LogOut, Clock, Pencil, Plus, Target, Folder, UserCheck,
 } from 'lucide-react';
@@ -56,15 +56,6 @@ interface PendingReviewItem {
   votes?: VoteEntry[];
 }
 
-interface StudyMaterialItem {
-  id: string;
-  title: string;
-  file_url: string | null;
-  material_type: string | null;
-  uploader_name: string | null;
-  created_at: string;
-}
-
 interface FeedUpload {
   id: string;
   title_syllabus: string;
@@ -72,6 +63,7 @@ interface FeedUpload {
   created_at: string;
   status: string;
   user_id: string;
+  file_url: string | null;
   users?: { full_name: string; avatar_url: string | null } | { full_name: string; avatar_url: string | null }[] | null;
   subjects?: { subject_name: string; subject_code: string } | { subject_name: string; subject_code: string }[] | null;
 }
@@ -901,64 +893,6 @@ function ReviewFeed({ items, loading, profileId, votingId, onVote }: ReviewFeedP
   );
 }
 
-// ─── Verified Study Materials (direct access) ─────────────────────────────────
-
-interface VerifiedMaterialsProps {
-  items: StudyMaterialItem[];
-  loading: boolean;
-}
-
-function VerifiedMaterials({ items, loading }: VerifiedMaterialsProps) {
-  return (
-    <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-        <div>
-          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-500" /> Verified Study Materials
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">Community-verified — open directly</p>
-        </div>
-        {items.length > 0 && (
-          <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1">
-            {items.length}
-          </span>
-        )}
-      </div>
-      <div className="divide-y divide-slate-100 max-h-[320px] overflow-y-auto">
-        {loading ? (
-          <div className="px-5 py-4 space-y-3">
-            {[0, 1].map(i => <div key={i} className="h-12 bg-slate-100 rounded-xl animate-pulse" />)}
-          </div>
-        ) : items.length === 0 ? (
-          <p className="px-5 py-5 text-xs text-slate-400 flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-slate-300" /> No verified materials yet — verified uploads appear here.
-          </p>
-        ) : (
-          items.map(m => {
-            const href = m.file_url ?? '/notes';
-            return (
-              <a key={m.id} href={href} target={m.file_url ? '_blank' : '_self'} rel="noopener noreferrer"
-                className="flex items-center gap-3 px-5 py-3 hover:bg-indigo-50/50 transition-colors group">
-                <span className="shrink-0 w-9 h-9 rounded-lg border border-emerald-100 bg-emerald-50 text-emerald-700 flex items-center justify-center">
-                  <FileText className="w-4.5 h-4.5" />
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-slate-900 truncate group-hover:text-indigo-700 transition-colors">{m.title}</p>
-                  <p className="text-[11px] text-slate-500 truncate">
-                    {m.material_type === 'ASSIGNMENT' ? 'Assignment' : 'Notes'}
-                    {m.uploader_name ? ` · by ${m.uploader_name}` : ''}
-                  </p>
-                </div>
-                <ExternalLink className="w-4 h-4 text-slate-300 group-hover:text-indigo-500 shrink-0 transition-colors" />
-              </a>
-            );
-          })
-        )}
-      </div>
-    </section>
-  );
-}
-
 // ─── Priority Feed ────────────────────────────────────────────────────────────
 
 interface PriorityFeedProps {
@@ -974,6 +908,13 @@ interface PriorityFeedProps {
 
 function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, onSelectTask, onBrowse, profileId }: PriorityFeedProps) {
   const sectionTitle = "text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5";
+
+  // Clicking a feed item opens the resource directly (PDF in a new tab);
+  // falls back to the study materials page when no file is attached.
+  const openUpload = (u: FeedUpload) => {
+    if (u.file_url) window.open(u.file_url, '_blank', 'noopener,noreferrer');
+    else onBrowse();
+  };
 
   return (
     <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
@@ -1047,7 +988,7 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
                 const sub = relOne(u.subjects);
                 const uploader = relOne(u.users);
                 return (
-                  <button key={u.id} onClick={onBrowse}
+                  <button key={u.id} onClick={() => openUpload(u)}
                     className="w-full text-left flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors">
                     <span className={`shrink-0 w-8 h-8 rounded-lg border flex items-center justify-center ${meta.chip}`}>
                       <meta.Icon className="w-4 h-4" />
@@ -1170,7 +1111,12 @@ function UpcomingTimeline({ milestones, loading, onSelect }: UpcomingTimelinePro
                     <p className="text-xs font-semibold text-slate-900 line-clamp-2 min-h-[2rem]">{t.title}</p>
                     <div className="mt-2.5 flex items-center justify-between gap-2">
                       <span className="text-[10px] font-medium text-slate-500 truncate">
-                        {t.subject_code ?? formatDisplayTime(t.due_date)}
+                        {t.subject_code && <>{t.subject_code} · </>}
+                        <span className="inline-flex items-center gap-0.5">
+                          <Clock className="w-3 h-3" />
+                          {new Date(t.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          {' '}· {formatDisplayTime(t.due_date)}
+                        </span>
                       </span>
                       <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${DUE_TAG_STYLES[tag.tone]}`}>
                         {tag.label}
@@ -1649,10 +1595,6 @@ export default function Dashboard() {
   const [reviewLoading, setReviewLoading]   = useState(true);
   const [votingId, setVotingId]             = useState<string | null>(null);
 
-  // ── Verified study materials state
-  const [materials, setMaterials]           = useState<StudyMaterialItem[]>([]);
-  const [materialsLoading, setMaterialsLoading] = useState(true);
-
   // ── Calendar uploads (verified tests/exams from peers)
   const [calendarUploads, setCalendarUploads] = useState<AcademicTask[]>([]);
 
@@ -1747,7 +1689,7 @@ export default function Dashboard() {
     setUploadsLoading(true);
     const { data, error } = await supabase
       .from('uploads')
-      .select('id, title_syllabus, category, created_at, status, user_id, users(full_name, avatar_url), subjects(subject_name, subject_code)')
+      .select('id, title_syllabus, category, created_at, status, user_id, file_url, users(full_name, avatar_url), subjects(subject_name, subject_code)')
       .eq('branch_id', profile.branch_id!)
       .eq('semester', profile.semester!)
       .eq('status', 'VERIFIED')
@@ -1775,15 +1717,6 @@ export default function Dashboard() {
       .limit(10);
     if (!pendingErr) setPendingReviews((pending ?? []) as PendingReviewItem[]);
     setReviewLoading(false);
-
-    setMaterialsLoading(true);
-    const { data: mats } = await supabase
-      .from('study_materials')
-      .select('id, title, file_url, material_type, uploader_name, created_at')
-      .order('created_at', { ascending: false })
-      .limit(8);
-    setMaterials((mats ?? []) as StudyMaterialItem[]);
-    setMaterialsLoading(false);
   }, [profile?.branch_id, profile?.semester, profile?.auth_id]);
 
   useEffect(() => { fetchReviewData(); }, [fetchReviewData]);
@@ -2117,16 +2050,12 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* Top Right: Daily Schedule + Verified Materials */}
-          <div className="lg:col-span-5 space-y-6">
+          {/* Top Right: Daily Schedule */}
+          <div className="lg:col-span-5">
             <TimetableCard
               allSlots={schedule}
               loading={schedLoading}
               missing={schedMissing}
-            />
-            <VerifiedMaterials
-              items={materials}
-              loading={materialsLoading}
             />
           </div>
         </div>
