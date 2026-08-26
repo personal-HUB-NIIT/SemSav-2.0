@@ -12,10 +12,16 @@ interface Classmate {
   auth_id: string;
 }
 
+interface BranchInfo {
+  branch_name: string;
+  branch_code: string;
+}
+
 export default function MyClassroom() {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [classmates, setClassmates] = useState<Classmate[]>([]);
+  const [branchInfo, setBranchInfo] = useState<BranchInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
@@ -38,6 +44,18 @@ export default function MyClassroom() {
       });
   }, [profile?.branch_id, profile?.semester]);
 
+  // ─── Fetch branch info bound to the authenticated user's profile ──────────
+
+  useEffect(() => {
+    if (!profile?.branch_id) { setBranchInfo(null); return; }
+    supabase
+      .from('branches')
+      .select('branch_name, branch_code')
+      .eq('id', profile.branch_id)
+      .single()
+      .then(({ data }) => { setBranchInfo((data as BranchInfo) ?? null); });
+  }, [profile?.branch_id]);
+
   // ─── Filtered by search ───────────────────────────────────────────────────
 
   const filtered = useMemo(() => {
@@ -46,9 +64,9 @@ export default function MyClassroom() {
     return classmates.filter(c => c.full_name.toLowerCase().includes(q));
   }, [classmates, search]);
 
-  // ─── Derive branch name from profile ──────────────────────────────────────
+  // ─── Derive branch name from the authenticated user's profile ─────────────
 
-  const branchName = profile?.branch_id ? 'CSE' : '—';
+  const branchName = branchInfo ? `${branchInfo.branch_code} — ${branchInfo.branch_name}` : '—';
   const semesterNum = profile?.semester ?? '?';
 
   // ─── Skeleton ─────────────────────────────────────────────────────────────

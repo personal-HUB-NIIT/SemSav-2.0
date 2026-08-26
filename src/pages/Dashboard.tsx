@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
+import {
+  ThumbsUp, ThumbsDown, ShieldQuestion, ShieldCheck, FileText, ClipboardList,
+  GraduationCap, ExternalLink, BookOpen,
+} from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,6 +32,35 @@ interface ClassSlot {
   subject_code: string;
   teacher_name: string | null;
   room_number: string | null;
+}
+
+interface VoteUser {
+  full_name: string;
+  avatar_url: string | null;
+}
+
+interface VoteEntry {
+  vote_type: 'UP' | 'DOWN';
+  users?: VoteUser | VoteUser[] | null;
+}
+
+interface PendingReviewItem {
+  id: string;
+  user_id: string;
+  title_syllabus: string;
+  category: string;
+  created_at: string;
+  subjects?: { subject_name: string; subject_code: string } | { subject_name: string; subject_code: string }[] | null;
+  votes?: VoteEntry[];
+}
+
+interface StudyMaterialItem {
+  id: string;
+  title: string;
+  file_url: string | null;
+  material_type: string | null;
+  uploader_name: string | null;
+  created_at: string;
 }
 
 interface FeedUpload {
@@ -750,6 +783,182 @@ function TimetableCard({ allSlots, loading, missing }: TimetableCardProps) {
 
 // ─── Priority Feed (Top Right) ────────────────────────────────────────────────
 
+// ─── Pending Community Review Feed ────────────────────────────────────────────
+
+const REVIEW_TYPE_META: Record<string, { label: string; Icon: typeof FileText; chip: string }> = {
+  NOTES:      { label: 'Notes',      Icon: FileText,      chip: 'bg-blue-50 border-blue-200 text-blue-700' },
+  ASSIGNMENT: { label: 'Assignment', Icon: ClipboardList, chip: 'bg-amber-50 border-amber-200 text-amber-700' },
+  TEST:       { label: 'Exam date',  Icon: GraduationCap, chip: 'bg-red-50 border-red-200 text-red-700' },
+};
+
+function voterLabel(names: string[], count: number, action: string): string {
+  if (count === 0) return '';
+  if (count === 1) return names[0] ?? `${count} student`;
+  if (count === 2) return `${names[0]}, ${names[1] ?? '1 student'}`;
+  return `${names[0]}, ${names[1] ?? '1 student'} and ${count - 2} other${count > 3 ? 's' : ''} ${count > 1 ? action : action}`;
+}
+
+interface ReviewFeedProps {
+  items: PendingReviewItem[];
+  loading: boolean;
+  profileId?: string;
+  votingId: string | null;
+  onVote: (uploadId: string, voteType: 'UP' | 'DOWN') => void;
+}
+
+function ReviewFeed({ items, loading, profileId, votingId, onVote }: ReviewFeedProps) {
+  return (
+    <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <ShieldQuestion className="w-4 h-4 text-amber-500" /> Pending Community Review
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">Verify peer uploads — earn +2 karma per vote</p>
+        </div>
+        {items.length > 0 && (
+          <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1">
+            {items.length} pending
+          </span>
+        )}
+      </div>
+      <div className="divide-y divide-slate-100">
+        {loading ? (
+          <div className="px-5 py-4 space-y-3">
+            {[0, 1].map(i => <div key={i} className="h-16 bg-slate-100 rounded-xl animate-pulse" />)}
+          </div>
+        ) : items.length === 0 ? (
+          <p className="px-5 py-5 text-xs text-slate-400">Nothing awaiting review right now.</p>
+        ) : (
+          items.map(item => {
+            const meta = REVIEW_TYPE_META[item.category] ?? REVIEW_TYPE_META.NOTES;
+            const sub = relOne(item.subjects);
+            const ups = item.votes?.filter(v => v.vote_type === 'UP') ?? [];
+            const downs = item.votes?.filter(v => v.vote_type === 'DOWN') ?? [];
+            const upNames = ups.map(v => relOne(v.users)?.full_name).filter(Boolean) as string[];
+            const downNames = downs.map(v => relOne(v.users)?.full_name).filter(Boolean) as string[];
+            const isOwn = item.user_id === profileId;
+            const busy = votingId === item.id;
+
+            return (
+              <div key={item.id} className="px-5 py-3.5 hover:bg-slate-50/60 transition-colors">
+                <div className="flex items-start gap-3">
+                  <span className={`shrink-0 w-9 h-9 rounded-lg border flex items-center justify-center ${meta.chip}`}>
+                    <meta.Icon className="w-4.5 h-4.5" />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-900 truncate">
+                      {item.title_syllabus}
+                      {isOwn && (
+                        <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 align-middle">You</span>
+                      )}
+                    </p>
+                    <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                      {sub ? `${sub.subject_name} · ` : ''}{timeAgo(item.created_at)}
+                    </p>
+
+                    {/* Voter visibility */}
+                    {(ups.length > 0 || downs.length > 0) && (
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+                        {ups.length > 0 && (
+                          <span className="inline-flex items-center gap-1 text-emerald-700">
+                            <ThumbsUp className="w-3.5 h-3.5" />
+                            <span className="font-medium">{voterLabel(upNames, ups.length, 'upvoted this')}</span>
+                          </span>
+                        )}
+                        {downs.length > 0 && (
+                          <span className="inline-flex items-center gap-1 text-red-500">
+                            <ThumbsDown className="w-3.5 h-3.5" />
+                            <span className="font-medium">{voterLabel(downNames, downs.length, 'flagged this')}</span>
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Inline vote actions */}
+                  <div className="shrink-0 flex items-center gap-1.5">
+                    <button onClick={() => onVote(item.id, 'UP')} disabled={isOwn || busy}
+                      title={isOwn ? 'You cannot vote on your own upload' : 'Upvote — verify this content'}
+                      className="p-2 rounded-xl border border-emerald-200 text-emerald-700 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95">
+                      <ThumbsUp className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => onVote(item.id, 'DOWN')} disabled={isOwn || busy}
+                      title={isOwn ? 'You cannot vote on your own upload' : 'Downvote — flag this content'}
+                      className="p-2 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95">
+                      <ThumbsDown className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ─── Verified Study Materials (direct access) ─────────────────────────────────
+
+interface VerifiedMaterialsProps {
+  items: StudyMaterialItem[];
+  loading: boolean;
+}
+
+function VerifiedMaterials({ items, loading }: VerifiedMaterialsProps) {
+  return (
+    <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-500" /> Verified Study Materials
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">Community-verified — open directly</p>
+        </div>
+        {items.length > 0 && (
+          <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1">
+            {items.length}
+          </span>
+        )}
+      </div>
+      <div className="divide-y divide-slate-100 max-h-[320px] overflow-y-auto">
+        {loading ? (
+          <div className="px-5 py-4 space-y-3">
+            {[0, 1].map(i => <div key={i} className="h-12 bg-slate-100 rounded-xl animate-pulse" />)}
+          </div>
+        ) : items.length === 0 ? (
+          <p className="px-5 py-5 text-xs text-slate-400 flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-slate-300" /> No verified materials yet — verified uploads appear here.
+          </p>
+        ) : (
+          items.map(m => {
+            const href = m.file_url ?? '/notes';
+            return (
+              <a key={m.id} href={href} target={m.file_url ? '_blank' : '_self'} rel="noopener noreferrer"
+                className="flex items-center gap-3 px-5 py-3 hover:bg-indigo-50/50 transition-colors group">
+                <span className="shrink-0 w-9 h-9 rounded-lg border border-emerald-100 bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                  <FileText className="w-4.5 h-4.5" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 truncate group-hover:text-indigo-700 transition-colors">{m.title}</p>
+                  <p className="text-[11px] text-slate-500 truncate">
+                    {m.material_type === 'ASSIGNMENT' ? 'Assignment' : 'Notes'}
+                    {m.uploader_name ? ` · by ${m.uploader_name}` : ''}
+                  </p>
+                </div>
+                <ExternalLink className="w-4 h-4 text-slate-300 group-hover:text-indigo-500 shrink-0 transition-colors" />
+              </a>
+            );
+          })
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ─── Priority Feed ────────────────────────────────────────────────────────────
+
 interface PriorityFeedProps {
   urgent: AcademicTask[];
   recent: FeedUpload[];
@@ -758,12 +967,10 @@ interface PriorityFeedProps {
   uploadsLoading: boolean;
   onSelectTask: (t: AcademicTask) => void;
   onBrowse: () => void;
-  unvotedCount?: number;
-  onNavigateKarma?: () => void;
   profileId?: string;
 }
 
-function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, onSelectTask, onBrowse, unvotedCount = 0, onNavigateKarma, profileId }: PriorityFeedProps) {
+function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, onSelectTask, onBrowse, profileId }: PriorityFeedProps) {
   const sectionTitle = "text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5";
 
   return (
@@ -774,25 +981,6 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
       </div>
 
       <div className="divide-y divide-slate-100">
-
-        {/* Priority 0: Community Verification Alert */}
-        {unvotedCount > 0 && onNavigateKarma && (
-          <div className="py-3 px-5 bg-amber-50 border-b border-amber-200">
-            <div className="flex items-center gap-3">
-              <span className="text-lg shrink-0">⚡</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-amber-900">
-                  {unvotedCount} new upload{unvotedCount !== 1 ? 's' : ''} need your verification vote
-                </p>
-                <p className="text-xs text-amber-700 mt-0.5">Help your peers by verifying shared resources. Earn +2 karma per vote.</p>
-              </div>
-              <button onClick={onNavigateKarma}
-                className="shrink-0 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl transition-all shadow-sm shadow-amber-200">
-                Review & Vote
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Priority 1: Urgent deadlines */}
         <div className="py-2">
@@ -1454,8 +1642,14 @@ export default function Dashboard() {
   const [editTask, setEditTask]         = useState<AcademicTask | null>(null);
   const [seedingDemo, setSeedingDemo]   = useState(false);
 
-  // ── Karma poll state
-  const [unvotedCount, setUnvotedCount] = useState(0);
+  // ── Community review state
+  const [pendingReviews, setPendingReviews] = useState<PendingReviewItem[]>([]);
+  const [reviewLoading, setReviewLoading]   = useState(true);
+  const [votingId, setVotingId]             = useState<string | null>(null);
+
+  // ── Verified study materials state
+  const [materials, setMaterials]           = useState<StudyMaterialItem[]>([]);
+  const [materialsLoading, setMaterialsLoading] = useState(true);
 
   // ── Calendar uploads (verified tests/exams from peers)
   const [calendarUploads, setCalendarUploads] = useState<AcademicTask[]>([]);
@@ -1546,45 +1740,75 @@ export default function Dashboard() {
 
   // ─── Fetch activity feed uploads ──────────────────────────────────────────
 
-  useEffect(() => {
+  const fetchFeedUploads = useCallback(async () => {
     if (!profile?.branch_id || !profile?.semester) return;
-    (async () => {
-      setUploadsLoading(true);
-      const { data, error } = await supabase
-        .from('uploads')
-        .select('id, title_syllabus, category, created_at, status, user_id, users(full_name, avatar_url), subjects(subject_name, subject_code)')
-        .eq('branch_id', profile.branch_id!)
-        .eq('semester', profile.semester!)
-        .eq('status', 'VERIFIED')
-        .order('created_at', { ascending: false })
-        .limit(25);
-      if (!error) setFeedUploads((data ?? []) as FeedUpload[]);
-      setUploadsLoading(false);
-    })();
+    setUploadsLoading(true);
+    const { data, error } = await supabase
+      .from('uploads')
+      .select('id, title_syllabus, category, created_at, status, user_id, users(full_name, avatar_url), subjects(subject_name, subject_code)')
+      .eq('branch_id', profile.branch_id!)
+      .eq('semester', profile.semester!)
+      .eq('status', 'VERIFIED')
+      .order('created_at', { ascending: false })
+      .limit(25);
+    if (!error) setFeedUploads((data ?? []) as FeedUpload[]);
+    setUploadsLoading(false);
   }, [profile?.branch_id, profile?.semester]);
 
-  // ─── Fetch unvoted queue count ─────────────────────────────────────────────
+  useEffect(() => { fetchFeedUploads(); }, [fetchFeedUploads]);
 
-  useEffect(() => {
+  // ─── Fetch pending community review items + verified materials ────────────
+
+  const fetchReviewData = useCallback(async () => {
     if (!profile?.branch_id || !profile?.semester || !profile?.auth_id) return;
-    (async () => {
-      const { data: pending, error: pendingErr } = await supabase
-        .from('verification_queue')
-        .select('id')
-        .eq('branch_id', profile.branch_id!)
-        .eq('semester', profile.semester!)
-        .eq('status', 'pending');
-      if (pendingErr || !pending || pending.length === 0) { setUnvotedCount(0); return; }
-      const pendingIds = pending.map((r: { id: string }) => r.id);
-      const { data: votes } = await supabase
-        .from('queue_votes')
-        .select('queue_id')
-        .eq('user_id', profile.auth_id!)
-        .in('queue_id', pendingIds);
-      const votedIds = new Set((votes ?? []).map((v: { queue_id: string }) => v.queue_id));
-      setUnvotedCount(pendingIds.filter(id => !votedIds.has(id)).length);
-    })();
+
+    setReviewLoading(true);
+    const { data: pending, error: pendingErr } = await supabase
+      .from('uploads')
+      .select('id, user_id, title_syllabus, category, created_at, subjects(subject_name, subject_code), votes(vote_type, users(full_name, avatar_url))')
+      .eq('branch_id', profile.branch_id!)
+      .eq('semester', profile.semester!)
+      .eq('status', 'UNVERIFIED')
+      .order('created_at', { ascending: false })
+      .limit(10);
+    if (!pendingErr) setPendingReviews((pending ?? []) as PendingReviewItem[]);
+    setReviewLoading(false);
+
+    setMaterialsLoading(true);
+    const { data: mats } = await supabase
+      .from('study_materials')
+      .select('id, title, file_url, material_type, uploader_name, created_at')
+      .order('created_at', { ascending: false })
+      .limit(8);
+    setMaterials((mats ?? []) as StudyMaterialItem[]);
+    setMaterialsLoading(false);
   }, [profile?.branch_id, profile?.semester, profile?.auth_id]);
+
+  useEffect(() => { fetchReviewData(); }, [fetchReviewData]);
+
+  // ─── Vote on a pending upload (inline on dashboard) ────────────────────────
+
+  const handleReviewVote = async (uploadId: string, voteType: 'UP' | 'DOWN') => {
+    if (!profile?.id || votingId) return;
+    setVotingId(uploadId);
+
+    const { data, error } = await supabase.rpc('submit_queue_vote', {
+      p_upload_id: uploadId,
+      p_user_id:   profile.id,
+      p_vote_type: voteType,
+    });
+
+    if (error) {
+      toast.error(error.message);
+    } else if (data && typeof data === 'object' && 'error' in data) {
+      toast.error(String(data.error));
+    } else {
+      toast.success(voteType === 'UP' ? 'Verified — +2 karma' : 'Flagged — +2 karma');
+      await Promise.all([fetchReviewData(), fetchFeedUploads()]);
+    }
+
+    setVotingId(null);
+  };
 
   // ─── Derived buckets ──────────────────────────────────────────────────────
 
@@ -1801,13 +2025,8 @@ export default function Dashboard() {
                 <span>👥</span> My Classroom
               </button>
               <button onClick={() => { setSidebarOpen(false); navigate('/karma-poll'); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all relative">
-                <span>🗳️</span> Karma Poll
-                {unvotedCount > 0 && (
-                  <span className="ml-auto min-w-[18px] h-[18px] px-1 bg-amber-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                    {Math.min(unvotedCount, 99)}
-                  </span>
-                )}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+                <span>🗳️</span> My Contributions
               </button>
               <button onClick={() => toast('Settings coming soon!', { icon: '⚙️' })}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
@@ -1875,8 +2094,15 @@ export default function Dashboard() {
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Top Left: Recent Activity & Priorities */}
-          <div className="lg:col-span-7">
+          {/* Top Left: Community Review + Recent Activity & Priorities */}
+          <div className="lg:col-span-7 space-y-6">
+            <ReviewFeed
+              items={pendingReviews}
+              loading={reviewLoading}
+              profileId={profile?.id}
+              votingId={votingId}
+              onVote={handleReviewVote}
+            />
             <PriorityFeed
               urgent={urgentTasks}
               recent={recentUploads}
@@ -1884,19 +2110,21 @@ export default function Dashboard() {
               tasksLoading={tasksLoading}
               uploadsLoading={uploadsLoading}
               onSelectTask={openDrawerAtTask}
-              onBrowse={() => navigate('/upload')}
-              unvotedCount={unvotedCount}
-              onNavigateKarma={() => navigate('/karma-poll')}
+              onBrowse={() => navigate('/notes')}
               profileId={profile?.id}
             />
           </div>
 
-          {/* Top Right: Daily Schedule */}
-          <div className="lg:col-span-5">
+          {/* Top Right: Daily Schedule + Verified Materials */}
+          <div className="lg:col-span-5 space-y-6">
             <TimetableCard
               allSlots={schedule}
               loading={schedLoading}
               missing={schedMissing}
+            />
+            <VerifiedMaterials
+              items={materials}
+              loading={materialsLoading}
             />
           </div>
         </div>
