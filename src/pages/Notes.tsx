@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
-import { BookOpen, FileText, ClipboardList } from 'lucide-react';
+import { BookOpen, FileText, ClipboardList, CalendarDays } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -26,26 +26,6 @@ interface StudyMaterial {
 type TabType = 'notes' | 'assignments';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  if (diff < 60000) return 'just now';
-  const min = Math.floor(diff / 60000);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const d = Math.floor(hr / 24);
-  return d === 1 ? '1 day ago' : `${d} days ago`;
-}
-
-// ─── Spinner ──────────────────────────────────────────────────────────────────
-
-function Spinner({ size = 16 }: { size?: number }) {
-  return (
-    <div style={{ width: size, height: size }}
-      className="border-2 border-slate-200 border-t-indigo-600 rounded-full animate-spin" />
-  );
-}
 
 // ─── Skeletons ────────────────────────────────────────────────────────────────
 
@@ -81,6 +61,32 @@ function UploadCardSkeleton() {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+
+// ─── Date grouping helpers ───────────────────────────────────────────────────
+
+function dateKeyOf(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** "Monday, 24 Aug" (+" 2026" when not the current year) */
+function formatDayLabel(dateKey: string): string {
+  const [y, m, dd] = dateKey.split('-').map(Number);
+  const d = new Date(y, m - 1, dd);
+  const label = d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' });
+  return y === new Date().getFullYear() ? label : `${label} ${y}`;
+}
+
+function groupByDateDesc<T extends { created_at: string }>(items: T[]): [string, T[]][] {
+  const map = new Map<string, T[]>();
+  for (const it of items) {
+    const k = dateKeyOf(it.created_at);
+    if (!map.has(k)) map.set(k, []);
+    map.get(k)!.push(it);
+  }
+  return [...map.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+}
+
 export default function Notes() {
   const navigate = useNavigate();
   const { profile } = useAuth();
@@ -96,7 +102,6 @@ export default function Notes() {
   const [assignments, setAssignments]     = useState<StudyMaterial[]>([]);
   const [uploadsLoading, setUploadsLoading] = useState(true);
   const [search, setSearch]               = useState('');
-  const [unitFilter, setUnitFilter]       = useState<string>('all');
 
   // ─── Fetch subjects ────────────────────────────────────────────────────────
 
@@ -262,7 +267,7 @@ export default function Notes() {
       <header className="bg-white/95 backdrop-blur border-b border-slate-200 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
-            <button onClick={() => { setSelectedSubject(null); setSearch(''); setUnitFilter('all'); }}
+            <button onClick={() => { setSelectedSubject(null); setSearch(''); }}
               className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all shrink-0" aria-label="Back">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -333,80 +338,74 @@ export default function Notes() {
               {search ? 'Try a different search term' : tab === 'notes' ? 'Notes appear here once verified by classmates (5% upvotes).' : 'Be the first to contribute materials for this subject!'}
             </p>
           </div>
-        ) : tab === 'notes' ? (
-          <div className="space-y-3">
-            {(filtered as StudyMaterial[]).map(item => (
-              <div key={item.id}
-                className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md transition-all">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl border flex items-center justify-center text-sm shrink-0 bg-blue-50 border-blue-200 text-blue-700">
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <h3 className="text-sm font-bold text-slate-900 truncate">{item.title}</h3>
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-blue-50 border-blue-200 text-blue-700">
-                            Notes
-                          </span>
-                          <span className="text-[10px] text-slate-400">
-                            Uploaded {timeAgo(item.created_at)}
-                          </span>
-                        </div>
-                        {item.uploader_name && (
-                          <p className="text-[10px] text-slate-400 mt-1">by {item.uploader_name}</p>
-                        )}
-                      </div>
-                      {item.file_url && (
-                        <a href={item.file_url} target="_blank" rel="noopener noreferrer"
-                          className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold rounded-xl hover:bg-indigo-100 transition-all">
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          Open
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
         ) : (
-          <div className="space-y-3">
-            {(filtered as StudyMaterial[]).map(item => (
-              <div key={item.id}
-                className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md transition-all">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl border flex items-center justify-center text-sm shrink-0 bg-amber-50 border-amber-200 text-amber-700">
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <h3 className="text-sm font-bold text-slate-900 truncate">{item.title}</h3>
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-amber-50 border-amber-200 text-amber-700">
-                            Assignment
-                          </span>
-                          <span className="text-[10px] text-slate-400">
-                            Uploaded {timeAgo(item.created_at)}
-                          </span>
+          <div className="space-y-8">
+            {groupByDateDesc(filtered as StudyMaterial[]).map(([dateKey, dayItems]) => (
+              <div key={dateKey}>
+                {/* Date group header */}
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <CalendarDays className="w-3.5 h-3.5 text-indigo-500" />
+                    {formatDayLabel(dateKey)}
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    {dayItems.length} item{dayItems.length !== 1 ? 's' : ''}
+                  </span>
+                  <div className="flex-1 h-px bg-slate-200" />
+                </div>
+
+                <div className="space-y-3">
+                  {(dayItems as StudyMaterial[]).map(item => (
+                    <div key={item.id}
+                      className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md transition-all">
+                      <div className="flex items-start gap-4">
+                        <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${
+                          tab === 'notes'
+                            ? 'bg-blue-50 border-blue-200 text-blue-700'
+                            : 'bg-amber-50 border-amber-200 text-amber-700'
+                        }`}>
+                          {tab === 'notes'
+                            ? <FileText className="w-5 h-5" />
+                            : <ClipboardList className="w-5 h-5" />}
                         </div>
-                        {item.uploader_name && (
-                          <p className="text-[10px] text-slate-400 mt-1">by {item.uploader_name}</p>
-                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <h3 className="text-sm font-bold text-slate-900 truncate">{item.title}</h3>
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                                  tab === 'notes'
+                                    ? 'bg-blue-50 border-blue-200 text-blue-700'
+                                    : 'bg-amber-50 border-amber-200 text-amber-700'
+                                }`}>
+                                  {tab === 'notes' ? 'Notes' : 'Assignment'}
+                                </span>
+                                <span className="text-[10px] font-medium text-slate-500 inline-flex items-center gap-1">
+                                  <CalendarDays className="w-3 h-3" />
+                                  {formatDayLabel(dateKeyOf(item.created_at))}
+                                </span>
+                                <span className="text-[10px] text-slate-400">
+                                  at {new Date(item.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                </span>
+                              </div>
+                              {item.uploader_name && (
+                                <p className="text-[10px] text-slate-400 mt-1">by {item.uploader_name}</p>
+                              )}
+                            </div>
+                            {item.file_url && (
+                              <a href={item.file_url} target="_blank" rel="noopener noreferrer"
+                                className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold rounded-xl hover:bg-indigo-100 transition-all">
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Open
+                              </a>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      {item.file_url && (
-                        <a href={item.file_url} target="_blank" rel="noopener noreferrer"
-                          className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold rounded-xl hover:bg-indigo-100 transition-all">
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          Open
-                        </a>
-                      )}
                     </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             ))}
