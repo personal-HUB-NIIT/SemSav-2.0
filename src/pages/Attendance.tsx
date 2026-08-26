@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 import {
   fetchSemesterSubjects, fetchAttendanceSummary, fetchAttendanceLogs,
-  markAttendance, computeStats, computeOverall, todayKey,
+  markAttendance, addExtraClass, computeStats, todayKey,
   STATUS_META, ZONE_COLORS,
 } from '../hooks/useAttendance';
 import type {
@@ -32,7 +32,7 @@ function dayLabel(dateKey: string): string {
 }
 
 function emptySummary(subjectId: string): SubjectSummary {
-  return { subject_id: subjectId, total_held: 0, attended: 0, cancelled: 0 };
+  return { subject_id: subjectId, total_held: 0, attended: 0 };
 }
 
 interface LoadArgs { auth_id: string; branch_id: string; semester: number; }
@@ -77,9 +77,8 @@ function Gauge({ pct, zone, size = 84 }: { pct: number; zone: AttendanceZone; si
 // ─── Quick-action buttons ────────────────────────────────────────────────────
 
 const ACTION_STYLES: Record<AttendanceStatus, { idle: string; active: string }> = {
-  present:   { idle: 'border-emerald-200 text-emerald-700 hover:bg-emerald-50', active: 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-200' },
-  absent:    { idle: 'border-red-200 text-red-600 hover:bg-red-50',             active: 'bg-red-500 border-red-500 text-white shadow-sm shadow-red-200' },
-  cancelled: { idle: 'border-slate-200 text-slate-500 hover:bg-slate-100',      active: 'bg-slate-700 border-slate-700 text-white shadow-sm shadow-slate-300' },
+  present: { idle: 'border-emerald-200 text-emerald-700 hover:bg-emerald-50', active: 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-200' },
+  absent:  { idle: 'border-red-200 text-red-600 hover:bg-red-50',           active: 'bg-red-500 border-red-500 text-white shadow-sm shadow-red-200' },
 };
 
 function StatusButtons({
@@ -126,6 +125,12 @@ export default function Attendance() {
   const [missingTable, setMissingTable] = useState(false);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [reloadTick, setReloadTick] = useState(0);
+  const [extraModalOpen, setExtraModalOpen] = useState(false);
+  const [extraSubjectId, setExtraSubjectId] = useState('');
+  const [extraDate, setExtraDate] = useState(todayKey());
+  const [extraCount, setExtraCount] = useState(1);
+  const [extraStatus, setExtraStatus] = useState<AttendanceStatus>('present');
+  const [extraSaving, setExtraSaving] = useState(false);
 
   // ─── Load data ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -159,9 +164,6 @@ export default function Attendance() {
     () => subjects.map(sub => computeStats(summary.get(sub.id) ?? emptySummary(sub.id))),
     [subjects, summary],
   );
-
-  const overall = computeOverall(allStats);
-  const dangerCount = allStats.filter(s => s.zone === 'danger').length;
 
   const today = todayKey();
   const statusToday = useMemo(() => {
@@ -212,6 +214,25 @@ export default function Attendance() {
     }
   };
 
+  const handleExtraClass = async () => {
+    if (!profile?.auth_id || !extraSubjectId || !extraDate || extraCount < 1) return;
+    setExtraSaving(true);
+    try {
+      await addExtraClass(profile.auth_id, extraSubjectId, extraDate, extraStatus, extraCount);
+      toast.success(`Added ${extraCount} ${extraStatus} class${extraCount > 1 ? 'es' : ''}`);
+      setExtraModalOpen(false);
+      setExtraSubjectId('');
+      setExtraDate(todayKey());
+      setExtraCount(1);
+      setExtraStatus('present');
+      setReloadTick(t => t + 1);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to add extra class');
+    } finally {
+      setExtraSaving(false);
+    }
+  };
+
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -251,57 +272,25 @@ export default function Attendance() {
           </div>
         )}
 
-        {/* Overall strip */}
-        {!loading && !missingTable && subjects.length > 0 && (
-          <div className={`rounded-2xl border p-5 flex flex-wrap items-center gap-5 ${
-            overall.zone === 'danger' ? 'bg-red-50 border-red-200'
-            : overall.zone === 'borderline' ? 'bg-amber-50 border-amber-200'
-            : 'bg-emerald-50 border-emerald-200'
-          }`}>
-            <Gauge pct={overall.pct} zone={overall.zone} size={96} />
-            <div className="min-w-0 space-y-1">
-              <h2 className="font-bold text-slate-900">Overall Attendance</h2>
-              <p className="text-sm text-slate-600">
-                ✅ {allStats.reduce((n, s) => n + s.attended, 0)} attended ·{' '}
-                ❌ {allStats.reduce((n, s) => n + s.total_held - s.attended, 0)} absent ·{' '}
-                🚫 {allStats.reduce((n, s) => n + s.cancelled, 0)} cancelled
-              </p>
-              <p className={`text-sm font-semibold ${
-                overall.zone === 'danger' ? 'text-red-700' : overall.zone === 'borderline' ? 'text-amber-700' : 'text-emerald-700'
-              }`}>
-                {overall.zone === 'danger'
-                  ? `⚠️ Below 75% — bunking is banned for you now!`
-                  : overall.zone === 'borderline'
-                    ? '⚡ Borderline zone — keep showing up'
-                    : '✅ Safe zone — great streak!'}
-              </p>
-              {statusToday.size > 0 && (
-                <span className="inline-block text-[11px] font-semibold bg-white/70 border border-slate-200 rounded-full px-2.5 py-0.5 text-slate-600">
-                  {statusToday.size}/{subjects.length} subjects marked today
-                </span>
-              )}
-            </div>
-            {dangerCount > 0 && (
-              <div className="ml-auto text-center bg-white/70 border border-red-200 rounded-xl px-4 py-3 shrink-0">
-                <p className="text-2xl font-bold text-red-600">{dangerCount}</p>
-                <p className="text-[11px] font-semibold text-red-700 uppercase tracking-wide">
-                  subject{dangerCount > 1 ? 's' : ''} at risk
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Tabs */}
-        <div className="flex gap-2 bg-white border border-slate-200 rounded-xl p-1 w-fit">
-          {([['today', '📌 Mark Today'], ['history', '🕓 History']] as const).map(([key, label]) => (
-            <button key={key} onClick={() => setTab(key)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                tab === key ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200' : 'text-slate-600 hover:bg-slate-100'
-              }`}>
-              {label}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="flex gap-2 bg-white border border-slate-200 rounded-xl p-1 w-fit">
+            {([['today', '📌 Mark Today'], ['history', '🕓 History']] as const).map(([key, label]) => (
+              <button key={key} onClick={() => setTab(key)}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  tab === key ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200' : 'text-slate-600 hover:bg-slate-100'
+                }`}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => setExtraModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-all shadow-sm shadow-indigo-200">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Add Extra Class
+          </button>
         </div>
 
         {/* Loading */}
@@ -340,7 +329,7 @@ export default function Attendance() {
                       </div>
                       <p className="text-xs text-slate-400 font-mono">{sub.subject_code}</p>
                       <p className="mt-1 text-xs text-slate-500">
-                        ✅ {st.attended} · ❌ {st.total_held - st.attended} · 🚫 {st.cancelled}
+                        ✅ {st.attended} · ❌ {st.total_held - st.attended}
                       </p>
                       <span className={`inline-block mt-1.5 text-[10px] font-bold uppercase tracking-wide border rounded-full px-2 py-0.5 ${ZONE_COLORS[st.zone].chipBg}`}>
                         {st.zone === 'danger' ? 'Danger zone' : st.zone === 'borderline' ? 'Borderline' : 'Safe'}
@@ -412,6 +401,76 @@ export default function Attendance() {
         )}
 
       </main>
+
+      {/* ── Extra Class Modal ── */}
+      {extraModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm" onClick={() => { if (!extraSaving) setExtraModalOpen(false); }} />
+          <div className="relative bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-slate-900">Add Extra Class Attendance</h2>
+              <button onClick={() => setExtraModalOpen(false)} disabled={extraSaving}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-all disabled:opacity-50">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Subject */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Subject</label>
+              <select value={extraSubjectId} onChange={e => setExtraSubjectId(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400">
+                <option value="">Select subject…</option>
+                {subjects.map(s => (
+                  <option key={s.id} value={s.id}>{s.subject_name} ({s.subject_code})</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Date */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Date</label>
+              <input type="date" value={extraDate} onChange={e => setExtraDate(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400" />
+            </div>
+
+            {/* Classes conducted */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Number of Classes</label>
+              <input type="number" min={1} max={10} value={extraCount} onChange={e => setExtraCount(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400" />
+            </div>
+
+            {/* Status */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-2">Status</label>
+              <div className="flex gap-2">
+                {(['present', 'absent'] as AttendanceStatus[]).map(s => (
+                  <button key={s} onClick={() => setExtraStatus(s)}
+                    className={`flex-1 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
+                      extraStatus === s
+                        ? s === 'present'
+                          ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-200'
+                          : 'bg-red-500 border-red-500 text-white shadow-sm shadow-red-200'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-100 bg-white'
+                    }`}>
+                    {STATUS_META[s].icon} {STATUS_META[s].label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Submit */}
+            <button onClick={handleExtraClass} disabled={!extraSubjectId || !extraDate || extraSaving}
+              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-all shadow-sm shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+              {extraSaving && <div className="border-2 border-white/30 border-t-white rounded-full animate-spin w-4 h-4" />}
+              {extraSaving ? 'Saving…' : 'Add Extra Class'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

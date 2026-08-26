@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabaseClient';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type AttendanceStatus = 'present' | 'absent' | 'cancelled';
+export type AttendanceStatus = 'present' | 'absent';
 
 export interface AttendanceSubject {
   id: string;
@@ -20,9 +20,8 @@ export interface AttendanceLogRow {
 
 export interface SubjectSummary {
   subject_id: string;
-  total_held: number; // present + absent (cancelled excluded)
+  total_held: number; // present + absent
   attended: number;   // present only
-  cancelled: number;
 }
 
 export type AttendanceZone = 'safe' | 'borderline' | 'danger';
@@ -39,9 +38,8 @@ export interface SubjectStats extends SubjectSummary {
 export const ATTENDANCE_THRESHOLD = 75;
 
 export const STATUS_META: Record<AttendanceStatus, { label: string; icon: string }> = {
-  present:   { label: 'Present',          icon: '✅' },
-  absent:    { label: 'Absent',           icon: '❌' },
-  cancelled: { label: 'Cancelled/Bunk',   icon: '🚫' },
+  present: { label: 'Present', icon: '✅' },
+  absent:  { label: 'Absent',  icon: '❌' },
 };
 
 export const ZONE_COLORS: Record<AttendanceZone, {
@@ -86,7 +84,7 @@ export function computeStats(s: SubjectSummary): SubjectStats {
 
   const canMiss = Math.max(0, Math.floor((4 * att - 3 * held) / 3));
   const needAttend = pct >= ATTENDANCE_THRESHOLD ? 0 : Math.max(1, Math.ceil(3 * held - 4 * att));
-  return { ...s, pct, zone, canMiss, needAttend };
+  return { ...s, total_held: held, attended: att, pct, zone, canMiss, needAttend };
 }
 
 /** Overall percentage across all subjects (weighted by held classes). */
@@ -121,12 +119,11 @@ export async function fetchAttendanceSummary(userId: string, branchId: string, s
   });
   const map = new Map<string, SubjectSummary>();
   if (!error && Array.isArray(data)) {
-    for (const row of data as { subject_id: string; total_held: number | string; attended: number | string; cancelled: number | string }[]) {
+    for (const row of data as { subject_id: string; total_held: number | string; attended: number | string; cancelled?: number | string }[]) {
       map.set(row.subject_id, {
         subject_id: row.subject_id,
         total_held: Number(row.total_held),
         attended: Number(row.attended),
-        cancelled: Number(row.cancelled),
       });
     }
   }
@@ -170,5 +167,29 @@ export async function markAttendance(
     { user_id: userId, subject_id: subjectId, date: dateKey, status },
     { onConflict: 'user_id,subject_id,date' },
   );
+  if (error) throw error;
+}
+
+/**
+ * Add extra class attendance: inserts `count` log rows for the given subject,
+ * date, and status. Uses a loop upsert with distinct timestamps appended to the
+ * date string to satisfy the unique (user_id, subject_id, date) constraint.
+ */
+export async function addExtraClass(
+  userId: string,
+  subjectId: string,
+  dateKey: string,
+  status: AttendanceStatus,
+  count: number,
+): Promise<void> {
+  const rows = Array.from({ length: count }, (_, i) => ({
+    user_id: userId,
+    subject_id: subjectId,
+    date: `${dateKey}_${i + 1}`,
+    status,
+  }));
+  const { error } = await supabase.from('attendance_logs').upsert(rows, {
+    onConflict: 'user_id,subject_id,date',
+  });
   if (error) throw error;
 }
