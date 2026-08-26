@@ -39,19 +39,20 @@ export function useAuth() {
       .from('users')
       .select('id, auth_id, enrollment_id, full_name, email, branch_id, semester, karma_points, role, is_verified, is_banned, onboarding_completed, avatar_url')
       .eq('auth_id', authId)
-      .single();
+      .maybeSingle();
 
     if (error && (error.message?.includes('avatar_url') || error.code === '42703')) {
       const fallback = await supabase
         .from('users')
         .select('id, auth_id, enrollment_id, full_name, email, branch_id, semester, karma_points, role, is_verified, is_banned, onboarding_completed')
         .eq('auth_id', authId)
-        .single();
+        .maybeSingle();
       data = fallback.data;
       error = fallback.error;
     }
 
     if (error) return null;
+    if (!data) return null;
     const fresh = { ...data, avatar_url: (data as Record<string, unknown>).avatar_url ?? null } as UserProfile;
     // Keep global state in sync so consumers re-render with fresh profile data
     setState(prev => (prev.user ? { ...prev, profile: fresh } : prev));

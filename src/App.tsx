@@ -12,6 +12,7 @@ import Upload from './pages/Upload';
 import Notes from './pages/Notes';
 import Attendance from './pages/Attendance';
 import KarmaPoll from './pages/KarmaPoll';
+import MyClassroom from './pages/MyClassroom';
 import AdminDashboard from './pages/AdminDashboard';
 import AuthCallback from './pages/AuthCallback';
 import Unauthorized from './pages/Unauthorized';
@@ -89,6 +90,12 @@ export default function App() {
         <Route path="/karma-poll" element={
           <ProtectedRoute>
             <KarmaPoll />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/classroom" element={
+          <ProtectedRoute>
+            <MyClassroom />
           </ProtectedRoute>
         } />
 

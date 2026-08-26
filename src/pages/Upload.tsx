@@ -123,23 +123,27 @@ export default function Upload() {
     if (category === 'TEST' && !testType) { toast.error('Please select test type'); return; }
     if (category === 'TEST' && !dueDateTime) { toast.error('Please enter exam date & time'); return; }
     if (category === 'ASSIGNMENT' && !dueDateTime) { toast.error('Please enter submission deadline'); return; }
-    if (!selectedFile) { toast.error('Please attach a file'); return; }
+    if (category === 'NOTES' && !selectedFile) { toast.error('Please attach a file for notes'); return; }
 
     setLoading(true);
     try {
-      // 1. Upload file to Supabase Storage
-      const ext = selectedFile.name.split('.').pop();
-      const filePath = `uploads/${user.id}/${Date.now()}.${ext}`;
+      // 1. Upload file to Supabase Storage (required for NOTES, optional for ASSIGNMENT/TEST)
+      let publicUrl: string | null = null;
+      if (selectedFile) {
+        const ext = selectedFile.name.split('.').pop();
+        const filePath = `uploads/${user.id}/${Date.now()}.${ext}`;
 
-      const { error: storageError } = await supabase.storage
-        .from('semsav-files')
-        .upload(filePath, selectedFile, { upsert: false });
+        const { error: storageError } = await supabase.storage
+          .from('semsav-files')
+          .upload(filePath, selectedFile, { upsert: false });
 
-      if (storageError) throw storageError;
+        if (storageError) throw storageError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('semsav-files')
-        .getPublicUrl(filePath);
+        const { data: urlData } = supabase.storage
+          .from('semsav-files')
+          .getPublicUrl(filePath);
+        publicUrl = urlData.publicUrl;
+      }
 
       // 2. Insert record into uploads table
       const { error: dbError } = await supabase.from('uploads').insert({
@@ -306,7 +310,9 @@ export default function Upload() {
 
           {/* File Upload */}
           <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-6">
-            <label className="block text-slate-300 text-sm font-medium mb-3">Attach File</label>
+            <label className="block text-slate-300 text-sm font-medium mb-3">
+              Attach File {category === 'NOTES' ? <span className="text-red-400">*</span> : <span className="text-slate-500">(optional)</span>}
+            </label>
             <div
               onDragOver={e => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}

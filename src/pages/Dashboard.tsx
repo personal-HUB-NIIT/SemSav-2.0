@@ -35,6 +35,8 @@ interface FeedUpload {
   title_syllabus: string;
   category: string;
   created_at: string;
+  status: string;
+  user_id: string;
   users?: { full_name: string; avatar_url: string | null } | { full_name: string; avatar_url: string | null }[] | null;
   subjects?: { subject_name: string; subject_code: string } | { subject_name: string; subject_code: string }[] | null;
 }
@@ -765,9 +767,10 @@ interface PriorityFeedProps {
   onBrowse: () => void;
   unvotedCount?: number;
   onNavigateKarma?: () => void;
+  profileId?: string;
 }
 
-function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, onSelectTask, onBrowse, unvotedCount = 0, onNavigateKarma }: PriorityFeedProps) {
+function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, onSelectTask, onBrowse, unvotedCount = 0, onNavigateKarma, profileId }: PriorityFeedProps) {
   const sectionTitle = "text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5";
 
   return (
@@ -867,7 +870,11 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
                       {meta.icon}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-900 truncate">{u.title_syllabus}</p>
+                      <p className="text-sm font-semibold text-slate-900 truncate">{u.title_syllabus}
+                        {u.status === 'UNVERIFIED' && u.user_id === profileId && (
+                          <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 align-middle">⏳ Pending</span>
+                        )}
+                      </p>
                       <p className="text-[11px] text-slate-500 mt-0.5 truncate">
                         {sub ? `${sub.subject_name} · ` : ''}
                         {uploader?.full_name ?? 'Peer upload'}
@@ -901,7 +908,11 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
                         {meta.icon}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-slate-700 truncate">{u.title_syllabus}</p>
+                        <p className="text-xs font-medium text-slate-700 truncate">{u.title_syllabus}
+                          {u.status === 'UNVERIFIED' && u.user_id === profileId && (
+                            <span className="ml-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 align-middle">⏳ Pending</span>
+                          )}
+                        </p>
                         <p className="text-[10px] text-slate-400">{sub?.subject_name ?? meta.label}</p>
                       </div>
                       <span className="shrink-0 text-[10px] text-slate-400">{timeAgo(u.created_at)}</span>
@@ -1416,7 +1427,7 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
 
 export default function Dashboard() {
   const navigate   = useNavigate();
-  const { profile, signOut } = useAuth();
+  const { profile, loading: authLoading, signOut } = useAuth();
 
   const today = new Date();
 
@@ -1452,6 +1463,9 @@ export default function Dashboard() {
 
   // ── Karma poll state
   const [unvotedCount, setUnvotedCount] = useState(0);
+
+  // ── Calendar uploads (verified tests/exams from peers)
+  const [calendarUploads, setCalendarUploads] = useState<AcademicTask[]>([]);
 
   // ── Branch lookup (for header chip)
   const [branchList, setBranchList] = useState<{ id: string; branch_code: string }[]>([]);
@@ -1489,6 +1503,32 @@ export default function Dashboard() {
 
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
 
+  // ─── Fetch verified uploads for calendar ──────────────────────────────────
+
+  useEffect(() => {
+    if (!profile?.branch_id || !profile?.semester) return;
+    (async () => {
+      const { data } = await supabase
+        .from('uploads')
+        .select('id, title_syllabus, category, due_date_time, subjects(subject_code)')
+        .eq('branch_id', profile.branch_id!)
+        .eq('semester', profile.semester!)
+        .eq('status', 'VERIFIED')
+        .not('due_date_time', 'is', null);
+      if (!data) { setCalendarUploads([]); return; }
+      const mapped: AcademicTask[] = data.map((u: any) => ({
+        id: u.id,
+        user_id: '',
+        title: u.title_syllabus,
+        subject_code: u.subjects?.subject_code,
+        event_type: u.category === 'TEST' ? 'exam' as const : 'assignment' as const,
+        due_date: u.due_date_time,
+        is_completed: false,
+      }));
+      setCalendarUploads(mapped);
+    })();
+  }, [profile?.branch_id, profile?.semester]);
+
   // ─── Fetch weekly schedule ────────────────────────────────────────────────
 
   useEffect(() => {
@@ -1519,10 +1559,10 @@ export default function Dashboard() {
       setUploadsLoading(true);
       const { data, error } = await supabase
         .from('uploads')
-        .select('id, title_syllabus, category, created_at, users(full_name, avatar_url), subjects(subject_name, subject_code)')
+        .select('id, title_syllabus, category, created_at, status, user_id, users(full_name, avatar_url), subjects(subject_name, subject_code)')
         .eq('branch_id', profile.branch_id!)
         .eq('semester', profile.semester!)
-        .neq('status', 'PURGED')
+        .eq('status', 'VERIFIED')
         .order('created_at', { ascending: false })
         .limit(25);
       if (!error) setFeedUploads((data ?? []) as FeedUpload[]);
@@ -1535,13 +1575,13 @@ export default function Dashboard() {
   useEffect(() => {
     if (!profile?.branch_id || !profile?.semester || !profile?.auth_id) return;
     (async () => {
-      const { data: pending } = await supabase
+      const { data: pending, error: pendingErr } = await supabase
         .from('verification_queue')
         .select('id')
         .eq('branch_id', profile.branch_id!)
         .eq('semester', profile.semester!)
         .eq('status', 'pending');
-      if (!pending || pending.length === 0) { setUnvotedCount(0); return; }
+      if (pendingErr || !pending || pending.length === 0) { setUnvotedCount(0); return; }
       const pendingIds = pending.map((r: { id: string }) => r.id);
       const { data: votes } = await supabase
         .from('queue_votes')
@@ -1636,6 +1676,59 @@ export default function Dashboard() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
+  // Show skeleton while auth profile is resolving
+  if (authLoading || !profile) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <div className="bg-white/95 backdrop-blur border-b border-slate-200 sticky top-0 z-30">
+          <div className="max-w-7xl mx-auto px-4 h-16 flex items-center gap-3">
+            <div className="w-9 h-9 bg-slate-100 rounded-xl animate-pulse" />
+            <div className="space-y-1.5">
+              <div className="h-4 w-40 bg-slate-100 rounded animate-pulse" />
+              <div className="h-2.5 w-24 bg-slate-100 rounded animate-pulse" />
+            </div>
+          </div>
+        </div>
+        <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-7 space-y-4">
+              {[0, 1, 2].map(i => (
+                <div key={i} className="bg-white border border-slate-200 rounded-2xl p-5 animate-pulse">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 bg-slate-100 rounded-xl" />
+                    <div className="space-y-1.5 flex-1">
+                      <div className="h-3 bg-slate-100 rounded w-3/4" />
+                      <div className="h-2 bg-slate-100 rounded w-1/2" />
+                    </div>
+                  </div>
+                  <div className="h-2.5 bg-slate-100 rounded-full mb-3" />
+                  <div className="flex gap-2">
+                    <div className="h-9 bg-slate-100 rounded-xl flex-1" />
+                    <div className="h-9 bg-slate-100 rounded-xl flex-1" />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="lg:col-span-5">
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 animate-pulse">
+                <div className="h-4 bg-slate-100 rounded w-1/2 mb-4" />
+                {[0, 1, 2].map(i => (
+                  <div key={i} className="flex items-center gap-3 py-3 border-b border-slate-100 last:border-0">
+                    <div className="w-3 h-3 bg-slate-100 rounded-full" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-3 bg-slate-100 rounded w-3/4" />
+                      <div className="h-2 bg-slate-100 rounded w-1/2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
 
@@ -1654,7 +1747,7 @@ export default function Dashboard() {
       {/* Slide-over Calendar Drawer */}
       <CalendarDrawer
         open={drawerOpen} onClose={() => setDrawerOpen(false)}
-        tasks={tasks} tasksLoading={tasksLoading} dbMissing={dbMissing}
+        tasks={[...tasks, ...calendarUploads]} tasksLoading={tasksLoading} dbMissing={dbMissing}
         setDbMissing={setDbMissing} fetchTasks={fetchTasks}
         viewYear={viewYear} setViewYear={setViewYear}
         viewMonth={viewMonth} setViewMonth={setViewMonth}
@@ -1710,9 +1803,9 @@ export default function Dashboard() {
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
                 <span>📅</span> Attendance
               </button>
-              <button onClick={() => { setSidebarOpen(false); navigate('/upload'); }}
+              <button onClick={() => { setSidebarOpen(false); navigate('/classroom'); }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
-                <span>📝</span> Upload Notes
+                <span>👥</span> My Classroom
               </button>
               <button onClick={() => { setSidebarOpen(false); navigate('/karma-poll'); }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all relative">
@@ -1801,6 +1894,7 @@ export default function Dashboard() {
               onBrowse={() => navigate('/upload')}
               unvotedCount={unvotedCount}
               onNavigateKarma={() => navigate('/karma-poll')}
+              profileId={profile?.id}
             />
           </div>
 
