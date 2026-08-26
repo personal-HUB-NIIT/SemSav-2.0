@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 import {
   fetchSemesterSubjects, fetchAttendanceSummary, fetchAttendanceLogs,
-  markAttendance, addExtraClass, computeStats, todayKey,
+  markAttendance, clearAttendance, addExtraClass, computeStats, todayKey,
   STATUS_META, ZONE_COLORS,
 } from '../hooks/useAttendance';
 import type {
@@ -82,10 +82,11 @@ const ACTION_STYLES: Record<AttendanceStatus, { idle: string; active: string }> 
 };
 
 function StatusButtons({
-  current, disabled, onPick,
+  current, disabled, onPick, onClear,
 }: {
   current?: AttendanceStatus; disabled: boolean;
   onPick: (s: AttendanceStatus) => void;
+  onClear: () => void;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -105,6 +106,16 @@ function StatusButtons({
           </button>
         );
       })}
+      {current && (
+        <button
+          disabled={disabled}
+          onClick={onClear}
+          title="Clear mark"
+          className="px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed border-slate-200 text-slate-500 hover:bg-slate-100 bg-white"
+        >
+          ↩ Clear
+        </button>
+      )}
     </div>
   );
 }
@@ -209,6 +220,32 @@ export default function Attendance() {
     } catch (err) {
       setLogs(prevLogs);
       toast.error(err instanceof Error ? err.message : 'Failed to save attendance');
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
+  const handleClear = async (subjectId: string, dateKey: string = today) => {
+    if (!profile?.auth_id || savingKey) return;
+    const key = subjectId + dateKey;
+    const prevLogs = logs;
+    setSavingKey(key);
+
+    // Optimistic UI: remove the log entry instantly
+    setLogs(prev => prev.filter(l => !(l.subject_id === subjectId && l.date === dateKey)));
+
+    try {
+      await clearAttendance(profile.auth_id, subjectId, dateKey);
+      toast.success(dateKey === today ? 'Mark cleared' : 'Entry cleared');
+      if (profile.auth_id && profile.branch_id && profile.semester) {
+        const { subs, summaryMap, logRows } = await loadAttendance({
+          auth_id: profile.auth_id, branch_id: profile.branch_id, semester: profile.semester,
+        });
+        setSubjects(subs); setSummary(summaryMap); setLogs(logRows);
+      }
+    } catch (err) {
+      setLogs(prevLogs);
+      toast.error(err instanceof Error ? err.message : 'Failed to clear attendance');
     } finally {
       setSavingKey(null);
     }
@@ -350,7 +387,7 @@ export default function Attendance() {
 
                   {/* Today's quick actions */}
                   <div className="mt-3">
-                    <StatusButtons current={cur} disabled={busy || missingTable} onPick={(s) => handleMark(sub.id, s)} />
+                    <StatusButtons current={cur} disabled={busy || missingTable} onPick={(s) => handleMark(sub.id, s)} onClear={() => handleClear(sub.id)} />
                   </div>
                 </div>
               );
@@ -390,6 +427,7 @@ export default function Attendance() {
                           current={entry.status}
                           disabled={busy || missingTable}
                           onPick={(s) => handleMark(entry.subject_id, s, entry.date)}
+                          onClear={() => handleClear(entry.subject_id, entry.date)}
                         />
                       </div>
                     );

@@ -171,6 +171,23 @@ export async function markAttendance(
 }
 
 /**
+ * Remove attendance log for a given subject+date (clear/reset).
+ */
+export async function clearAttendance(
+  userId: string,
+  subjectId: string,
+  dateKey: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('attendance_logs')
+    .delete()
+    .eq('user_id', userId)
+    .eq('subject_id', subjectId)
+    .eq('date', dateKey);
+  if (error) throw error;
+}
+
+/**
  * Add extra class attendance: inserts `count` log rows for the given subject,
  * date, and status. Uses a loop upsert with distinct timestamps appended to the
  * date string to satisfy the unique (user_id, subject_id, date) constraint.
