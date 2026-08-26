@@ -12,20 +12,10 @@ interface Subject {
   is_lab: boolean;
 }
 
-interface UploadItem {
-  id: string;
-  title_syllabus: string;
-  category: 'NOTES' | 'ASSIGNMENT' | 'TEST';
-  file_url: string | null;
-  due_date_time: string | null;
-  created_at: string;
-  net_score: number;
-  users?: { full_name: string } | { full_name: string }[] | null;
-}
-
 interface StudyMaterial {
   id: string;
   upload_id: string;
+  material_type: 'NOTE' | 'ASSIGNMENT';
   title: string;
   file_url: string | null;
   created_at: string;
@@ -35,19 +25,6 @@ interface StudyMaterial {
 type TabType = 'notes' | 'assignments';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function relOne<T>(rel: T | T[] | null | undefined): T | null {
-  if (!rel) return null;
-  return Array.isArray(rel) ? (rel[0] ?? null) : rel;
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -59,31 +36,6 @@ function timeAgo(iso: string): string {
   const d = Math.floor(hr / 24);
   return d === 1 ? '1 day ago' : `${d} days ago`;
 }
-
-function dueTag(iso: string): { label: string; tone: 'overdue' | 'urgent' | 'soon' | 'calm' } {
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const startOfDue = new Date(iso).getTime();
-  const days = Math.round((startOfDue - startOfToday) / 86400000);
-  if (days < 0)  return { label: 'Overdue', tone: 'overdue' };
-  if (days === 0) return { label: 'Due today', tone: 'urgent' };
-  if (days === 1) return { label: 'Due tomorrow', tone: 'urgent' };
-  if (days <= 3) return { label: `Due in ${days}d`, tone: 'soon' };
-  return { label: `Due in ${days}d`, tone: 'calm' };
-}
-
-const DUE_STYLES: Record<string, string> = {
-  overdue: 'bg-red-100 text-red-700',
-  urgent: 'bg-orange-100 text-orange-700',
-  soon: 'bg-indigo-100 text-indigo-700',
-  calm: 'bg-slate-100 text-slate-600',
-};
-
-const CATEGORY_META: Record<string, { label: string; icon: string; color: string }> = {
-  NOTES:      { label: 'Notes',      icon: '📄', color: 'bg-blue-50 border-blue-200 text-blue-700' },
-  ASSIGNMENT: { label: 'Assignment', icon: '📋', color: 'bg-amber-50 border-amber-200 text-amber-700' },
-  TEST:       { label: 'Test/Exam',  icon: '🎓', color: 'bg-red-50 border-red-200 text-red-700' },
-};
 
 // ─── Spinner ──────────────────────────────────────────────────────────────────
 
@@ -139,8 +91,8 @@ export default function Notes() {
 
   // Detail view state
   const [tab, setTab]                     = useState<TabType>('notes');
-  const [uploads, setUploads]             = useState<UploadItem[]>([]);
   const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
+  const [assignments, setAssignments]     = useState<StudyMaterial[]>([]);
   const [uploadsLoading, setUploadsLoading] = useState(true);
   const [search, setSearch]               = useState('');
   const [unitFilter, setUnitFilter]       = useState<string>('all');
@@ -192,25 +144,27 @@ export default function Notes() {
     // Fetch verified notes from study_materials
     const notesPromise = supabase
       .from('study_materials')
-      .select('id, upload_id, title, file_url, created_at, uploader_name')
+      .select('id, upload_id, material_type, title, file_url, created_at, uploader_name')
       .eq('subject_id', selectedSubject.id)
       .eq('branch_id', profile.branch_id!)
       .eq('semester', profile.semester!)
+      .eq('material_type', 'NOTE')
       .order('created_at', { ascending: false });
 
-    // Fetch verified assignments/tests from uploads
+    // Fetch verified assignments from study_materials
     const assignmentsPromise = supabase
-      .from('uploads')
-      .select('id, title_syllabus, category, file_url, due_date_time, created_at, net_score, users(full_name)')
+      .from('study_materials')
+      .select('id, upload_id, material_type, title, file_url, created_at, uploader_name')
       .eq('subject_id', selectedSubject.id)
-      .eq('status', 'VERIFIED')
-      .in('category', ['ASSIGNMENT', 'TEST'])
+      .eq('branch_id', profile.branch_id!)
+      .eq('semester', profile.semester!)
+      .eq('material_type', 'ASSIGNMENT')
       .order('created_at', { ascending: false });
 
     const [notesResult, assignmentsResult] = await Promise.all([notesPromise, assignmentsPromise]);
 
     if (!notesResult.error) setStudyMaterials((notesResult.data ?? []) as StudyMaterial[]);
-    if (!assignmentsResult.error) setUploads((assignmentsResult.data ?? []) as UploadItem[]);
+    if (!assignmentsResult.error) setAssignments((assignmentsResult.data ?? []) as StudyMaterial[]);
 
     setUploadsLoading(false);
   }, [selectedSubject, profile?.branch_id, profile?.semester]);
@@ -224,8 +178,8 @@ export default function Notes() {
     return true;
   });
 
-  const filteredAssignments = uploads.filter(item => {
-    if (search && !item.title_syllabus.toLowerCase().includes(search.toLowerCase())) return false;
+  const filteredAssignments = assignments.filter(item => {
+    if (search && !item.title.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
@@ -420,56 +374,43 @@ export default function Notes() {
           </div>
         ) : (
           <div className="space-y-3">
-            {(filtered as UploadItem[]).map(item => {
-              const meta = CATEGORY_META[item.category] ?? { label: item.category, icon: '📁', color: 'bg-slate-100 border-slate-200 text-slate-600' };
-              const uploader = relOne(item.users);
-              const tag = item.due_date_time ? dueTag(item.due_date_time) : null;
-
-              return (
-                <div key={item.id}
-                  className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md transition-all">
-                  <div className="flex items-start gap-4">
-                    <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-sm shrink-0 ${meta.color}`}>
-                      {meta.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <h3 className="text-sm font-bold text-slate-900 truncate">{item.title_syllabus}</h3>
-                          <div className="flex items-center gap-2 mt-1 flex-wrap">
-                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${meta.color}`}>
-                              {meta.label}
-                            </span>
-                            {item.due_date_time && (
-                              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${DUE_STYLES[tag?.tone ?? 'calm']}`}>
-                                {tag?.label}
-                              </span>
-                            )}
-                          </div>
-                          {uploader && (
-                            <p className="text-[10px] text-slate-400 mt-1">by {uploader.full_name}</p>
-                          )}
+            {(filtered as StudyMaterial[]).map(item => (
+              <div key={item.id}
+                className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md transition-all">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-xl border flex items-center justify-center text-sm shrink-0 bg-amber-50 border-amber-200 text-amber-700">
+                    📋
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-bold text-slate-900 truncate">{item.title}</h3>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-amber-50 border-amber-200 text-amber-700">
+                            Assignment
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            Uploaded {timeAgo(item.created_at)}
+                          </span>
                         </div>
-                        {item.file_url && (
-                          <a href={item.file_url} target="_blank" rel="noopener noreferrer"
-                            className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold rounded-xl hover:bg-indigo-100 transition-all">
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            Open
-                          </a>
+                        {item.uploader_name && (
+                          <p className="text-[10px] text-slate-400 mt-1">by {item.uploader_name}</p>
                         )}
                       </div>
-                      {item.due_date_time && (
-                        <div className="mt-3 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 flex items-center gap-4 text-[11px] text-slate-600">
-                          <span>📅 Due: {formatDateTime(item.due_date_time)}</span>
-                        </div>
+                      {item.file_url && (
+                        <a href={item.file_url} target="_blank" rel="noopener noreferrer"
+                          className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold rounded-xl hover:bg-indigo-100 transition-all">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Open
+                        </a>
                       )}
                     </div>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </main>
