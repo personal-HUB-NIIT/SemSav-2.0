@@ -53,12 +53,5 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
     }
   }
 
-  // Profile not found in users table (auth exists but profile row missing) → send to onboarding
-  if (!requireAdmin && !profile && session) {
-    if (location.pathname !== '/auth/student-onboarding') {
-      return <Navigate to="/auth/student-onboarding" replace />;
-    }
-  }
-
   return <>{children}</>;
 }
