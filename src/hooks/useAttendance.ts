@@ -148,17 +148,33 @@ export async function fetchAttendanceLogs(userId: string, branchId: string, seme
   return (data ?? []) as AttendanceLogRow[];
 }
 
-/** Upsert today's regular class mark (class_count=1, is_extra=false). */
+/** Upsert today's regular class mark (class_count=1, is_extra=false).
+ *  Deletes any existing regular entry first, then inserts — partial unique
+ *  index prevents duplicates but can't be used as onConflict target. */
 export async function markAttendance(
   userId: string,
   subjectId: string,
   dateKey: string,
   status: AttendanceStatus,
 ): Promise<void> {
-  const { error } = await supabase.from('attendance_logs').upsert(
-    { user_id: userId, subject_id: subjectId, date: dateKey, status, class_count: 1, is_extra: false },
-    { onConflict: 'user_id,subject_id,date,is_extra' },
-  );
+  // Delete existing regular entry for this subject+date
+  await supabase
+    .from('attendance_logs')
+    .delete()
+    .eq('user_id', userId)
+    .eq('subject_id', subjectId)
+    .eq('date', dateKey)
+    .eq('is_extra', false);
+
+  // Insert new regular entry
+  const { error } = await supabase.from('attendance_logs').insert({
+    user_id: userId,
+    subject_id: subjectId,
+    date: dateKey,
+    status,
+    class_count: 1,
+    is_extra: false,
+  });
   if (error) throw error;
 }
 
