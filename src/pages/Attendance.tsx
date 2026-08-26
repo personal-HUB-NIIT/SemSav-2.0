@@ -41,9 +41,9 @@ async function loadAttendance(args: LoadArgs): Promise<{
   subs: AttendanceSubject[]; summaryMap: Map<string, SubjectSummary>; logRows: AttendanceLogRow[];
 }> {
   const [subs, summaryMap, logRows] = await Promise.all([
-    fetchSemesterSubjects(args.branch_id, args.semester),
-    fetchAttendanceSummary(args.auth_id, args.branch_id, args.semester),
-    fetchAttendanceLogs(args.auth_id, args.branch_id, args.semester),
+    fetchSemesterSubjects(args.branch_id, args.semester).catch(() => [] as AttendanceSubject[]),
+    fetchAttendanceSummary(args.auth_id, args.branch_id, args.semester).catch(() => new Map<string, SubjectSummary>()),
+    fetchAttendanceLogs(args.auth_id, args.branch_id, args.semester).catch(() => [] as AttendanceLogRow[]),
   ]);
   return { subs, summaryMap, logRows };
 }

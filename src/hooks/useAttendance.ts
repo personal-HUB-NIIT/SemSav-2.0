@@ -110,24 +110,38 @@ export async function fetchSemesterSubjects(branchId: string, semester: number):
   return (data ?? []) as AttendanceSubject[];
 }
 
-/** Aggregated per-subject counts via DB RPC (efficient grouping on load). Scoped to branch + semester. */
+/** Aggregated per-subject counts via DB RPC. Falls back to client-side aggregation if RPC is missing. */
 export async function fetchAttendanceSummary(userId: string, branchId: string, semester: number): Promise<Map<string, SubjectSummary>> {
-  const { data, error } = await supabase.rpc('get_attendance_summary', {
-    p_user_id: userId,
-    p_branch_id: branchId,
-    p_semester: semester,
-  });
-  const map = new Map<string, SubjectSummary>();
-  if (!error && Array.isArray(data)) {
-    for (const row of data as { subject_id: string; total_held: number | string; attended: number | string; cancelled?: number | string }[]) {
-      map.set(row.subject_id, {
-        subject_id: row.subject_id,
-        total_held: Number(row.total_held),
-        attended: Number(row.attended),
-      });
+  try {
+    const { data, error } = await supabase.rpc('get_attendance_summary', {
+      p_user_id: userId,
+      p_branch_id: branchId,
+      p_semester: semester,
+    });
+    if (error) throw error;
+    const map = new Map<string, SubjectSummary>();
+    if (Array.isArray(data)) {
+      for (const row of data as { subject_id: string; total_held: number | string; attended: number | string }[]) {
+        map.set(row.subject_id, {
+          subject_id: row.subject_id,
+          total_held: Number(row.total_held),
+          attended: Number(row.attended),
+        });
+      }
     }
+    return map;
+  } catch {
+    // RPC may not exist yet — fall back to computing from logs
+    const logs = await fetchAttendanceLogs(userId, branchId, semester, 2000);
+    const map = new Map<string, SubjectSummary>();
+    for (const l of logs) {
+      const cur = map.get(l.subject_id) ?? { subject_id: l.subject_id, total_held: 0, attended: 0 };
+      if (l.status === 'present' || l.status === 'absent') cur.total_held += 1;
+      if (l.status === 'present') cur.attended += 1;
+      map.set(l.subject_id, cur);
+    }
+    return map;
   }
-  return map;
 }
 
 /** Full log list — powers the history view and "already marked today" state. Scoped to branch + semester. */
