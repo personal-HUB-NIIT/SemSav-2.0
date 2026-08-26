@@ -1803,6 +1803,10 @@ export default function Dashboard() {
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
                 <span>📅</span> Attendance
               </button>
+              <button onClick={() => { setSidebarOpen(false); navigate('/classroom'); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+                <span>👥</span> My Classroom
+              </button>
               <button onClick={() => { setSidebarOpen(false); navigate('/karma-poll'); }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all relative">
                 <span>🗳️</span> Karma Poll
