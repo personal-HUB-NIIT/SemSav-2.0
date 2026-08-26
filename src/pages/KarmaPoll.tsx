@@ -285,6 +285,8 @@ export default function KarmaPoll() {
         })
       );
       setItems(itemsWithVotes);
+    } else if (error) {
+      console.error('KarmaPoll fetch error:', error);
     }
 
     setLoading(false);
@@ -295,7 +297,7 @@ export default function KarmaPoll() {
   // ─── Fetch my votes ────────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (!profile?.auth_id || items.length === 0) return;
+    if (!profile?.id || items.length === 0) return;
     const ids = items.map(i => i.id);
     supabase
       .from('votes')
