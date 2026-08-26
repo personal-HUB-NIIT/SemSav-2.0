@@ -1426,7 +1426,7 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
 
 export default function Dashboard() {
   const navigate   = useNavigate();
-  const { profile, signOut } = useAuth();
+  const { profile, loading: authLoading, signOut } = useAuth();
 
   const today = new Date();
 
@@ -1545,13 +1545,13 @@ export default function Dashboard() {
   useEffect(() => {
     if (!profile?.branch_id || !profile?.semester || !profile?.auth_id) return;
     (async () => {
-      const { data: pending } = await supabase
+      const { data: pending, error: pendingErr } = await supabase
         .from('verification_queue')
         .select('id')
         .eq('branch_id', profile.branch_id!)
         .eq('semester', profile.semester!)
         .eq('status', 'pending');
-      if (!pending || pending.length === 0) { setUnvotedCount(0); return; }
+      if (pendingErr || !pending || pending.length === 0) { setUnvotedCount(0); return; }
       const pendingIds = pending.map((r: { id: string }) => r.id);
       const { data: votes } = await supabase
         .from('queue_votes')
@@ -1645,6 +1645,59 @@ export default function Dashboard() {
   };
 
   // ─── Render ───────────────────────────────────────────────────────────────
+
+  // Show skeleton while auth profile is resolving
+  if (authLoading || !profile) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <div className="bg-white/95 backdrop-blur border-b border-slate-200 sticky top-0 z-30">
+          <div className="max-w-7xl mx-auto px-4 h-16 flex items-center gap-3">
+            <div className="w-9 h-9 bg-slate-100 rounded-xl animate-pulse" />
+            <div className="space-y-1.5">
+              <div className="h-4 w-40 bg-slate-100 rounded animate-pulse" />
+              <div className="h-2.5 w-24 bg-slate-100 rounded animate-pulse" />
+            </div>
+          </div>
+        </div>
+        <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-7 space-y-4">
+              {[0, 1, 2].map(i => (
+                <div key={i} className="bg-white border border-slate-200 rounded-2xl p-5 animate-pulse">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 bg-slate-100 rounded-xl" />
+                    <div className="space-y-1.5 flex-1">
+                      <div className="h-3 bg-slate-100 rounded w-3/4" />
+                      <div className="h-2 bg-slate-100 rounded w-1/2" />
+                    </div>
+                  </div>
+                  <div className="h-2.5 bg-slate-100 rounded-full mb-3" />
+                  <div className="flex gap-2">
+                    <div className="h-9 bg-slate-100 rounded-xl flex-1" />
+                    <div className="h-9 bg-slate-100 rounded-xl flex-1" />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="lg:col-span-5">
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 animate-pulse">
+                <div className="h-4 bg-slate-100 rounded w-1/2 mb-4" />
+                {[0, 1, 2].map(i => (
+                  <div key={i} className="flex items-center gap-3 py-3 border-b border-slate-100 last:border-0">
+                    <div className="w-3 h-3 bg-slate-100 rounded-full" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-3 bg-slate-100 rounded w-3/4" />
+                      <div className="h-2 bg-slate-100 rounded w-1/2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
