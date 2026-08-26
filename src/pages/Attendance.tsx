@@ -134,7 +134,7 @@ export default function Attendance() {
   const [logs, setLogs]           = useState<AttendanceLogRow[]>([]);
   const [loading, setLoading]     = useState(true);
   const [missingTable, setMissingTable] = useState(false);
-  const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [savingKeys, setSavingKeys] = useState<Set<string>>(new Set());
   const [reloadTick, setReloadTick] = useState(0);
   const [extraModalOpen, setExtraModalOpen] = useState(false);
   const [extraSubjectId, setExtraSubjectId] = useState('');
@@ -196,58 +196,91 @@ export default function Attendance() {
 
   // ─── Actions ───────────────────────────────────────────────────────────────
   const handleMark = async (subjectId: string, status: AttendanceStatus, dateKey: string = today) => {
-    if (!profile?.auth_id || savingKey) return;
+    if (!profile?.auth_id) return;
     const key = subjectId + dateKey;
-    const prevLogs = logs;
-    setSavingKey(key);
+    if (savingKeys.has(key)) return;
 
-    // Optimistic UI: reflect the new status instantly
+    const prevLogs = logs;
+    const prevSummary = new Map(summary);
+    setSavingKeys(prev => new Set(prev).add(key));
+
+    // Optimistic UI: update logs + summary instantly
+    const oldLog = logs.find(l => l.subject_id === subjectId && l.date === dateKey);
+    const oldStatus = oldLog?.status;
+
+    // 1) Update logs: replace any existing entry for this subject+date
     setLogs(prev => {
       const rest = prev.filter(l => !(l.subject_id === subjectId && l.date === dateKey));
       return [{ id: `tmp-${key}`, subject_id: subjectId, date: dateKey, status }, ...rest];
     });
 
+    // 2) Update summary optimistically
+    setSummary(prev => {
+      const next = new Map(prev);
+      const cur = next.get(subjectId) ?? { subject_id: subjectId, total_held: 0, attended: 0 };
+      let { total_held, attended } = cur;
+
+      // Subtract previous status effect
+      if (oldStatus === 'present') { attended -= 1; total_held -= 1; }
+      else if (oldStatus === 'absent') { total_held -= 1; }
+
+      // Add new status effect
+      if (status === 'present') { attended += 1; total_held += 1; }
+      else if (status === 'absent') { total_held += 1; }
+
+      next.set(subjectId, { subject_id: subjectId, total_held: Math.max(0, total_held), attended: Math.max(0, attended) });
+      return next;
+    });
+
     try {
       await markAttendance(profile.auth_id, subjectId, dateKey, status);
       toast.success(dateKey === today ? `Marked ${STATUS_META[status].label.toLowerCase()}` : 'Entry updated');
-      // Re-aggregate server-side so gauges stay exact
-      if (profile.auth_id && profile.branch_id && profile.semester) {
-        const { subs, summaryMap, logRows } = await loadAttendance({
-          auth_id: profile.auth_id, branch_id: profile.branch_id, semester: profile.semester,
-        });
-        setSubjects(subs); setSummary(summaryMap); setLogs(logRows);
-      }
     } catch (err) {
+      // Rollback on error
       setLogs(prevLogs);
+      setSummary(prevSummary);
       toast.error(err instanceof Error ? err.message : 'Failed to save attendance');
     } finally {
-      setSavingKey(null);
+      setSavingKeys(prev => { const next = new Set(prev); next.delete(key); return next; });
     }
   };
 
   const handleClear = async (subjectId: string, dateKey: string = today) => {
-    if (!profile?.auth_id || savingKey) return;
+    if (!profile?.auth_id) return;
     const key = subjectId + dateKey;
-    const prevLogs = logs;
-    setSavingKey(key);
+    if (savingKeys.has(key)) return;
 
-    // Optimistic UI: remove the log entry instantly
+    const prevLogs = logs;
+    const prevSummary = new Map(summary);
+    setSavingKeys(prev => new Set(prev).add(key));
+
+    const oldLog = logs.find(l => l.subject_id === subjectId && l.date === dateKey);
+    const oldStatus = oldLog?.status;
+
+    // Optimistic UI: remove log + revert summary
     setLogs(prev => prev.filter(l => !(l.subject_id === subjectId && l.date === dateKey)));
+
+    setSummary(prev => {
+      const next = new Map(prev);
+      const cur = next.get(subjectId) ?? { subject_id: subjectId, total_held: 0, attended: 0 };
+      let { total_held, attended } = cur;
+
+      if (oldStatus === 'present') { attended -= 1; total_held -= 1; }
+      else if (oldStatus === 'absent') { total_held -= 1; }
+
+      next.set(subjectId, { subject_id: subjectId, total_held: Math.max(0, total_held), attended: Math.max(0, attended) });
+      return next;
+    });
 
     try {
       await clearAttendance(profile.auth_id, subjectId, dateKey);
       toast.success(dateKey === today ? 'Mark cleared' : 'Entry cleared');
-      if (profile.auth_id && profile.branch_id && profile.semester) {
-        const { subs, summaryMap, logRows } = await loadAttendance({
-          auth_id: profile.auth_id, branch_id: profile.branch_id, semester: profile.semester,
-        });
-        setSubjects(subs); setSummary(summaryMap); setLogs(logRows);
-      }
     } catch (err) {
       setLogs(prevLogs);
+      setSummary(prevSummary);
       toast.error(err instanceof Error ? err.message : 'Failed to clear attendance');
     } finally {
-      setSavingKey(null);
+      setSavingKeys(prev => { const next = new Set(prev); next.delete(key); return next; });
     }
   };
 
@@ -351,7 +384,7 @@ export default function Attendance() {
             {subjects.map((sub, i) => {
               const st = allStats[i];
               const cur = statusToday.get(sub.id);
-              const busy = savingKey === sub.id + today;
+              const busy = savingKeys.has(sub.id + today);
               return (
                 <div key={sub.id}
                   className="bg-white border border-slate-200 rounded-2xl p-4 hover:border-slate-300 hover:shadow-md hover:shadow-slate-100 transition-all">
@@ -414,7 +447,7 @@ export default function Attendance() {
                 <div className="divide-y divide-slate-100">
                   {entries.map(entry => {
                     const sub = subjectById.get(entry.subject_id);
-                    const busy = savingKey === entry.subject_id + entry.date;
+                    const busy = savingKeys.has(entry.subject_id + entry.date);
                     return (
                       <div key={entry.id} className="px-4 py-3 flex flex-wrap items-center gap-3">
                         <div className="min-w-0 flex-1">
