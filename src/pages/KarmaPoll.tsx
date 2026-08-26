@@ -301,7 +301,7 @@ export default function KarmaPoll() {
       .from('votes')
       .select('upload_id, vote_type')
       .in('upload_id', ids)
-      .eq('user_id', profile.auth_id)
+      .eq('user_id', profile.id)
       .then(({ data }) => {
         if (!data) return;
         const map: Record<string, 'UP' | 'DOWN'> = {};
@@ -353,7 +353,7 @@ export default function KarmaPoll() {
 
     const { data, error } = await supabase.rpc('submit_queue_vote', {
       p_upload_id: uploadId,
-      p_user_id:   profile.auth_id,
+      p_user_id:   profile.id,
       p_vote_type: voteType,
     });
 
