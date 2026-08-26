@@ -1464,6 +1464,9 @@ export default function Dashboard() {
   // ── Karma poll state
   const [unvotedCount, setUnvotedCount] = useState(0);
 
+  // ── Calendar uploads (verified tests/exams from peers)
+  const [calendarUploads, setCalendarUploads] = useState<AcademicTask[]>([]);
+
   // ── Branch lookup (for header chip)
   const [branchList, setBranchList] = useState<{ id: string; branch_code: string }[]>([]);
 
@@ -1500,6 +1503,32 @@ export default function Dashboard() {
 
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
 
+  // ─── Fetch verified uploads for calendar ──────────────────────────────────
+
+  useEffect(() => {
+    if (!profile?.branch_id || !profile?.semester) return;
+    (async () => {
+      const { data } = await supabase
+        .from('uploads')
+        .select('id, title_syllabus, category, due_date_time, subjects(subject_code)')
+        .eq('branch_id', profile.branch_id!)
+        .eq('semester', profile.semester!)
+        .eq('status', 'VERIFIED')
+        .not('due_date_time', 'is', null);
+      if (!data) { setCalendarUploads([]); return; }
+      const mapped: AcademicTask[] = data.map((u: any) => ({
+        id: u.id,
+        user_id: '',
+        title: u.title_syllabus,
+        subject_code: u.subjects?.subject_code,
+        event_type: u.category === 'TEST' ? 'exam' as const : 'assignment' as const,
+        due_date: u.due_date_time,
+        is_completed: false,
+      }));
+      setCalendarUploads(mapped);
+    })();
+  }, [profile?.branch_id, profile?.semester]);
+
   // ─── Fetch weekly schedule ────────────────────────────────────────────────
 
   useEffect(() => {
@@ -1533,7 +1562,7 @@ export default function Dashboard() {
         .select('id, title_syllabus, category, created_at, status, user_id, users(full_name, avatar_url), subjects(subject_name, subject_code)')
         .eq('branch_id', profile.branch_id!)
         .eq('semester', profile.semester!)
-        .neq('status', 'PURGED')
+        .eq('status', 'VERIFIED')
         .order('created_at', { ascending: false })
         .limit(25);
       if (!error) setFeedUploads((data ?? []) as FeedUpload[]);
@@ -1718,7 +1747,7 @@ export default function Dashboard() {
       {/* Slide-over Calendar Drawer */}
       <CalendarDrawer
         open={drawerOpen} onClose={() => setDrawerOpen(false)}
-        tasks={tasks} tasksLoading={tasksLoading} dbMissing={dbMissing}
+        tasks={[...tasks, ...calendarUploads]} tasksLoading={tasksLoading} dbMissing={dbMissing}
         setDbMissing={setDbMissing} fetchTasks={fetchTasks}
         viewYear={viewYear} setViewYear={setViewYear}
         viewMonth={viewMonth} setViewMonth={setViewMonth}
