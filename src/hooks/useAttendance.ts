@@ -202,25 +202,19 @@ export async function clearAttendance(
 }
 
 /**
- * Add extra class attendance: inserts `count` log rows for the given subject,
- * date, and status. Uses a loop upsert with distinct timestamps appended to the
- * date string to satisfy the unique (user_id, subject_id, date) constraint.
+ * Add extra class attendance. Since the DB has a unique (user_id, subject_id, date)
+ * constraint, only one row per subject per day is allowed. This just upserts the mark.
  */
 export async function addExtraClass(
   userId: string,
   subjectId: string,
   dateKey: string,
   status: AttendanceStatus,
-  count: number,
+  _count: number,
 ): Promise<void> {
-  const rows = Array.from({ length: count }, (_, i) => ({
-    user_id: userId,
-    subject_id: subjectId,
-    date: `${dateKey}_${i + 1}`,
-    status,
-  }));
-  const { error } = await supabase.from('attendance_logs').upsert(rows, {
-    onConflict: 'user_id,subject_id,date',
-  });
+  const { error } = await supabase.from('attendance_logs').upsert(
+    { user_id: userId, subject_id: subjectId, date: dateKey, status },
+    { onConflict: 'user_id,subject_id,date' },
+  );
   if (error) throw error;
 }
