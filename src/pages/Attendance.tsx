@@ -179,7 +179,7 @@ export default function Attendance() {
   const today = todayKey();
   const statusToday = useMemo(() => {
     const m = new Map<string, AttendanceStatus>();
-    for (const l of logs) if (l.date === today) m.set(l.subject_id, l.status);
+    for (const l of logs) if (l.date === today && !l.is_extra) m.set(l.subject_id, l.status);
     return m;
   }, [logs, today]);
 
@@ -204,27 +204,28 @@ export default function Attendance() {
     const prevSummary = new Map(summary);
     setSavingKeys(prev => new Set(prev).add(key));
 
-    // Optimistic UI: update logs + summary instantly
-    const oldLog = logs.find(l => l.subject_id === subjectId && l.date === dateKey);
+    // Find the existing regular log for this subject+date
+    const oldLog = logs.find(l => l.subject_id === subjectId && l.date === dateKey && !l.is_extra);
     const oldStatus = oldLog?.status;
+    const oldCount = oldLog?.class_count ?? 0;
 
-    // 1) Update logs: replace any existing entry for this subject+date
+    // Optimistic: update logs — replace regular entry
     setLogs(prev => {
-      const rest = prev.filter(l => !(l.subject_id === subjectId && l.date === dateKey));
-      return [{ id: `tmp-${key}`, subject_id: subjectId, date: dateKey, status }, ...rest];
+      const rest = prev.filter(l => !(l.subject_id === subjectId && l.date === dateKey && !l.is_extra));
+      return [{ id: `tmp-${key}`, subject_id: subjectId, date: dateKey, status, class_count: 1, is_extra: false }, ...rest];
     });
 
-    // 2) Update summary optimistically
+    // Optimistic: update summary
     setSummary(prev => {
       const next = new Map(prev);
       const cur = next.get(subjectId) ?? { subject_id: subjectId, total_held: 0, attended: 0 };
       let { total_held, attended } = cur;
 
-      // Subtract previous status effect
-      if (oldStatus === 'present') { attended -= 1; total_held -= 1; }
-      else if (oldStatus === 'absent') { total_held -= 1; }
+      // Subtract old effect
+      if (oldStatus === 'present') { attended -= oldCount; total_held -= oldCount; }
+      else if (oldStatus === 'absent') { total_held -= oldCount; }
 
-      // Add new status effect
+      // Add new effect (class_count = 1 for regular marks)
       if (status === 'present') { attended += 1; total_held += 1; }
       else if (status === 'absent') { total_held += 1; }
 
@@ -236,7 +237,6 @@ export default function Attendance() {
       await markAttendance(profile.auth_id, subjectId, dateKey, status);
       toast.success(dateKey === today ? `Marked ${STATUS_META[status].label.toLowerCase()}` : 'Entry updated');
     } catch (err) {
-      // Rollback on error
       setLogs(prevLogs);
       setSummary(prevSummary);
       toast.error(err instanceof Error ? err.message : 'Failed to save attendance');
@@ -254,19 +254,21 @@ export default function Attendance() {
     const prevSummary = new Map(summary);
     setSavingKeys(prev => new Set(prev).add(key));
 
-    const oldLog = logs.find(l => l.subject_id === subjectId && l.date === dateKey);
+    // Find the regular log to know what to subtract
+    const oldLog = logs.find(l => l.subject_id === subjectId && l.date === dateKey && !l.is_extra);
     const oldStatus = oldLog?.status;
+    const oldCount = oldLog?.class_count ?? 0;
 
-    // Optimistic UI: remove log + revert summary
-    setLogs(prev => prev.filter(l => !(l.subject_id === subjectId && l.date === dateKey)));
+    // Optimistic: remove regular entry
+    setLogs(prev => prev.filter(l => !(l.subject_id === subjectId && l.date === dateKey && !l.is_extra)));
 
     setSummary(prev => {
       const next = new Map(prev);
       const cur = next.get(subjectId) ?? { subject_id: subjectId, total_held: 0, attended: 0 };
       let { total_held, attended } = cur;
 
-      if (oldStatus === 'present') { attended -= 1; total_held -= 1; }
-      else if (oldStatus === 'absent') { total_held -= 1; }
+      if (oldStatus === 'present') { attended -= oldCount; total_held -= oldCount; }
+      else if (oldStatus === 'absent') { total_held -= oldCount; }
 
       next.set(subjectId, { subject_id: subjectId, total_held: Math.max(0, total_held), attended: Math.max(0, attended) });
       return next;
@@ -287,16 +289,34 @@ export default function Attendance() {
   const handleExtraClass = async () => {
     if (!profile?.auth_id || !extraSubjectId || !extraDate || extraCount < 1) return;
     setExtraSaving(true);
+
+    const prevLogs = logs;
+    const prevSummary = new Map(summary);
+
+    // Optimistic: add extra log entry + update summary
+    const tmpId = `tmp-extra-${Date.now()}`;
+    setLogs(prev => [{ id: tmpId, subject_id: extraSubjectId, date: extraDate, status: extraStatus, class_count: extraCount, is_extra: true }, ...prev]);
+
+    setSummary(prev => {
+      const next = new Map(prev);
+      const cur = next.get(extraSubjectId) ?? { subject_id: extraSubjectId, total_held: 0, attended: 0 };
+      const newTotal = cur.total_held + extraCount;
+      const newAttended = cur.attended + (extraStatus === 'present' ? extraCount : 0);
+      next.set(extraSubjectId, { subject_id: extraSubjectId, total_held: newTotal, attended: newAttended });
+      return next;
+    });
+
     try {
       await addExtraClass(profile.auth_id, extraSubjectId, extraDate, extraStatus, extraCount);
-      toast.success(`Added ${extraCount} ${extraStatus} class${extraCount > 1 ? 'es' : ''}`);
+      toast.success(`Added ${extraCount} ${extraStatus} extra class${extraCount > 1 ? 'es' : ''}`);
       setExtraModalOpen(false);
       setExtraSubjectId('');
       setExtraDate(todayKey());
       setExtraCount(1);
       setExtraStatus('present');
-      setReloadTick(t => t + 1);
     } catch (err) {
+      setLogs(prevLogs);
+      setSummary(prevSummary);
       toast.error(err instanceof Error ? err.message : 'Failed to add extra class');
     } finally {
       setExtraSaving(false);
