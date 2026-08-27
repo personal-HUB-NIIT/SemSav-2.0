@@ -7,8 +7,6 @@ import {
   Clock, CheckCircle2, XCircle, ThumbsUp, ThumbsDown, Sparkles, ExternalLink,
 } from 'lucide-react';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 interface VoteInfo {
   vote_type: 'UP' | 'DOWN';
   users?: { full_name: string; avatar_url: string | null } | { full_name: string; avatar_url: string | null }[] | null;
@@ -30,15 +28,13 @@ interface Contribution {
 
 type FilterTab = 'all' | 'UNVERIFIED' | 'VERIFIED' | 'PURGED';
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
 const TYPE_META: Record<string, { label: string; Icon: typeof FileText; chip: string }> = {
-  NOTES:      { label: 'Notes',      Icon: FileText,      chip: 'bg-blue-50 border-blue-200 text-blue-700' },
-  ASSIGNMENT: { label: 'Assignment', Icon: ClipboardList, chip: 'bg-amber-50 border-amber-200 text-amber-700' },
-  TEST:       { label: 'Test / Exam', Icon: GraduationCap, chip: 'bg-red-50 border-red-200 text-red-700' },
+  NOTES:      { label: 'Notes',      Icon: FileText,      chip: 'bg-blue-500/15 border-blue-400/25 text-blue-300' },
+  ASSIGNMENT: { label: 'Assignment', Icon: ClipboardList, chip: 'bg-amber-500/15 border-amber-400/25 text-amber-300' },
+  TEST:       { label: 'Test / Exam', Icon: GraduationCap, chip: 'bg-red-500/15 border-red-400/25 text-red-300' },
 };
 
-const FALLBACK_TYPE_META = { label: 'Other', Icon: Folder, chip: 'bg-slate-100 border-slate-200 text-slate-600' };
+const FALLBACK_TYPE_META = { label: 'Other', Icon: Folder, chip: 'bg-white/10 border-white/15 text-gray-400' };
 
 const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: 'all',        label: 'All' },
@@ -48,17 +44,17 @@ const FILTER_TABS: { key: FilterTab; label: string }[] = [
 ];
 
 const STATUS_META: Record<Contribution['status'], { label: string; chip: string; Icon: typeof Clock; hint: string }> = {
-  UNVERIFIED: { label: 'Pending Review', chip: 'bg-amber-50 border-amber-200 text-amber-700',        Icon: Clock,       hint: 'Awaiting community votes' },
-  VERIFIED:   { label: 'Verified',       chip: 'bg-emerald-50 border-emerald-200 text-emerald-700',  Icon: CheckCircle2, hint: '+25 karma earned' },
-  PURGED:     { label: 'Rejected',       chip: 'bg-red-50 border-red-200 text-red-700',              Icon: XCircle,     hint: '-15 karma · hidden from vault' },
+  UNVERIFIED: { label: 'Pending Review', chip: 'bg-amber-500/15 border-amber-400/25 text-amber-300',        Icon: Clock,       hint: 'Awaiting community votes' },
+  VERIFIED:   { label: 'Verified',       chip: 'bg-emerald-500/15 border-emerald-400/25 text-emerald-300',  Icon: CheckCircle2, hint: '+25 karma earned' },
+  PURGED:     { label: 'Rejected',       chip: 'bg-red-500/15 border-red-400/25 text-red-300',              Icon: XCircle,     hint: '-15 karma · hidden from vault' },
 };
 
 const KARMA_TIERS = [
-  { min: 0,   label: 'Newcomer',    color: 'text-slate-600 bg-slate-100 border-slate-200' },
-  { min: 50,  label: 'Contributor', color: 'text-blue-700 bg-blue-50 border-blue-200' },
-  { min: 150, label: 'Reviewer',    color: 'text-indigo-700 bg-indigo-50 border-indigo-200' },
-  { min: 300, label: 'Trusted',     color: 'text-purple-700 bg-purple-50 border-purple-200' },
-  { min: 500, label: 'Expert',      color: 'text-amber-700 bg-amber-50 border-amber-200' },
+  { min: 0,   label: 'Newcomer',    color: 'text-gray-400 bg-white/10 border-white/15' },
+  { min: 50,  label: 'Contributor', color: 'text-blue-300 bg-blue-500/15 border-blue-400/25' },
+  { min: 150, label: 'Reviewer',    color: 'text-indigo-300 bg-indigo-500/15 border-indigo-400/25' },
+  { min: 300, label: 'Trusted',     color: 'text-purple-300 bg-purple-500/15 border-purple-400/25' },
+  { min: 500, label: 'Expert',      color: 'text-amber-300 bg-amber-500/15 border-amber-400/25' },
 ];
 
 function getKarmaTier(karma: number) {
@@ -78,8 +74,6 @@ function voterName(v: VoteInfo): string | null {
   return u?.full_name ?? null;
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
-
 export default function KarmaPoll() {
   const navigate = useNavigate();
   const { profile } = useAuth();
@@ -89,8 +83,6 @@ export default function KarmaPoll() {
   const [filter, setFilter] = useState<FilterTab>('all');
 
   const tier = getKarmaTier(profile?.karma_points ?? 0);
-
-  // ─── Fetch my contributions ────────────────────────────────────────────────
 
   const fetchItems = useCallback(async () => {
     if (!profile?.id) return;
@@ -115,53 +107,49 @@ export default function KarmaPoll() {
   const pendingCount  = items.filter(i => i.status === 'UNVERIFIED').length;
   const upvotesReceived = items.reduce((n, i) => n + (i.votes?.filter(v => v.vote_type === 'UP').length ?? 0), 0);
 
-  // ─── Render ────────────────────────────────────────────────────────────────
-
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      {/* Header */}
-      <header className="bg-white/95 backdrop-blur border-b border-slate-200 sticky top-0 z-30">
+    <div className="min-h-screen bg-[var(--bg)] text-white">
+      <header className="glass border-b border-white/10 sticky top-0 z-30">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center gap-3">
           <button onClick={() => navigate('/dashboard')}
-            className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all shrink-0" aria-label="Back">
+            className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all shrink-0" aria-label="Back">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="min-w-0">
-            <h1 className="text-base sm:text-lg font-bold text-slate-900 truncate">My Contributions</h1>
-            <p className="text-[10px] text-slate-500 truncate">Your upload history and community verification status</p>
+            <h1 className="text-base sm:text-lg font-bold text-white truncate">My Contributions</h1>
+            <p className="text-[10px] text-gray-400 truncate">Your upload history and community verification status</p>
           </div>
-          <span className="ml-auto shrink-0 text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1 flex items-center gap-1">
+          <span className="ml-auto shrink-0 text-xs font-bold text-amber-400 bg-amber-500/15 border border-amber-400/25 rounded-full px-2.5 py-1 flex items-center gap-1">
             <Star className="w-3.5 h-3.5" /> {profile?.karma_points ?? 0}
           </span>
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
-
         {/* Karma summary */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5">
+        <div className="glass rounded-2xl p-5 border border-white/10">
           <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
             <div>
-              <p className="text-xs text-slate-500">Karma balance</p>
-              <p className="text-2xl font-extrabold text-slate-900 flex items-center gap-1.5">
-                <Star className="w-5 h-5 text-amber-500" /> {profile?.karma_points ?? 0}
+              <p className="text-xs text-gray-400">Karma balance</p>
+              <p className="text-2xl font-extrabold text-white flex items-center gap-1.5">
+                <Star className="w-5 h-5 text-amber-400" /> {profile?.karma_points ?? 0}
               </p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Contributions</p>
-              <p className="text-2xl font-extrabold text-slate-900">{items.length}</p>
+              <p className="text-xs text-gray-400">Contributions</p>
+              <p className="text-2xl font-extrabold text-white">{items.length}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Verified</p>
-              <p className="text-2xl font-extrabold text-emerald-600">{verifiedCount}</p>
+              <p className="text-xs text-gray-400">Verified</p>
+              <p className="text-2xl font-extrabold text-emerald-400">{verifiedCount}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Pending</p>
-              <p className="text-2xl font-extrabold text-amber-600">{pendingCount}</p>
+              <p className="text-xs text-gray-400">Pending</p>
+              <p className="text-2xl font-extrabold text-amber-400">{pendingCount}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Upvotes received</p>
-              <p className="text-2xl font-extrabold text-indigo-600 flex items-center gap-1">
+              <p className="text-xs text-gray-400">Upvotes received</p>
+              <p className="text-2xl font-extrabold text-indigo-400 flex items-center gap-1">
                 <ThumbsUp className="w-4 h-4" /> {upvotesReceived}
               </p>
             </div>
@@ -177,13 +165,13 @@ export default function KarmaPoll() {
             <button key={tab.key} onClick={() => setFilter(tab.key)}
               className={`px-3.5 py-2 rounded-xl text-xs font-semibold border whitespace-nowrap transition-all ${
                 filter === tab.key
-                  ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm shadow-indigo-200'
-                  : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-700'
+                  ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm shadow-indigo-500/20'
+                  : 'bg-white/5 border-white/15 text-gray-400 hover:border-indigo-400/50 hover:text-indigo-300'
               }`}>
               {tab.label}
               {tab.key === 'all' && items.length > 0 && (
                 <span className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                  filter === tab.key ? 'bg-indigo-500' : 'bg-slate-100 text-slate-500'
+                  filter === tab.key ? 'bg-indigo-500' : 'bg-white/10 text-gray-500'
                 }`}>
                   {items.length}
                 </span>
@@ -194,20 +182,20 @@ export default function KarmaPoll() {
 
         {/* Loading */}
         {loading && (
-          <div className="flex items-center justify-center py-16 gap-3 text-slate-500">
-            <div className="border-2 border-slate-200 border-t-indigo-600 rounded-full animate-spin w-6 h-6" />
+          <div className="flex items-center justify-center py-16 gap-3 text-gray-400">
+            <div className="border-2 border-white/15 border-t-indigo-500 rounded-full animate-spin w-6 h-6" />
             <span className="text-sm">Loading your contributions…</span>
           </div>
         )}
 
         {/* Empty */}
         {!loading && filtered.length === 0 && (
-          <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center">
-            <Folder className="w-10 h-10 mx-auto mb-3 text-slate-300" />
-            <p className="text-sm font-semibold text-slate-900 mb-1">
+          <div className="glass rounded-2xl p-10 text-center border border-white/10">
+            <Folder className="w-10 h-10 mx-auto mb-3 text-gray-600" />
+            <p className="text-sm font-semibold text-white mb-1">
               {items.length === 0 ? 'No contributions yet' : 'Nothing in this category'}
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-gray-400">
               {items.length === 0
                 ? 'Upload notes, assignments or exam dates from the dashboard to earn karma.'
                 : 'Try a different filter.'}
@@ -228,51 +216,50 @@ export default function KarmaPoll() {
               const downNames = downs.map(voterName).filter(Boolean) as string[];
 
               return (
-                <div key={item.id} className="bg-white border border-slate-200 rounded-2xl p-4 hover:shadow-md transition-all">
+                <div key={item.id} className="glass rounded-2xl p-4 hover:border-white/20 transition-all">
                   <div className="flex items-start gap-3">
                     <span className={`shrink-0 w-10 h-10 rounded-xl border flex items-center justify-center ${meta.chip}`}>
                       <meta.Icon className="w-5 h-5" />
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-semibold text-slate-900 truncate">{item.title_syllabus}</p>
+                        <p className="text-sm font-semibold text-white truncate">{item.title_syllabus}</p>
                         <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${status.chip}`}>
                           <status.Icon className="w-3 h-3" /> {status.label}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
+                      <p className="text-[11px] text-gray-400 mt-0.5">
                         {sub ? `${sub.subject_name} (${sub.subject_code}) · ` : ''}
                         {new Date(item.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                         {item.status === 'VERIFIED' && item.file_url && (
                           <a href={item.file_url} target="_blank" rel="noopener noreferrer"
-                            className="ml-2 inline-flex items-center gap-0.5 font-semibold text-indigo-600 hover:text-indigo-800">
+                            className="ml-2 inline-flex items-center gap-0.5 font-semibold text-indigo-400 hover:text-indigo-300">
                             Open file <ExternalLink className="w-3 h-3" />
                           </a>
                         )}
                       </p>
 
-                      {/* Vote summary (read-only) + voter identities */}
-                      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
-                        <span className="inline-flex items-center gap-1 font-medium text-emerald-700">
+                      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-gray-400">
+                        <span className="inline-flex items-center gap-1 font-medium text-emerald-400">
                           <ThumbsUp className="w-3.5 h-3.5" /> {ups.length}
                         </span>
-                        <span className="inline-flex items-center gap-1 font-medium text-red-500">
+                        <span className="inline-flex items-center gap-1 font-medium text-red-400">
                           <ThumbsDown className="w-3.5 h-3.5" /> {downs.length}
                         </span>
                         {upNames.length > 0 && (
                           <span className="truncate">
-                            Upvoted by <span className="font-medium text-slate-700">{upNames.slice(0, 2).join(', ')}</span>
+                            Upvoted by <span className="font-medium text-white">{upNames.slice(0, 2).join(', ')}</span>
                             {upNames.length > 2 && ` and ${upNames.length - 2} other${upNames.length > 3 ? 's' : ''}`}
                           </span>
                         )}
                         {downNames.length > 0 && (
                           <span className="truncate">
-                            Flagged by <span className="font-medium text-slate-700">{downNames.slice(0, 2).join(', ')}</span>
+                            Flagged by <span className="font-medium text-white">{downNames.slice(0, 2).join(', ')}</span>
                             {downNames.length > 2 && ` and ${downNames.length - 2} other${downNames.length > 3 ? 's' : ''}`}
                           </span>
                         )}
                         {ups.length === 0 && downs.length === 0 && (
-                          <span className="inline-flex items-center gap-1 text-slate-400">
+                          <span className="inline-flex items-center gap-1 text-gray-500">
                             <status.Icon className="w-3 h-3" /> {status.hint}
                           </span>
                         )}

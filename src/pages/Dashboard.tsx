@@ -97,7 +97,7 @@ const UPLOAD_META: Record<string, { label: string; Icon: typeof FileText; chip: 
   TEST:       { label: 'PYQ',        Icon: FileText,      chip: 'bg-red-50 border-red-200 text-red-700' },
   ASSIGNMENT: { label: 'Assignment', Icon: ClipboardList, chip: 'bg-amber-50 border-amber-200 text-amber-700' },
 };
-const FALLBACK_UPLOAD_META = { label: 'File', Icon: Folder, chip: 'bg-slate-100 border-slate-200 text-slate-600' };
+const FALLBACK_UPLOAD_META = { label: 'File', Icon: Folder, chip: 'bg-white/10 border-white/15 text-gray-400' };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -154,10 +154,10 @@ function dueTag(iso: string): { label: string; tone: 'overdue' | 'urgent' | 'soo
 }
 
 const DUE_TAG_STYLES: Record<ReturnType<typeof dueTag>['tone'], string> = {
-  overdue: 'bg-red-100 text-red-700',
-  urgent:  'bg-orange-100 text-orange-700',
-  soon:    'bg-indigo-100 text-indigo-700',
-  calm:    'bg-slate-100 text-slate-600',
+  overdue: 'bg-red-500/20 text-red-300 border border-red-400/25',
+  urgent:  'bg-orange-500/20 text-orange-300 border border-orange-400/25',
+  soon:    'bg-indigo-500/20 text-indigo-300 border border-indigo-400/25',
+  calm:    'bg-white/10 text-gray-400 border border-white/12',
 };
 
 function getMonthGrid(year: number, month: number): Date[] {
@@ -193,7 +193,7 @@ function Spinner({ size = 16 }: { size?: number }) {
   return (
     <div
       style={{ width: size, height: size }}
-      className="border-2 border-slate-200 border-t-indigo-600 rounded-full animate-spin"
+      className="border-2 border-white/15 border-t-indigo-400 rounded-full animate-spin"
     />
   );
 }
@@ -264,19 +264,19 @@ function TaskModal({ open, initialDate, editTask, onClose, onSaved, userId }: Ta
     } finally { setSaving(false); }
   };
 
-  const inputCls = "w-full bg-white border border-slate-300 text-slate-900 placeholder-slate-400 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all";
-  const labelCls = "block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5";
+  const inputCls = "w-full bg-white/10 border border-white/15 text-white placeholder-gray-500 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/30 transition-all";
+  const labelCls = "block text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1.5";
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white border border-slate-200 w-full max-w-lg rounded-2xl shadow-xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h2 className="text-slate-900 font-bold text-lg flex items-center gap-2">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative glass-strong w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+          <h2 className="text-white font-bold text-lg flex items-center gap-2">
             {isEdit ? <Pencil className="w-4.5 h-4.5" /> : <Plus className="w-4.5 h-4.5" />}
             {isEdit ? 'Edit Event' : 'Add Academic Event'}
           </h2>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all">
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -297,7 +297,7 @@ function TaskModal({ open, initialDate, editTask, onClose, onSaved, userId }: Ta
                   <button key={et} type="button" onClick={() => setEventType(et)}
                     style={eventType === et ? { background: c.bg, borderColor: c.text, color: c.text } : {}}
                     className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border text-xs font-medium transition-all ${
-                      eventType === et ? '' : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300'
+                      eventType === et ? '' : 'bg-white/5 border-white/15 text-gray-400 hover:text-white hover:border-white/25'
                     }`}>
                     <c.Icon className="w-4.5 h-4.5 shrink-0" />
                   </button>
@@ -314,14 +314,14 @@ function TaskModal({ open, initialDate, editTask, onClose, onSaved, userId }: Ta
             <div>
               <label className={labelCls}>Date *</label>
               <input type="date" value={dateVal} onChange={e => setDateVal(e.target.value)}
-                className={`${inputCls} [color-scheme:light]`} />
+                className={`${inputCls} [color-scheme:dark]`} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Time *</label>
               <input type="time" value={timeVal} onChange={e => setTimeVal(e.target.value)}
-                className={`${inputCls} [color-scheme:light]`} />
+                className={`${inputCls} [color-scheme:dark]`} />
             </div>
             <div>
               <label className={labelCls}>Description</label>
@@ -331,7 +331,7 @@ function TaskModal({ open, initialDate, editTask, onClose, onSaved, userId }: Ta
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-sm font-medium transition-all">
+              className="flex-1 py-2.5 rounded-xl border border-white/15 text-gray-400 hover:text-white hover:bg-white/10 text-sm font-medium transition-all">
               Cancel
             </button>
             <button type="submit" disabled={saving}
@@ -359,15 +359,15 @@ function DayCell({ date, currentMonth, isToday, isSelected, events, onClick }: D
   return (
     <button onClick={onClick}
       className={`relative flex flex-col p-1 rounded-xl border text-left transition-all min-h-[58px] ${
-        isSelected ? 'bg-indigo-50 border-indigo-400 ring-1 ring-indigo-300'
-        : isToday   ? 'bg-indigo-50/60 border-indigo-200 hover:border-indigo-400'
-        : isCurrentMonth ? 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-        : 'bg-slate-50 border-slate-100 hover:bg-slate-100'
+        isSelected ? 'bg-indigo-500/20 border-indigo-400/50 ring-1 ring-indigo-400/30'
+        : isToday   ? 'bg-indigo-500/10 border-indigo-400/30 hover:border-indigo-400/50'
+        : isCurrentMonth ? 'bg-white/5 border-white/10 hover:border-white/20 hover:bg-white/8'
+        : 'bg-white/3 border-white/5 hover:bg-white/6'
       }`}>
       <span className={`text-xs font-semibold w-5 h-5 flex items-center justify-center rounded-full mb-0.5 shrink-0 ${
         isToday ? 'bg-indigo-600 text-white'
-        : isSelected && !isToday ? 'text-indigo-700'
-        : isCurrentMonth ? 'text-slate-800' : 'text-slate-400'
+        : isSelected && !isToday ? 'text-indigo-300'
+        : isCurrentMonth ? 'text-gray-200' : 'text-gray-600'
       }`}>{date.getDate()}</span>
       <div className="flex flex-col gap-0.5 w-full overflow-hidden">
         {visible.map(ev => {
@@ -379,7 +379,7 @@ function DayCell({ date, currentMonth, isToday, isSelected, events, onClick }: D
             </div>
           );
         })}
-        {overflow > 0 && <span className="text-[9px] text-slate-400 pl-0.5">+{overflow} more</span>}
+        {overflow > 0 && <span className="text-[9px] text-gray-500 pl-0.5">+{overflow} more</span>}
       </div>
     </button>
   );
@@ -411,20 +411,20 @@ function AgendaCard({ task, onToggle, onEdit, onDelete, toggling }: AgendaCardPr
             <c.Icon className="w-3.5 h-3.5 inline mr-1" />{c.label}
           </span>
           {task.subject_code && (
-            <span className="text-[10px] text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-full">{task.subject_code}</span>
+            <span className="text-[10px] text-gray-400 bg-white/10 border border-white/15 px-1.5 py-0.5 rounded-full">{task.subject_code}</span>
           )}
-          <span className="text-[10px] text-slate-400 ml-auto inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {formatDisplayTime(task.due_date)}</span>
+          <span className="text-[10px] text-gray-500 ml-auto inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {formatDisplayTime(task.due_date)}</span>
         </div>
-        <p className={`text-sm font-semibold ${task.is_completed ? 'line-through text-slate-400' : 'text-slate-900'}`}>{task.title}</p>
-        {task.description && <p className="text-xs text-slate-500 mt-0.5">{task.description}</p>}
+        <p className={`text-sm font-semibold ${task.is_completed ? 'line-through text-gray-500' : 'text-white'}`}>{task.title}</p>
+        {task.description && <p className="text-xs text-gray-400 mt-0.5">{task.description}</p>}
       </div>
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-        <button onClick={() => onEdit(task)} className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all">
+        <button onClick={() => onEdit(task)} className="p-1 text-gray-500 hover:text-indigo-400 hover:bg-indigo-500/15 rounded-lg transition-all">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
           </svg>
         </button>
-        <button onClick={() => onDelete(task)} className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all">
+        <button onClick={() => onDelete(task)} className="p-1 text-gray-500 hover:text-red-400 hover:bg-red-500/15 rounded-lg transition-all">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
@@ -512,23 +512,23 @@ function CalendarDrawer({
   return (
     <>
       <div
-        className={`fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-sm transition-opacity duration-300 ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
       <div
-        className={`fixed right-0 top-0 h-full z-50 w-full sm:w-[560px] bg-white border-l border-slate-200 flex flex-col shadow-2xl transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-full'}`}>
+        className={`fixed right-0 top-0 h-full z-50 w-full sm:w-[560px] glass-strong border-l border-white/10 flex flex-col shadow-2xl transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-full'}`}>
 
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-center">
+            <div className="w-8 h-8 bg-indigo-500/15 border border-indigo-400/25 rounded-xl flex items-center justify-center">
               <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            <h2 className="text-slate-900 font-bold text-base">Academic Calendar</h2>
+            <h2 className="text-white font-bold text-base">Academic Calendar</h2>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all">
+            <button onClick={onClose} className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -539,9 +539,9 @@ function CalendarDrawer({
         <div className="flex-1 overflow-y-auto">
 
           {dbMissing && (
-            <div className="m-4 border border-red-200 bg-red-50 rounded-xl p-4">
-              <p className="text-red-700 font-bold text-sm mb-1"><code className="bg-red-100 px-1 rounded text-red-800 font-mono text-xs">user_tasks</code> table missing or wrong schema</p>
-              <p className="text-slate-600 text-xs mb-3">Go to <strong className="text-slate-800">Supabase → SQL Editor → New Query</strong>, paste and run:</p>
+            <div className="m-4 border border-red-500/30 bg-red-500/10 rounded-xl p-4">
+              <p className="text-red-300 font-bold text-sm mb-1"><code className="bg-red-100 px-1 rounded text-red-800 font-mono text-xs">user_tasks</code> table missing or wrong schema</p>
+              <p className="text-gray-400 text-xs mb-3">Go to <strong className="text-slate-800">Supabase → SQL Editor → New Query</strong>, paste and run:</p>
               <pre className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-[10px] text-emerald-300 font-mono overflow-x-auto whitespace-pre leading-relaxed">
 {`CREATE TABLE IF NOT EXISTS public.user_tasks (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -559,7 +559,7 @@ CREATE POLICY "own" ON public.user_tasks
   USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);`}
               </pre>
               <button onClick={() => { setDbMissing(false); fetchTasks(); }}
-                className="mt-3 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition-all">
+                className="mt-3 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl transition-all border border-white/15">
                 ↻ I ran it — Retry
               </button>
             </div>
@@ -568,18 +568,18 @@ CREATE POLICY "own" ON public.user_tasks
           <div className="p-4 space-y-4">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-1.5">
-                <button onClick={prevMonth} className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
+                <button onClick={prevMonth} className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
-                <h3 className="text-slate-900 font-bold text-base min-w-[130px] text-center">{MONTH_NAMES[viewMonth]} {viewYear}</h3>
-                <button onClick={nextMonth} className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
+                <h3 className="text-white font-bold text-base min-w-[130px] text-center">{MONTH_NAMES[viewMonth]} {viewYear}</h3>
+                <button onClick={nextMonth} className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
-                <button onClick={goToToday} className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition-all">
+                <button onClick={goToToday} className="px-2.5 py-1 bg-white/10 hover:bg-white/20 border border-white/15 text-gray-300 text-xs font-semibold rounded-xl transition-all">
                   Today
                 </button>
               </div>
@@ -589,7 +589,7 @@ CREATE POLICY "own" ON public.user_tasks
                     className={`px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all ${
                       filter === p.key
                         ? 'bg-indigo-600 border-indigo-600 text-white'
-                        : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800'
+                        : 'bg-white/10 border-white/15 text-gray-400 hover:text-white hover:bg-white/15'
                     }`}>
                     <p.Icon className="w-3.5 h-3.5" />
                   </button>
@@ -599,14 +599,14 @@ CREATE POLICY "own" ON public.user_tasks
 
             <div className="grid grid-cols-7">
               {DAYS_OF_WEEK.map(d => (
-                <div key={d} className="py-1 text-center text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{d}</div>
+                <div key={d} className="py-1 text-center text-[10px] font-semibold text-gray-500 uppercase tracking-wider">{d}</div>
               ))}
             </div>
 
             {tasksLoading ? (
               <div className="grid grid-cols-7 gap-1" style={{ minHeight: 300 }}>
                 {Array.from({ length: 35 }).map((_, i) => (
-                  <div key={i} className="bg-slate-50 border border-slate-100 rounded-xl animate-pulse min-h-[58px]" />
+                  <div key={i} className="bg-white/5 border border-white/8 rounded-xl animate-pulse min-h-[58px]" />
                 ))}
               </div>
             ) : (
@@ -632,19 +632,19 @@ CREATE POLICY "own" ON public.user_tasks
               {(Object.entries(EVENT_COLORS) as [AcademicTask['event_type'], typeof EVENT_COLORS[AcademicTask['event_type']]][]).map(([type, c]) => (
                 <div key={type} className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full" style={{ background: c.dot }} />
-                  <span className="text-[10px] text-slate-500">{c.label}</span>
+                  <span className="text-[10px] text-gray-400">{c.label}</span>
                 </div>
               ))}
             </div>
 
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+            <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
                 <div>
-                  <p className="text-slate-900 font-bold text-sm">{selectedDateLabel}</p>
-                  <p className="text-slate-500 text-xs">{selectedDayTasks.length === 0 ? 'No events' : `${selectedDayTasks.length} event${selectedDayTasks.length > 1 ? 's' : ''}`}</p>
+                  <p className="text-white font-bold text-sm">{selectedDateLabel}</p>
+                  <p className="text-gray-400 text-xs">{selectedDayTasks.length === 0 ? 'No events' : `${selectedDayTasks.length} event${selectedDayTasks.length > 1 ? 's' : ''}`}</p>
                 </div>
                 <button onClick={() => onAddForDate(selectedDate)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-all">
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition-all shadow-lg shadow-indigo-500/20">
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
@@ -655,7 +655,7 @@ CREATE POLICY "own" ON public.user_tasks
                 {selectedDayTasks.length === 0 ? (
                   <div className="text-center py-8">
                     <CalendarDays className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                    <p className="text-slate-400 text-sm mb-4">Nothing scheduled</p>
+                    <p className="text-gray-500 text-sm mb-4">Nothing scheduled</p>
                     <button onClick={() => onAddForDate(selectedDate)}
                       className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 mx-auto">
                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -676,7 +676,7 @@ CREATE POLICY "own" ON public.user_tasks
 
             {tasks.length === 0 && !tasksLoading && !dbMissing && (
               <button onClick={seedDemoData} disabled={seedingDemo}
-                className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-slate-300 hover:border-indigo-400 text-slate-400 hover:text-indigo-600 text-sm rounded-2xl transition-all disabled:opacity-60">
+                className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-white/15 hover:border-indigo-400/50 text-gray-500 hover:text-indigo-300 text-sm rounded-2xl transition-all disabled:opacity-60">
                 {seedingDemo ? <Spinner size={14} /> : <FlaskConical className="w-3.5 h-3.5" />}
                 {seedingDemo ? 'Loading demo data...' : 'Load Demo Data to explore'}
               </button>
@@ -705,26 +705,26 @@ function TimetableCard({ allSlots, loading, missing }: TimetableCardProps) {
     .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
   return (
-    <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <section className="glass rounded-2xl shadow-2xl overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-bold text-slate-900">Today's Schedule</h2>
-          <p className="text-xs text-slate-500 mt-0.5">{todayLabel} · {formatFullDate(`${toLocalDateKey(new Date())}T12:00:00`)}</p>
+          <h2 className="text-sm font-bold text-white">Today's Schedule</h2>
+          <p className="text-xs text-gray-400 mt-0.5">{todayLabel} · {formatFullDate(`${toLocalDateKey(new Date())}T12:00:00`)}</p>
         </div>
-        <span className="text-xs font-semibold text-slate-500 bg-slate-100 border border-slate-200 rounded-full px-2.5 py-1 shrink-0">
+        <span className="text-xs font-semibold text-gray-300 bg-white/10 border border-white/15 rounded-full px-2.5 py-1 shrink-0">
           {slots.length} class{slots.length === 1 ? '' : 'es'}
         </span>
       </div>
 
       <div>
         {loading ? (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-white/8">
             {[0, 1, 2].map(i => (
               <div key={i} className="flex items-center gap-4 px-5 py-4 animate-pulse">
-                <div className="w-[86px] h-8 bg-slate-100 rounded-lg" />
+                <div className="w-[86px] h-8 bg-white/10 rounded-lg" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-3.5 bg-slate-100 rounded w-2/3" />
-                  <div className="h-3 bg-slate-100 rounded w-1/3" />
+                  <div className="h-3.5 bg-white/10 rounded w-2/3" />
+                  <div className="h-3 bg-white/10 rounded w-1/3" />
                 </div>
               </div>
             ))}
@@ -732,41 +732,41 @@ function TimetableCard({ allSlots, loading, missing }: TimetableCardProps) {
         ) : missing ? (
           <div className="px-5 py-10 text-center">
             <CalendarDays className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-            <p className="text-sm font-semibold text-slate-900 mb-1">Timetable not set up yet</p>
-            <p className="text-xs text-slate-500 max-w-xs mx-auto">
-              Run <code className="bg-slate-100 px-1 rounded font-mono text-[10px]">supabase/migrations/013_class_schedule.sql</code> in your Supabase SQL Editor to load the weekly routine.
+            <p className="text-sm font-semibold text-white mb-1">Timetable not set up yet</p>
+            <p className="text-xs text-gray-400 max-w-xs mx-auto">
+              Run <code className="bg-white/10 px-1 rounded font-mono text-[10px]">supabase/migrations/013_class_schedule.sql</code> in your Supabase SQL Editor to load the weekly routine.
             </p>
           </div>
         ) : slots.length === 0 ? (
           <div className="px-5 py-10 text-center">
             {isWeekend ? <PartyPopper className="w-8 h-8 mx-auto mb-2 text-slate-300" /> : <Coffee className="w-8 h-8 mx-auto mb-2 text-slate-300" />}
-            <p className="text-sm font-semibold text-slate-900">
+            <p className="text-sm font-semibold text-white">
               {isWeekend ? `It's ${todayLabel} — weekend!` : 'No classes scheduled'}
             </p>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-gray-400 mt-0.5">
               {isWeekend ? 'No regular classes on weekends. Check back Monday!' : 'Enjoy your free day!'}
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-white/8">
             {slots.map(s => (
-              <div key={s.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50 transition-colors">
+              <div key={s.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-white/5 transition-colors">
                 <div className="w-[86px] shrink-0">
-                  <p className="text-xs font-bold text-slate-700 tabular-nums">{formatTime12(s.start_time)}</p>
-                  <p className="text-[10px] text-slate-400 tabular-nums">{formatTime12(s.end_time)}</p>
+                  <p className="text-xs font-bold text-gray-200 tabular-nums">{formatTime12(s.start_time)}</p>
+                  <p className="text-[10px] text-gray-500 tabular-nums">{formatTime12(s.end_time)}</p>
                 </div>
-                <div className="flex-1 min-w-0 border-l border-slate-100 pl-4">
-                  <p className="text-sm font-semibold text-slate-900 truncate">{s.subject_name}</p>
-                  <p className="text-xs text-slate-500 mt-0.5 truncate">
+                <div className="flex-1 min-w-0 border-l border-white/10 pl-4">
+                  <p className="text-sm font-semibold text-white truncate">{s.subject_name}</p>
+                  <p className="text-xs text-gray-400 mt-0.5 truncate">
                     {'Faculty: '}{s.teacher_name ?? 'TBD'}
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-1 shrink-0">
-                  <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-md px-1.5 py-0.5">
+                  <span className="text-[10px] font-bold text-indigo-300 bg-indigo-500/15 border border-indigo-400/25 rounded-md px-1.5 py-0.5">
                     {s.subject_code}
                   </span>
                   {s.room_number && (
-                    <span className="text-[10px] text-slate-600 bg-slate-100 border border-slate-200 rounded-md px-1.5 py-0.5">
+                    <span className="text-[10px] text-gray-400 bg-white/10 border border-white/15 rounded-md px-1.5 py-0.5">
                       {s.room_number}
                     </span>
                   )}
@@ -809,27 +809,27 @@ function ReviewFeed({ items, loading, profileId, votingId, onVote }: ReviewFeedP
   const [previewItem, setPreviewItem] = useState<PendingReviewItem | null>(null);
 
   return (
-    <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <section className="glass rounded-2xl shadow-2xl overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+          <h2 className="text-sm font-bold text-white flex items-center gap-2">
             <ShieldQuestion className="w-4 h-4 text-amber-500" /> Pending Community Review
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">Verify peer uploads — earn +2 karma per vote</p>
+          <p className="text-xs text-gray-400 mt-0.5">Verify peer uploads — earn +2 karma per vote</p>
         </div>
         {items.length > 0 && (
-          <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1">
+          <span className="text-xs font-semibold text-amber-300 bg-amber-500/15 border border-amber-400/25 rounded-full px-2.5 py-1">
             {items.length} pending
           </span>
         )}
       </div>
-      <div className="divide-y divide-slate-100">
+      <div className="divide-y divide-white/8">
         {loading ? (
           <div className="px-5 py-4 space-y-3">
-            {[0, 1].map(i => <div key={i} className="h-16 bg-slate-100 rounded-xl animate-pulse" />)}
+            {[0, 1].map(i => <div key={i} className="h-16 bg-white/10 rounded-xl animate-pulse" />)}
           </div>
         ) : items.length === 0 ? (
-          <p className="px-5 py-5 text-xs text-slate-400">Nothing awaiting review right now.</p>
+          <p className="px-5 py-5 text-xs text-gray-500">Nothing awaiting review right now.</p>
         ) : (
           items.map(item => {
             const meta = REVIEW_TYPE_META[item.category] ?? REVIEW_TYPE_META.NOTES;
@@ -842,19 +842,19 @@ function ReviewFeed({ items, loading, profileId, votingId, onVote }: ReviewFeedP
             const busy = votingId === item.id;
 
             return (
-              <div key={item.id} className="px-5 py-3.5 hover:bg-slate-50/60 transition-colors">
+              <div key={item.id} className="px-5 py-3.5 hover:bg-white/5 transition-colors">
                 <div className="flex items-start gap-3">
                   <span className={`shrink-0 w-9 h-9 rounded-lg border flex items-center justify-center ${meta.chip}`}>
                     <meta.Icon className="w-4.5 h-4.5" />
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 truncate">
+                    <p className="text-sm font-semibold text-white truncate">
                       {item.title_syllabus}
                       {isOwn && (
-                        <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 align-middle">You</span>
+                        <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 align-middle">You</span>
                       )}
                     </p>
-                    <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                    <p className="text-[11px] text-gray-400 mt-0.5 truncate">
                       {sub ? `${sub.subject_name} · ` : ''}{timeAgo(item.created_at)}
                     </p>
 
@@ -881,17 +881,17 @@ function ReviewFeed({ items, loading, profileId, votingId, onVote }: ReviewFeedP
                   <div className="shrink-0 flex items-center gap-1.5">
                     <button onClick={() => setPreviewItem(item)} disabled={busy}
                       title="Preview this content before voting"
-                      className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 transition-all active:scale-95">
+                      className="p-2 rounded-xl bg-white/10 border border-white/15 text-gray-300 hover:bg-white/20 hover:text-white disabled:opacity-40 transition-all active:scale-95">
                       <Eye className="w-4 h-4" />
                     </button>
                     <button onClick={() => onVote(item.id, 'UP')} disabled={isOwn || busy}
                       title={isOwn ? 'You cannot vote on your own upload' : 'Upvote — verify this content'}
-                      className="p-2 rounded-xl border border-emerald-200 text-emerald-700 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95">
+                      className="p-2 rounded-xl bg-emerald-500/15 border border-emerald-400/25 text-emerald-300 hover:bg-emerald-500/25 hover:text-emerald-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95">
                       <ThumbsUp className="w-4 h-4" />
                     </button>
                     <button onClick={() => onVote(item.id, 'DOWN')} disabled={isOwn || busy}
                       title={isOwn ? 'You cannot vote on your own upload' : 'Downvote — flag this content'}
-                      className="p-2 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95">
+                      className="p-2 rounded-xl bg-red-500/15 border border-red-400/25 text-red-300 hover:bg-red-500/25 hover:text-red-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95">
                       <ThumbsDown className="w-4 h-4" />
                     </button>
                   </div>
@@ -906,23 +906,23 @@ function ReviewFeed({ items, loading, profileId, votingId, onVote }: ReviewFeedP
       {previewItem && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" role="dialog" aria-modal="true">
           <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setPreviewItem(null)} />
-          <div className="relative bg-white border border-slate-200 w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
-            <div className="px-5 py-4 border-b border-slate-100 flex items-start justify-between gap-3">
+          <div className="relative glass-strong w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="px-5 py-4 border-b border-white/10 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="text-sm font-bold text-slate-900 truncate">{previewItem.title_syllabus}</h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">
+                <h3 className="text-sm font-bold text-white truncate">{previewItem.title_syllabus}</h3>
+                <p className="text-[11px] text-gray-400 mt-0.5">
                   {REVIEW_TYPE_META[previewItem.category]?.label ?? 'Upload'}
                   {relOne(previewItem.subjects) ? ` · ${relOne(previewItem.subjects)!.subject_name}` : ''}
                   {' · '}uploaded {timeAgo(previewItem.created_at)}
                 </p>
               </div>
               <button onClick={() => setPreviewItem(null)}
-                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all shrink-0" aria-label="Close preview">
+                className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all shrink-0" aria-label="Close preview">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-auto bg-slate-50">
+            <div className="flex-1 overflow-auto bg-black/20">
               {previewItem.file_url ? (
                 <iframe
                   src={`${previewItem.file_url}#view=FitH`}
@@ -931,54 +931,54 @@ function ReviewFeed({ items, loading, profileId, votingId, onVote }: ReviewFeedP
                 />
               ) : previewItem.category === 'TEST' ? (
                 <div className="p-6 space-y-3">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Exam date submission — nothing to preview</p>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Exam date submission — nothing to preview</p>
                   <div className="flex flex-wrap gap-2">
                     {previewItem.test_type && (
-                      <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-red-50 border border-red-200 text-red-700">
+                      <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-red-500/15 border border-red-400/25 text-red-300">
                         {previewItem.test_type.replace(/_/g, ' ')}
                       </span>
                     )}
                     {previewItem.due_date_time && (
-                      <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 inline-flex items-center gap-1">
+                      <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-500/15 border border-indigo-400/25 text-indigo-300 inline-flex items-center gap-1">
                         <CalendarDays className="w-3.5 h-3.5" />
                         {new Date(previewItem.due_date_time).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </span>
                     )}
                     {previewItem.room_no && (
-                      <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 inline-flex items-center gap-1">
+                      <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white/10 border border-white/15 text-gray-300 inline-flex items-center gap-1">
                         <MapPin className="w-3.5 h-3.5" /> Room {previewItem.room_no}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-slate-500">Evaluate whether these exam details look correct before voting.</p>
+                  <p className="text-xs text-gray-400">Evaluate whether these exam details look correct before voting.</p>
                 </div>
               ) : (
                 <div className="p-10 text-center">
-                  <FileText className="w-10 h-10 mx-auto mb-3 text-slate-300" />
-                  <p className="text-sm font-medium text-slate-600">No file attached to this upload.</p>
+                  <FileText className="w-10 h-10 mx-auto mb-3 text-gray-600" />
+                  <p className="text-sm font-medium text-gray-400">No file attached to this upload.</p>
                 </div>
               )}
             </div>
 
-            <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-between gap-3 bg-white">
-              <p className="text-[11px] text-slate-500">Review the content, then vote below or from the card.</p>
+            <div className="px-5 py-3.5 border-t border-white/10 flex items-center justify-between gap-3 bg-white/5">
+              <p className="text-[11px] text-gray-400">Review the content, then vote below or from the card.</p>
               <div className="flex items-center gap-2">
                 {previewItem.file_url && (
                   <a href={previewItem.file_url} target="_blank" rel="noopener noreferrer"
-                    className="px-3.5 py-2 rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-semibold transition-all inline-flex items-center gap-1.5">
+                    className="px-3.5 py-2 rounded-xl border border-white/15 text-gray-300 hover:text-white hover:bg-white/10 text-xs font-semibold transition-all inline-flex items-center gap-1.5">
                     <ExternalLink className="w-3.5 h-3.5" /> Open in new tab
                   </a>
                 )}
                 <button
                   onClick={() => { onVote(previewItem.id, 'UP'); setPreviewItem(null); }}
                   disabled={previewItem.user_id === profileId || votingId === previewItem.id}
-                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold transition-all inline-flex items-center gap-1.5">
+                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold transition-all inline-flex items-center gap-1.5">
                   <ThumbsUp className="w-3.5 h-3.5" /> Verify
                 </button>
                 <button
                   onClick={() => { onVote(previewItem.id, 'DOWN'); setPreviewItem(null); }}
                   disabled={previewItem.user_id === profileId || votingId === previewItem.id}
-                  className="px-3.5 py-2 rounded-xl bg-red-500 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold transition-all inline-flex items-center gap-1.5">
+                  className="px-3.5 py-2 rounded-xl bg-red-500 hover:bg-red-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold transition-all inline-flex items-center gap-1.5">
                   <ThumbsDown className="w-3.5 h-3.5" /> Flag
                 </button>
               </div>
@@ -1014,25 +1014,25 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
   };
 
   return (
-    <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <section className="glass rounded-2xl shadow-2xl overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100">
-        <h2 className="text-sm font-bold text-slate-900">Recent Activity & Priorities</h2>
-        <p className="text-xs text-slate-500 mt-0.5">What needs your attention first</p>
+        <h2 className="text-sm font-bold text-white">Recent Activity & Priorities</h2>
+        <p className="text-xs text-gray-400 mt-0.5">What needs your attention first</p>
       </div>
 
-      <div className="divide-y divide-slate-100">
+      <div className="divide-y divide-white/8">
 
         {/* Priority 1: Urgent deadlines */}
         <div className="py-2">
-          <p className={`${sectionTitle} text-red-600 px-5 pt-2 pb-1`}>
+          <p className={`${sectionTitle} text-red-300 px-5 pt-2 pb-1`}>
             Urgent Deadlines · Next 48h
           </p>
           {tasksLoading ? (
             <div className="px-5 py-3 space-y-2">
-              {[0, 1].map(i => <div key={i} className="h-12 bg-slate-100 rounded-xl animate-pulse" />)}
+              {[0, 1].map(i => <div key={i} className="h-12 bg-white/10 rounded-xl animate-pulse" />)}
             </div>
           ) : urgent.length === 0 ? (
-            <div className="mx-5 my-2 bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-medium rounded-xl px-3 py-2.5">
+            <div className="mx-5 my-2 bg-emerald-500/15 border border-emerald-400/25 text-emerald-300 text-xs font-medium rounded-xl px-3 py-2.5">
               Nothing urgent — you're on top of it!
             </div>
           ) : (
@@ -1043,7 +1043,7 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
                 const overdue = tag.tone === 'overdue';
                 return (
                   <button key={t.id} onClick={() => onSelectTask(t)}
-                    className={`w-full text-left flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors border-l-4 ${
+                    className={`w-full text-left flex items-center gap-3 px-5 py-2.5 hover:bg-white/5 transition-colors border-l-4 ${
                       overdue ? 'border-l-red-500' : 'border-l-orange-400'
                     }`}>
                     <span className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
@@ -1051,9 +1051,9 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
                       <c.Icon className="w-4 h-4" />
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-900 truncate">{t.title}</p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
-                        {t.subject_code && <span className="font-medium text-slate-600">{t.subject_code} · </span>}
+                      <p className="text-sm font-semibold text-white truncate">{t.title}</p>
+                      <p className="text-[11px] text-gray-400 mt-0.5">
+                        {t.subject_code && <span className="font-medium text-gray-300">{t.subject_code} · </span>}
                         {formatDisplayTime(t.due_date)}
                       </p>
                     </div>
@@ -1069,15 +1069,15 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
 
         {/* Priority 2: Recent notes & PYQs */}
         <div className="py-2">
-          <p className={`${sectionTitle} text-indigo-600 px-5 pt-2 pb-1`}>
+          <p className={`${sectionTitle} text-indigo-300 px-5 pt-2 pb-1`}>
             New Notes & PYQs · Last 7 Days
           </p>
           {uploadsLoading ? (
             <div className="px-5 py-3 space-y-2">
-              {[0, 1].map(i => <div key={i} className="h-11 bg-slate-100 rounded-xl animate-pulse" />)}
+              {[0, 1].map(i => <div key={i} className="h-11 bg-white/10 rounded-xl animate-pulse" />)}
             </div>
           ) : recent.length === 0 ? (
-            <p className="px-5 py-2 text-xs text-slate-400">No new material this week.</p>
+            <p className="px-5 py-2 text-xs text-gray-500">No new material this week.</p>
           ) : (
             <div className="pb-1">
               {recent.map(u => {
@@ -1086,22 +1086,22 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
                 const uploader = relOne(u.users);
                 return (
                   <button key={u.id} onClick={() => openUpload(u)}
-                    className="w-full text-left flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors">
+                    className="w-full text-left flex items-center gap-3 px-5 py-2.5 hover:bg-white/5 transition-colors">
                     <span className={`shrink-0 w-8 h-8 rounded-lg border flex items-center justify-center ${meta.chip}`}>
                       <meta.Icon className="w-4 h-4" />
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-900 truncate">{u.title_syllabus}
+                      <p className="text-sm font-semibold text-white truncate">{u.title_syllabus}
                         {u.status === 'UNVERIFIED' && u.user_id === profileId && (
-                          <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 align-middle inline-flex items-center gap-1"><Clock className="w-3 h-3" /> Pending</span>
+                          <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/25 align-middle inline-flex items-center gap-1"><Clock className="w-3 h-3" /> Pending</span>
                         )}
                       </p>
-                      <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                      <p className="text-[11px] text-gray-400 mt-0.5 truncate">
                         {sub ? `${sub.subject_name} · ` : ''}
                         {uploader?.full_name ?? 'Peer upload'}
                       </p>
                     </div>
-                    <span className="shrink-0 text-[10px] text-slate-400">{timeAgo(u.created_at)}</span>
+                    <span className="shrink-0 text-[10px] text-gray-500">{timeAgo(u.created_at)}</span>
                   </button>
                 );
               })}
@@ -1112,11 +1112,11 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
         {/* Priority 3: General peer uploads */}
         {(general.length > 0 || !uploadsLoading) && (
           <div className="py-2 pb-3">
-            <p className={`${sectionTitle} text-slate-500 px-5 pt-2 pb-1`}>
+            <p className={`${sectionTitle} text-gray-400 px-5 pt-2 pb-1`}>
               Earlier Peer Uploads
             </p>
             {!uploadsLoading && general.length === 0 ? (
-              <p className="px-5 py-1 text-xs text-slate-400">Nothing else in the vault yet.</p>
+              <p className="px-5 py-1 text-xs text-gray-500">Nothing else in the vault yet.</p>
             ) : (
               <div className="pb-1 opacity-80">
                 {general.map(u => {
@@ -1124,19 +1124,19 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
                   const sub = relOne(u.subjects);
                   return (
                     <button key={u.id} onClick={onBrowse}
-                      className="w-full text-left flex items-center gap-3 px-5 py-2 hover:bg-slate-50 transition-colors">
+                      className="w-full text-left flex items-center gap-3 px-5 py-2 hover:bg-white/5 transition-colors">
                       <span className={`shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center ${meta.chip}`}>
                         <meta.Icon className="w-3.5 h-3.5" />
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-slate-700 truncate">{u.title_syllabus}
+                        <p className="text-xs font-medium text-gray-200 truncate">{u.title_syllabus}
                           {u.status === 'UNVERIFIED' && u.user_id === profileId && (
                             <span className="ml-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 align-middle inline-flex items-center gap-1"><Clock className="w-3 h-3" /> Pending</span>
                           )}
                         </p>
                         <p className="text-[10px] text-slate-400">{sub?.subject_name ?? meta.label}</p>
                       </div>
-                      <span className="shrink-0 text-[10px] text-slate-400">{timeAgo(u.created_at)}</span>
+                      <span className="shrink-0 text-[10px] text-gray-500">{timeAgo(u.created_at)}</span>
                     </button>
                   );
                 })}
@@ -1159,14 +1159,14 @@ interface UpcomingTimelineProps {
 
 function UpcomingTimeline({ milestones, loading, onSelect }: UpcomingTimelineProps) {
   return (
-    <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <section className="glass rounded-2xl shadow-2xl overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-bold text-slate-900">Upcoming Events & Tests</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Your next milestones beyond the 48-hour window</p>
+          <h2 className="text-sm font-bold text-white">Upcoming Events & Tests</h2>
+          <p className="text-xs text-gray-400 mt-0.5">Your next milestones beyond the 48-hour window</p>
         </div>
         {milestones.length > 0 && (
-          <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-2.5 py-1">
+          <span className="text-xs font-semibold text-indigo-300 bg-indigo-500/15 border border-indigo-400/25 rounded-full px-2.5 py-1">
             {milestones.length} scheduled
           </span>
         )}
@@ -1175,18 +1175,18 @@ function UpcomingTimeline({ milestones, loading, onSelect }: UpcomingTimelinePro
         {loading ? (
           <div className="flex gap-3 overflow-hidden">
             {[0, 1, 2, 3].map(i => (
-              <div key={i} className="min-w-[180px] h-[120px] bg-slate-100 rounded-xl animate-pulse" />
+              <div key={i} className="min-w-[180px] h-[120px] bg-white/10 rounded-xl animate-pulse" />
             ))}
           </div>
         ) : milestones.length === 0 ? (
           <div className="py-6 text-center">
             <Target className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-            <p className="text-sm font-semibold text-slate-900">No upcoming milestones</p>
-            <p className="text-xs text-slate-500 mt-0.5">Add tests & submissions from the calendar to track them here.</p>
+            <p className="text-sm font-semibold text-white">No upcoming milestones</p>
+            <p className="text-xs text-gray-400 mt-0.5">Add tests & submissions from the calendar to track them here.</p>
           </div>
         ) : (
           <div className="relative">
-            <div className="absolute top-[22px] left-4 right-4 h-px bg-slate-200 hidden md:block" />
+            <div className="absolute top-[22px] left-4 right-4 h-px bg-white/15 hidden md:block" />
             <div className="flex gap-3 overflow-x-auto pb-2 relative">
               {milestones.map(t => {
                 const c = EVENT_COLORS[t.event_type];
@@ -1194,7 +1194,7 @@ function UpcomingTimeline({ milestones, loading, onSelect }: UpcomingTimelinePro
                 const tag = dueTag(t.due_date);
                 return (
                   <button key={t.id} onClick={() => onSelect(t)}
-                    className="min-w-[180px] max-w-[180px] text-left p-3.5 rounded-xl border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-md transition-all shrink-0">
+                    className="min-w-[180px] max-w-[180px] text-left p-3.5 rounded-xl bg-white/10 border border-white/15 hover:border-indigo-400/40 hover:bg-white/15 hover:shadow-lg transition-all shrink-0">
                     <div className="flex items-start justify-between mb-2.5">
                       <div className="w-9 h-9 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 flex flex-col items-center justify-center leading-none shrink-0">
                         <span className="text-[8px] font-bold uppercase tracking-wide">{MONTHS_SHORT[d.getMonth()]}</span>
@@ -1205,9 +1205,9 @@ function UpcomingTimeline({ milestones, loading, onSelect }: UpcomingTimelinePro
                         <c.Icon className="w-3 h-3 inline" /> {c.label}
                       </span>
                     </div>
-                    <p className="text-xs font-semibold text-slate-900 line-clamp-2 min-h-[2rem]">{t.title}</p>
+                    <p className="text-xs font-semibold text-white line-clamp-2 min-h-[2rem]">{t.title}</p>
                     <div className="mt-2.5 flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-medium text-slate-500 truncate">
+                      <span className="text-[10px] font-medium text-gray-400 truncate">
                         {t.subject_code && <>{t.subject_code} · </>}
                         <span className="inline-flex items-center gap-0.5">
                           <Clock className="w-3 h-3" />
@@ -1362,7 +1362,7 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
     if (editable) {
       return (
         <button onClick={() => fileInputRef.current?.click()}
-          className={`relative group ${dim} shrink-0 rounded-full overflow-hidden border-2 border-dashed border-slate-300 hover:border-indigo-400 transition-all`}
+          className={`relative group ${dim} shrink-0 rounded-full overflow-hidden border-2 border-dashed border-white/20 hover:border-indigo-400 transition-all`}
           title="Change avatar">
           {src ? (
             <img src={src} alt="Avatar" className="w-full h-full object-cover" />
@@ -1371,14 +1371,14 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
               {initials}
             </div>
           )}
-          <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
             <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </div>
           {uploading && (
-            <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
               <Spinner size={20} />
             </div>
           )}
@@ -1404,21 +1404,21 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
   if (!editing) {
     return (
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true">
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
-        <div className="relative bg-white border border-slate-200 w-full max-w-md rounded-2xl shadow-xl overflow-hidden">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+        <div className="relative glass-strong w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-            <h2 className="text-slate-900 font-bold text-lg flex items-center gap-2">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+            <h2 className="text-white font-bold text-lg flex items-center gap-2">
               <User className="w-4.5 h-4.5" /> My Profile
             </h2>
             <div className="flex items-center gap-1">
               <button onClick={() => setEditing(true)}
-                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Edit profile">
+                className="p-2 text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/15 rounded-xl transition-all" title="Edit profile">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
               </button>
-              <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all">
+              <button onClick={onClose} className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -1429,16 +1429,16 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
           {/* Content */}
           <div className="px-6 py-6 space-y-5">
             {/* Avatar + Identity */}
-            <div className="flex items-center gap-4 pb-5 border-b border-slate-100">
+            <div className="flex items-center gap-4 pb-5 border-b border-white/10">
               <AvatarDisplay size="lg" />
               <div className="min-w-0">
-                <p className="text-slate-900 font-bold text-lg truncate">{profile.full_name}</p>
-                <p className="text-slate-500 text-sm truncate">{profile.email}</p>
+                <p className="text-white font-bold text-lg truncate">{profile.full_name}</p>
+                <p className="text-gray-400 text-sm truncate">{profile.email}</p>
                 <div className="flex items-center gap-2 mt-1.5">
-                  <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-2.5 py-0.5">
+                  <span className="text-[11px] font-semibold text-indigo-300 bg-indigo-500/15 border border-indigo-400/25 rounded-full px-2.5 py-0.5">
                     {profile.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Student'}
                   </span>
-                  <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-0.5">
+                  <span className="text-[11px] font-semibold text-amber-300 bg-amber-500/15 border border-amber-400/25 rounded-full px-2.5 py-0.5">
                     {profile.karma_points} karma points
                   </span>
                 </div>
@@ -1454,9 +1454,9 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
                 { label: 'Branch', value: branch?.branch_code ?? '—' },
                 { label: 'Current Semester', value: profile.semester ? `Semester ${profile.semester}` : '—' },
               ].map(field => (
-                <div key={field.label} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
-                  <span className="text-xs text-slate-400 font-medium">{field.label}</span>
-                  <span className="text-sm font-semibold text-slate-900">{field.value}</span>
+                <div key={field.label} className="flex items-center justify-between py-2 border-b border-white/8 last:border-0">
+                  <span className="text-xs text-gray-500 font-medium">{field.label}</span>
+                  <span className="text-sm font-semibold text-white">{field.value}</span>
                 </div>
               ))}
             </div>
@@ -1465,7 +1465,7 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
           {/* Footer */}
           <div className="px-6 py-4 border-t border-slate-100">
             <button onClick={onClose}
-              className="w-full py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-sm font-medium transition-all">
+              className="w-full py-2.5 rounded-xl border border-white/15 text-gray-400 hover:text-white hover:bg-white/10 text-sm font-medium transition-all">
               Close
             </button>
           </div>
@@ -1478,20 +1478,20 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setEditing(false)} />
-      <div className="relative bg-white border border-slate-200 w-full max-w-md rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setEditing(false)} />
+      <div className="relative glass-strong w-full max-w-md rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-2">
             <button onClick={() => setEditing(false)}
-              className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all">
+              className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <h2 className="text-slate-900 font-bold text-lg">Edit Profile</h2>
+            <h2 className="text-white font-bold text-lg">Edit Profile</h2>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all">
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -1501,11 +1501,11 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
         {/* Content */}
         <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
           {/* Avatar Upload */}
-          <div className="flex items-center gap-4 pb-4 border-b border-slate-100">
+          <div className="flex items-center gap-4 pb-4 border-b border-white/10">
             <AvatarDisplay size="md" editable />
             <div className="min-w-0 flex-1">
               <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
-                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 disabled:opacity-50 transition-colors">
+                className="text-xs font-semibold text-indigo-300 hover:text-indigo-200 disabled:opacity-50 transition-colors">
                 {uploading ? 'Uploading...' : avatarPreview ? 'Update Photo' : 'Upload Photo'}
               </button>
               {avatarPreview && (
@@ -1515,11 +1515,11 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
                   if (!error) { setAvatarPreview(null); await fetchProfile(profile.auth_id); toast.success('Photo removed'); }
                   setUploading(false);
                 }} disabled={uploading}
-                  className="block text-[10px] text-red-500 hover:text-red-700 font-medium mt-1 disabled:opacity-50">
+                  className="block text-[10px] text-red-400 hover:text-red-300 font-medium mt-1 disabled:opacity-50">
                   Remove photo
                 </button>
               )}
-              <p className="text-[10px] text-slate-400 mt-1">JPG, PNG, or WebP. Max 2 MB.</p>
+              <p className="text-[10px] text-gray-500 mt-1">JPG, PNG, or WebP. Max 2 MB.</p>
             </div>
             <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp"
               className="hidden" onChange={handleAvatarUpload} />
@@ -1527,23 +1527,23 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
 
           {/* Editable: Full Name */}
           <div>
-            <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Full Name</label>
+            <label className="block text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Full Name</label>
             <input type="text" value={fullName} onChange={e => setFullName(e.target.value)}
-              className="w-full bg-white border border-slate-300 text-slate-900 placeholder-slate-400 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all" />
+              className="w-full bg-white/10 border border-white/15 text-white placeholder-gray-500 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/30 transition-all" />
           </div>
 
           {/* Editable: Semester */}
           <div>
-            <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Semester</label>
+            <label className="block text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Semester</label>
             <div className="relative">
               <select value={semester} onChange={e => setSemester(Number(e.target.value))}
-                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all appearance-none cursor-pointer">
+                className="w-full bg-white/10 border border-white/15 text-white rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/30 transition-all appearance-none cursor-pointer">
                 {[1,2,3,4,5,6,7,8].map(s => (
-                  <option key={s} value={s}>Semester {s}</option>
+                  <option key={s} value={s} className="bg-gray-900 text-white">Semester {s}</option>
                 ))}
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
               </div>
@@ -1553,51 +1553,51 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
           {/* Read-only fields */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Email</label>
+              <label className="block text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Email</label>
               <input type="text" value={profile.email} readOnly
-                className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 text-sm outline-none cursor-not-allowed" />
+                className="w-full bg-white/5 border border-white/10 text-gray-400 rounded-xl px-4 py-2.5 text-sm outline-none cursor-not-allowed" />
             </div>
             <div>
-              <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Enrollment ID</label>
+              <label className="block text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Enrollment ID</label>
               <input type="text" value={profile.enrollment_id ?? '—'} readOnly
-                className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 text-sm outline-none cursor-not-allowed" />
+                className="w-full bg-white/5 border border-white/10 text-gray-400 rounded-xl px-4 py-2.5 text-sm outline-none cursor-not-allowed" />
             </div>
           </div>
 
           <div>
-            <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Branch</label>
+            <label className="block text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Branch</label>
             <div className="relative">
               <select value={branchId} onChange={e => setBranchId(e.target.value)}
-                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all appearance-none cursor-pointer">
+                className="w-full bg-white/10 border border-white/15 text-white rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/30 transition-all appearance-none cursor-pointer">
                 {branches.length === 0 && <option value="">Loading…</option>}
                 {branches.map(b => (
-                  <option key={b.id} value={b.id}>{b.branch_code} — {b.branch_name}</option>
+                  <option key={b.id} value={b.id} className="bg-gray-900 text-white">{b.branch_code} — {b.branch_name}</option>
                 ))}
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
               </div>
             </div>
-            <p className="text-[10px] text-slate-400 mt-1">Changing branch reloads your subjects and timetable.</p>
+            <p className="text-[10px] text-gray-500 mt-1">Changing branch reloads your subjects and timetable.</p>
           </div>
 
           {/* Danger Zone */}
-          <div className="border border-red-200 bg-red-50 rounded-2xl p-4">
-            <h3 className="text-sm font-bold text-red-800 mb-1">Danger Zone</h3>
-            <p className="text-xs text-red-600 mb-3">Permanently delete your account and all data. This cannot be undone.</p>
+          <div className="border border-red-400/25 bg-red-500/10 rounded-2xl p-4">
+            <h3 className="text-sm font-bold text-red-300 mb-1">Danger Zone</h3>
+            <p className="text-xs text-red-400/80 mb-3">Permanently delete your account and all data. This cannot be undone.</p>
             <button onClick={() => setDeleteOpen(true)}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-xl transition-all">
+              className="px-4 py-2 bg-red-500 hover:bg-red-400 text-white text-xs font-semibold rounded-xl transition-all">
               Delete Account
             </button>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 shrink-0 flex gap-3">
+        <div className="px-6 py-4 border-t border-white/10 shrink-0 flex gap-3">
           <button onClick={() => setEditing(false)}
-            className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-sm font-medium transition-all">
+            className="flex-1 py-2.5 rounded-xl border border-white/15 text-gray-400 hover:text-white hover:bg-white/10 text-sm font-medium transition-all">
             Cancel
           </button>
           <button onClick={handleSave} disabled={saving}
@@ -1612,27 +1612,27 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
       {deleteOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => { setDeleteOpen(false); setDeleteText(''); }} />
-          <div className="relative bg-white border border-slate-200 w-full max-w-sm rounded-2xl shadow-xl p-6 space-y-4">
+          <div className="relative glass-strong w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4">
             <div className="text-center">
               <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-slate-900">Delete Account?</h3>
-              <p className="text-sm text-slate-500 mt-1">This will permanently remove your account, uploaded files, and all data.</p>
+              <h3 className="text-lg font-bold text-white">Delete Account?</h3>
+              <p className="text-sm text-gray-400 mt-1">This will permanently remove your account, uploaded files, and all data.</p>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+              <label className="block text-xs font-semibold text-gray-400 mb-1.5">
                 Type <span className="font-mono bg-red-100 text-red-700 px-1 rounded">DELETE</span> to confirm:
               </label>
               <input type="text" value={deleteText} onChange={e => setDeleteText(e.target.value)}
                 placeholder="DELETE"
-                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 transition-all font-mono" />
+                className="w-full bg-white/10 border border-white/15 text-white placeholder-gray-500 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/30 transition-all font-mono" />
             </div>
             <div className="flex gap-3">
               <button onClick={() => { setDeleteOpen(false); setDeleteText(''); }}
-                className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-sm font-medium transition-all">
+                className="flex-1 py-2.5 rounded-xl border border-white/15 text-gray-400 hover:text-white hover:bg-white/10 text-sm font-medium transition-all">
                 Cancel
               </button>
               <button onClick={handleDeleteAccount}
@@ -1928,13 +1928,14 @@ export default function Dashboard() {
   // Show skeleton while auth profile is resolving
   if (authLoading || !profile) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <div className="bg-white/95 backdrop-blur border-b border-slate-200 sticky top-0 z-30">
+      <div className="min-h-screen relative">
+        <div className="aurora-bg" />
+        <div className="glass-strong border-b border-white/10 sticky top-0 z-30">
           <div className="max-w-7xl mx-auto px-4 h-16 flex items-center gap-3">
-            <div className="w-9 h-9 bg-slate-100 rounded-xl animate-pulse" />
+            <div className="w-9 h-9 bg-white/10 rounded-xl animate-pulse" />
             <div className="space-y-1.5">
-              <div className="h-4 w-40 bg-slate-100 rounded animate-pulse" />
-              <div className="h-2.5 w-24 bg-slate-100 rounded animate-pulse" />
+              <div className="h-4 w-40 bg-white/10 rounded animate-pulse" />
+              <div className="h-2.5 w-24 bg-white/10 rounded animate-pulse" />
             </div>
           </div>
         </div>
@@ -1942,31 +1943,31 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-7 space-y-4">
               {[0, 1, 2].map(i => (
-                <div key={i} className="bg-white border border-slate-200 rounded-2xl p-5 animate-pulse">
+                <div key={i} className="glass rounded-2xl p-5 animate-pulse">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-slate-100 rounded-xl" />
+                    <div className="w-10 h-10 bg-white/10 rounded-xl" />
                     <div className="space-y-1.5 flex-1">
-                      <div className="h-3 bg-slate-100 rounded w-3/4" />
-                      <div className="h-2 bg-slate-100 rounded w-1/2" />
+                      <div className="h-3 bg-white/10 rounded w-3/4" />
+                      <div className="h-2 bg-white/10 rounded w-1/2" />
                     </div>
                   </div>
-                  <div className="h-2.5 bg-slate-100 rounded-full mb-3" />
+                  <div className="h-2.5 bg-white/10 rounded-full mb-3" />
                   <div className="flex gap-2">
-                    <div className="h-9 bg-slate-100 rounded-xl flex-1" />
-                    <div className="h-9 bg-slate-100 rounded-xl flex-1" />
+                    <div className="h-9 bg-white/10 rounded-xl flex-1" />
+                    <div className="h-9 bg-white/10 rounded-xl flex-1" />
                   </div>
                 </div>
               ))}
             </div>
             <div className="lg:col-span-5">
-              <div className="bg-white border border-slate-200 rounded-2xl p-5 animate-pulse">
-                <div className="h-4 bg-slate-100 rounded w-1/2 mb-4" />
+              <div className="glass rounded-2xl p-5 animate-pulse">
+                <div className="h-4 bg-white/10 rounded w-1/2 mb-4" />
                 {[0, 1, 2].map(i => (
                   <div key={i} className="flex items-center gap-3 py-3 border-b border-slate-100 last:border-0">
-                    <div className="w-3 h-3 bg-slate-100 rounded-full" />
+                    <div className="w-3 h-3 bg-white/10 rounded-full" />
                     <div className="flex-1 space-y-1.5">
-                      <div className="h-3 bg-slate-100 rounded w-3/4" />
-                      <div className="h-2 bg-slate-100 rounded w-1/2" />
+                      <div className="h-3 bg-white/10 rounded w-3/4" />
+                      <div className="h-2 bg-white/10 rounded w-1/2" />
                     </div>
                   </div>
                 ))}
@@ -1979,7 +1980,8 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen text-white relative">
+      <div className="aurora-bg" />
 
       {/* Task Modal */}
       {profile && (
@@ -2014,9 +2016,9 @@ export default function Dashboard() {
       {/* Side navigation drawer */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 flex">
-          <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <div className="relative w-72 bg-white border-r border-slate-200 flex flex-col h-full z-50 shadow-xl">
-            <div className="p-6 border-b border-slate-100">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+          <div className="relative w-72 glass-strong border-r border-white/10 flex flex-col h-full z-50 shadow-2xl">
+            <div className="p-6 border-b border-white/10">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-11 h-11 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl flex items-center justify-center text-lg text-white font-bold shadow-md shadow-indigo-100 shrink-0 overflow-hidden">
                   {profile?.avatar_url ? (
@@ -2026,48 +2028,48 @@ export default function Dashboard() {
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-slate-900 font-bold truncate">{profile?.full_name}</p>
-                  <p className="text-slate-500 text-xs truncate">{profile?.email}</p>
+                  <p className="text-white font-bold truncate">{profile?.full_name}</p>
+                  <p className="text-gray-400 text-xs truncate">{profile?.email}</p>
                 </div>
               </div>
-              <div className="mt-3 flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
-                <span className="text-amber-500 font-bold text-sm inline-flex items-center gap-1"><Star className="w-3.5 h-3.5" /> {profile?.karma_points ?? 0}</span>
-                <span className="text-slate-400 text-xs">karma points</span>
+              <div className="mt-3 flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
+                <span className="text-amber-400 font-bold text-sm inline-flex items-center gap-1"><Star className="w-3.5 h-3.5" /> {profile?.karma_points ?? 0}</span>
+                <span className="text-gray-500 text-xs">karma points</span>
               </div>
             </div>
             <nav className="flex-1 p-4 space-y-1">
               <button onClick={() => setSidebarOpen(false)}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 text-sm font-medium transition-all">
                 <Home className="w-4.5 h-4.5" /> Dashboard
               </button>
               <button onClick={() => { setSidebarOpen(false); navigate('/notes'); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 text-sm font-medium transition-all">
                 <BookOpen className="w-4.5 h-4.5" /> Study Materials
               </button>
               <button onClick={() => { setSidebarOpen(false); navigate('/attendance'); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 text-sm font-medium transition-all">
                 <Calendar className="w-4.5 h-4.5" /> Attendance
               </button>
               <button onClick={() => { setSidebarOpen(false); navigate('/classroom'); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 text-sm font-medium transition-all">
                 <UserCheck className="w-4.5 h-4.5" /> My Classroom
               </button>
               <button onClick={() => { setSidebarOpen(false); navigate('/karma-poll'); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 text-sm font-medium transition-all">
                 <History className="w-4.5 h-4.5" /> My Contributions
               </button>
               <button onClick={() => toast('Settings coming soon!')}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 text-sm font-medium transition-all">
                 <Settings className="w-4.5 h-4.5" /> Settings
               </button>
             </nav>
-            <div className="p-4 border-t border-slate-100 space-y-1">
+            <div className="p-4 border-t border-white/10 space-y-1">
               <button onClick={() => { setSidebarOpen(false); setProfileOpen(true); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 text-sm font-medium transition-all">
                 <User className="w-4.5 h-4.5" /> View Profile
               </button>
               <button onClick={handleSignOut}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 text-sm font-medium transition-all">
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/15 text-sm font-medium transition-all">
                 <LogOut className="w-4.5 h-4.5" /> Log Out
               </button>
             </div>
@@ -2076,24 +2078,24 @@ export default function Dashboard() {
       )}
 
       {/* ── Top Navigation Bar ─────────────────────────────────────────────── */}
-      <header className="bg-white/95 backdrop-blur border-b border-slate-200 sticky top-0 z-30">
+      <header className="glass-strong border-b border-white/10 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <button onClick={() => setSidebarOpen(true)}
-              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all shrink-0" aria-label="Menu">
+              className="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-xl transition-all shrink-0" aria-label="Menu">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
             <div className="min-w-0">
-              <h1 className="text-base sm:text-lg font-bold text-slate-900 truncate">
+              <h1 className="text-base sm:text-lg font-bold text-white truncate">
                 Welcome back, {profile?.full_name?.split(' ')[0] ?? 'Student'}
               </h1>
               <div className="hidden xs:flex sm:flex items-center gap-1.5 mt-0.5">
-                <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 rounded-full px-2 py-0.5">
+                <span className="text-[10px] font-semibold text-slate-600 bg-white/10 border border-white/15 rounded-full px-2 py-0.5">
                   {branchList.find(b => b.id === profile?.branch_id)?.branch_code ?? '—'} · Sem {profile?.semester ?? '—'}
                 </span>
-                <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/15 border border-amber-400/25 rounded-full px-2 py-0.5">
                   {profile?.karma_points ?? 0} karma
                 </span>
               </div>
@@ -2102,7 +2104,7 @@ export default function Dashboard() {
 
           <div className="flex items-center gap-2 shrink-0">
             <button onClick={() => setDrawerOpen(true)}
-              className="relative p-2.5 rounded-xl border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 text-indigo-600 transition-all" aria-label="Calendar">
+              className="relative p-2.5 rounded-xl glass-btn hover:border-indigo-400/40 text-indigo-300 hover:text-indigo-200 transition-all" aria-label="Calendar">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
@@ -2113,7 +2115,7 @@ export default function Dashboard() {
               )}
             </button>
             <button onClick={() => navigate('/upload')}
-              className="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-200 transition-all active:scale-95" aria-label="Upload">
+              className="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 transition-all active:scale-95" aria-label="Upload">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
               </svg>

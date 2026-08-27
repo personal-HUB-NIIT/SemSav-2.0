@@ -12,7 +12,6 @@ export default function AuthCallback() {
 
     const handleCallback = async () => {
       try {
-        // 1. Check for OAuth errors from Supabase/Google
         const params = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         
@@ -25,17 +24,12 @@ export default function AuthCallback() {
           return;
         }
 
-        // 2. Handle PKCE flow (?code=...)
         const code = params.get('code');
-
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
         }
 
-        // 2. Wait for session (handles both PKCE completion and Implicit Hash flow)
-        // Supabase processes the URL hash asynchronously. If we call getSession() 
-        // too early, it might return null. So we check up to 10 times (2 seconds max).
         let currentSession = null;
         for (let i = 0; i < 10; i++) {
           const { data: { session }, error } = await supabase.auth.getSession();
@@ -44,7 +38,6 @@ export default function AuthCallback() {
             currentSession = session;
             break;
           }
-          // wait 200ms before checking again
           await new Promise(r => setTimeout(r, 200));
         }
 
@@ -54,10 +47,8 @@ export default function AuthCallback() {
           return;
         }
 
-        // 3. Small delay to let DB trigger create the user row
         await new Promise(r => setTimeout(r, 800));
 
-        // 4. Check profile and route accordingly
         const { data: profile } = await supabase
           .from('users')
           .select('onboarding_completed, role')
@@ -70,7 +61,6 @@ export default function AuthCallback() {
         }
 
         if (!profile || !profile.onboarding_completed) {
-          // If the user hasn't completed password setup, send to set-password
           if (!currentSession.user.user_metadata?.password_setup_complete) {
             navigate('/auth/set-password');
           } else {
@@ -91,11 +81,11 @@ export default function AuthCallback() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-slate-400 text-sm">Completing sign in...</p>
-        <p className="text-slate-600 text-xs">Please wait, setting up your account</p>
+        <p className="text-gray-400 text-sm">Completing sign in...</p>
+        <p className="text-gray-600 text-xs">Please wait, setting up your account</p>
       </div>
     </div>
   );
