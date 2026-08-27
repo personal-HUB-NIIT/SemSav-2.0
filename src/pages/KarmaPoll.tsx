@@ -6,6 +6,8 @@ import {
   ArrowLeft, Star, FileText, ClipboardList, GraduationCap, Folder,
   Clock, CheckCircle2, XCircle, ThumbsUp, ThumbsDown, Sparkles, ExternalLink,
 } from 'lucide-react';
+import Tabs from '../components/Tabs';
+import { ListSkeleton } from '../components/Skeleton';
 
 interface VoteInfo {
   vote_type: 'UP' | 'DOWN';
@@ -160,32 +162,15 @@ export default function KarmaPoll() {
         </div>
 
         {/* Filter pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          {FILTER_TABS.map(tab => (
-            <button key={tab.key} onClick={() => setFilter(tab.key)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold border whitespace-nowrap transition-all ${
-                filter === tab.key
-                  ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm shadow-indigo-500/20'
-                  : 'bg-white/5 border-white/15 text-gray-400 hover:border-indigo-400/50 hover:text-indigo-300'
-              }`}>
-              {tab.label}
-              {tab.key === 'all' && items.length > 0 && (
-                <span className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                  filter === tab.key ? 'bg-indigo-500' : 'bg-white/10 text-gray-500'
-                }`}>
-                  {items.length}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+        <Tabs
+          tabs={FILTER_TABS}
+          active={filter}
+          onChange={(k) => setFilter(k as FilterTab)}
+        />
 
         {/* Loading */}
         {loading && (
-          <div className="flex items-center justify-center py-16 gap-3 text-gray-400">
-            <div className="border-2 border-white/15 border-t-indigo-500 rounded-full animate-spin w-6 h-6" />
-            <span className="text-sm">Loading your contributions…</span>
-          </div>
+          <ListSkeleton rows={4} />
         )}
 
         {/* Empty */}

@@ -47,7 +47,7 @@ export function useAuth() {
         .select('id, auth_id, enrollment_id, full_name, email, branch_id, semester, karma_points, role, is_verified, is_banned, onboarding_completed')
         .eq('auth_id', authId)
         .maybeSingle();
-      data = fallback.data;
+      data = fallback.data as typeof data;
       error = fallback.error;
     }
 

@@ -10,6 +10,9 @@ import {
   History, Settings, LogOut, Clock, Pencil, Plus, Target, Folder, UserCheck,
   Eye, X, MapPin,
 } from 'lucide-react';
+import Tabs from '../components/Tabs';
+import Button from '../components/Button';
+import { CardSkeleton, ListSkeleton } from '../components/Skeleton';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -101,7 +104,7 @@ const UPLOAD_META: Record<string, { label: string; Icon: typeof FileText; chip: 
   TEST:       { label: 'PYQ',        Icon: FileText,      chip: 'bg-red-50 border-red-200 text-red-700' },
   ASSIGNMENT: { label: 'Assignment', Icon: ClipboardList, chip: 'bg-amber-50 border-amber-200 text-amber-700' },
 };
-const FALLBACK_UPLOAD_META = { label: 'File', Icon: Folder, chip: 'bg-slate-100 border-slate-200 text-slate-600' };
+const FALLBACK_UPLOAD_META = { label: 'File', Icon: Folder, chip: 'bg-white/[0.06] border-white/[0.08] text-slate-400' };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -158,10 +161,10 @@ function dueTag(iso: string): { label: string; tone: 'overdue' | 'urgent' | 'soo
 }
 
 const DUE_TAG_STYLES: Record<ReturnType<typeof dueTag>['tone'], string> = {
-  overdue: 'bg-red-100 text-red-700',
-  urgent:  'bg-orange-100 text-orange-700',
-  soon:    'bg-indigo-100 text-indigo-700',
-  calm:    'bg-slate-100 text-slate-600',
+  overdue: 'bg-red-500/15 text-red-400 border border-red-500/25',
+  urgent:  'bg-orange-500/15 text-orange-400 border border-orange-500/25',
+  soon:    'bg-indigo-500/15 text-indigo-400 border border-indigo-500/25',
+  calm:    'bg-white/[0.06] text-slate-400 border border-white/[0.08]',
 };
 
 function getMonthGrid(year: number, month: number): Date[] {
@@ -268,15 +271,15 @@ function TaskModal({ open, initialDate, editTask, onClose, onSaved, userId }: Ta
     } finally { setSaving(false); }
   };
 
-  const inputCls = "w-full bg-white border border-slate-300 text-slate-900 placeholder-slate-400 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all";
-  const labelCls = "block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5";
+  const inputCls = "w-full bg-white/[0.06] border border-white/[0.1] text-white placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all duration-200";
+  const labelCls = "block text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1.5";
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white border border-slate-200 w-full max-w-lg rounded-2xl shadow-xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h2 className="text-slate-900 font-bold text-lg flex items-center gap-2">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-slate-900/95 backdrop-blur-xl border border-white/[0.1] w-full max-w-lg rounded-2xl shadow-xl overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+          <h2 className="text-white font-bold text-lg flex items-center gap-2">
             {isEdit ? <Pencil className="w-4.5 h-4.5" /> : <Plus className="w-4.5 h-4.5" />}
             {isEdit ? 'Edit Event' : 'Add Academic Event'}
           </h2>
@@ -300,8 +303,8 @@ function TaskModal({ open, initialDate, editTask, onClose, onSaved, userId }: Ta
                 return (
                   <button key={et} type="button" onClick={() => setEventType(et)}
                     style={eventType === et ? { background: c.bg, borderColor: c.text, color: c.text } : {}}
-                    className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border text-xs font-medium transition-all ${
-                      eventType === et ? '' : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300'
+                    className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border text-xs font-medium transition-all duration-200 ${
+                      eventType === et ? '' : 'bg-white/[0.04] border-white/[0.08] text-slate-400 hover:text-white hover:border-white/[0.15]'
                     }`}>
                     <c.Icon className="w-4.5 h-4.5 shrink-0" />
                   </button>
@@ -318,14 +321,14 @@ function TaskModal({ open, initialDate, editTask, onClose, onSaved, userId }: Ta
             <div>
               <label className={labelCls}>Date *</label>
               <input type="date" value={dateVal} onChange={e => setDateVal(e.target.value)}
-                className={`${inputCls} [color-scheme:light]`} />
+                className={`${inputCls} [color-scheme:dark]`} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Time *</label>
               <input type="time" value={timeVal} onChange={e => setTimeVal(e.target.value)}
-                className={`${inputCls} [color-scheme:light]`} />
+                className={`${inputCls} [color-scheme:dark]`} />
             </div>
             <div>
               <label className={labelCls}>Description</label>
@@ -334,15 +337,10 @@ function TaskModal({ open, initialDate, editTask, onClose, onSaved, userId }: Ta
             </div>
           </div>
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-sm font-medium transition-all">
-              Cancel
-            </button>
-            <button type="submit" disabled={saving}
-              className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-sm shadow-indigo-200">
-              {saving ? <Spinner size={14} /> : null}
+            <Button variant="secondary" size="md" onClick={onClose}>Cancel</Button>
+            <Button variant="primary" size="md" type="submit" loading={saving}>
               {isEdit ? 'Save Changes' : 'Add to Calendar'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -362,16 +360,16 @@ function DayCell({ date, currentMonth, isToday, isSelected, events, onClick }: D
   const overflow = events.length - 2;
   return (
     <button onClick={onClick}
-      className={`relative flex flex-col p-1 rounded-xl border text-left transition-all min-h-[58px] ${
-        isSelected ? 'bg-indigo-50 border-indigo-400 ring-1 ring-indigo-300'
-        : isToday   ? 'bg-indigo-50/60 border-indigo-200 hover:border-indigo-400'
-        : isCurrentMonth ? 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-        : 'bg-slate-50 border-slate-100 hover:bg-slate-100'
+      className={`relative flex flex-col p-1 rounded-xl border text-left transition-all duration-200 min-h-[58px] ${
+        isSelected ? 'bg-indigo-600 border-indigo-600 text-white'
+        : isToday   ? 'bg-indigo-600/20 border-indigo-400 hover:border-indigo-300'
+        : isCurrentMonth ? 'bg-white/[0.04] border-white/[0.08] hover:border-white/[0.15] hover:bg-white/[0.06]'
+        : 'bg-white/[0.02] border-white/[0.04]'
       }`}>
       <span className={`text-xs font-semibold w-5 h-5 flex items-center justify-center rounded-full mb-0.5 shrink-0 ${
         isToday ? 'bg-indigo-600 text-white'
-        : isSelected && !isToday ? 'text-indigo-700'
-        : isCurrentMonth ? 'text-slate-800' : 'text-slate-400'
+        : isSelected && !isToday ? 'text-indigo-400'
+        : isCurrentMonth ? 'text-slate-300' : 'text-slate-600'
       }`}>{date.getDate()}</span>
       <div className="flex flex-col gap-0.5 w-full overflow-hidden">
         {visible.map(ev => {
@@ -383,7 +381,7 @@ function DayCell({ date, currentMonth, isToday, isSelected, events, onClick }: D
             </div>
           );
         })}
-        {overflow > 0 && <span className="text-[9px] text-slate-400 pl-0.5">+{overflow} more</span>}
+        {overflow > 0 && <span className="text-[9px] text-slate-500 pl-0.5">+{overflow} more</span>}
       </div>
     </button>
   );
@@ -398,11 +396,11 @@ interface AgendaCardProps {
 function AgendaCard({ task, onToggle, onEdit, onDelete, toggling }: AgendaCardProps) {
   const c = EVENT_COLORS[task.event_type];
   return (
-    <div className={`flex items-start gap-3 p-3 rounded-xl border transition-all group ${task.is_completed ? 'opacity-60' : ''}`}
+    <div className={`flex items-start gap-3 p-3 rounded-xl border transition-all duration-200 group ${task.is_completed ? 'opacity-60' : ''} hover:border-white/[0.15] hover:bg-white/[0.04]`}
       style={{ background: c.bg, borderColor: c.border }}>
       <button onClick={() => onToggle(task)} disabled={toggling}
-        className="mt-0.5 shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all disabled:opacity-50 hover:scale-110 bg-white"
-        style={{ borderColor: task.is_completed ? c.dot : '#cbd5e1', background: task.is_completed ? c.dot : '#fff' }}>
+        className="mt-0.5 shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 disabled:opacity-50 hover:scale-110 bg-white/[0.06]"
+        style={{ borderColor: task.is_completed ? c.dot : 'rgba(255,255,255,0.15)', background: task.is_completed ? c.dot : 'rgba(255,255,255,0.06)' }}>
         {task.is_completed && (
           <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -411,24 +409,24 @@ function AgendaCard({ task, onToggle, onEdit, onDelete, toggling }: AgendaCardPr
       </button>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border bg-white" style={{ color: c.text, borderColor: c.border }}>
+          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border bg-white/[0.06]" style={{ color: c.text, borderColor: c.border }}>
             <c.Icon className="w-3.5 h-3.5 inline mr-1" />{c.label}
           </span>
           {task.subject_code && (
-            <span className="text-[10px] text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-full">{task.subject_code}</span>
+            <span className="text-[10px] text-slate-400 bg-white/[0.04] border border-white/[0.08] px-1.5 py-0.5 rounded-full">{task.subject_code}</span>
           )}
-          <span className="text-[10px] text-slate-400 ml-auto inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {formatDisplayTime(task.due_date)}</span>
+          <span className="text-[10px] text-slate-500 ml-auto inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {formatDisplayTime(task.due_date)}</span>
         </div>
-        <p className={`text-sm font-semibold ${task.is_completed ? 'line-through text-slate-400' : 'text-slate-900'}`}>{task.title}</p>
+        <p className={`text-sm font-semibold ${task.is_completed ? 'line-through text-slate-400' : 'text-white'}`}>{task.title}</p>
         {task.description && <p className="text-xs text-slate-500 mt-0.5">{task.description}</p>}
       </div>
-      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-        <button onClick={() => onEdit(task)} className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all">
+      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shrink-0">
+        <button onClick={() => onEdit(task)} className="p-1 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/15 rounded-lg transition-all duration-200">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
           </svg>
         </button>
-        <button onClick={() => onDelete(task)} className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all">
+        <button onClick={() => onDelete(task)} className="p-1 text-slate-400 hover:text-red-400 hover:bg-red-500/15 rounded-lg transition-all duration-200">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
@@ -504,35 +502,28 @@ function CalendarDrawer({
     setSelectedDate(toLocalDateKey(today));
   };
 
-  const filterPills: { key: FilterType; label: string; Icon: typeof FileText }[] = [
-    { key: 'all',        label: 'All',         Icon: CalendarDays },
-    { key: 'test',       label: 'Tests',       Icon: FileText },
-    { key: 'assignment', label: 'Assignments', Icon: ClipboardList },
-    { key: 'task',       label: 'Tasks',       Icon: CheckCircle2 },
-  ];
-
   const selectedDateLabel = formatFullDate(`${selectedDate}T12:00:00`);
 
   return (
     <>
       <div
-        className={`fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-sm transition-opacity duration-300 ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
       <div
-        className={`fixed right-0 top-0 h-full z-50 w-full sm:w-[560px] bg-white border-l border-slate-200 flex flex-col shadow-2xl transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-full'}`}>
+        className={`fixed right-0 top-0 h-full z-50 w-full sm:w-[560px] bg-slate-900/95 backdrop-blur-xl border-l border-white/[0.1] flex flex-col shadow-2xl transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-full'}`}>
 
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06] shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-center">
-              <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="w-8 h-8 bg-indigo-500/10 border border-indigo-500/20 rounded-xl flex items-center justify-center">
+              <svg className="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            <h2 className="text-slate-900 font-bold text-base">Academic Calendar</h2>
+            <h2 className="text-white font-bold text-base">Academic Calendar</h2>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all">
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-white hover:bg-white/[0.08] rounded-xl transition-all duration-200">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -543,9 +534,9 @@ function CalendarDrawer({
         <div className="flex-1 overflow-y-auto">
 
           {dbMissing && (
-            <div className="m-4 border border-red-200 bg-red-50 rounded-xl p-4">
-              <p className="text-red-700 font-bold text-sm mb-1"><code className="bg-red-100 px-1 rounded text-red-800 font-mono text-xs">user_tasks</code> table missing or wrong schema</p>
-              <p className="text-slate-600 text-xs mb-3">Go to <strong className="text-slate-800">Supabase → SQL Editor → New Query</strong>, paste and run:</p>
+            <div className="m-4 border border-red-500/20 bg-red-500/10 rounded-xl p-4">
+              <p className="text-red-400 font-bold text-sm mb-1"><code className="bg-red-500/15 px-1 rounded text-red-300 font-mono text-xs">user_tasks</code> table missing or wrong schema</p>
+              <p className="text-slate-400 text-xs mb-3">Go to <strong className="text-white">Supabase → SQL Editor → New Query</strong>, paste and run:</p>
               <pre className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-[10px] text-emerald-300 font-mono overflow-x-auto whitespace-pre leading-relaxed">
 {`CREATE TABLE IF NOT EXISTS public.user_tasks (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -563,7 +554,7 @@ CREATE POLICY "own" ON public.user_tasks
   USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);`}
               </pre>
               <button onClick={() => { setDbMissing(false); fetchTasks(); }}
-                className="mt-3 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition-all">
+                className="mt-3 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition-all duration-200">
                 ↻ I ran it — Retry
               </button>
             </div>
@@ -572,33 +563,32 @@ CREATE POLICY "own" ON public.user_tasks
           <div className="p-4 space-y-4">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-1.5">
-                <button onClick={prevMonth} className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
+                <button onClick={prevMonth} className="p-2 text-slate-400 hover:text-white hover:bg-white/[0.08] rounded-xl transition-all duration-200">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
-                <h3 className="text-slate-900 font-bold text-base min-w-[130px] text-center">{MONTH_NAMES[viewMonth]} {viewYear}</h3>
-                <button onClick={nextMonth} className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all">
+                <h3 className="text-white font-bold text-base min-w-[130px] text-center">{MONTH_NAMES[viewMonth]} {viewYear}</h3>
+                <button onClick={nextMonth} className="p-2 text-slate-400 hover:text-white hover:bg-white/[0.08] rounded-xl transition-all duration-200">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
-                <button onClick={goToToday} className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition-all">
+                <button onClick={goToToday} className="px-2.5 py-1 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] text-slate-300 text-xs font-semibold rounded-xl transition-all duration-200">
                   Today
                 </button>
               </div>
-              <div className="flex items-center gap-1">
-                {filterPills.map(p => (
-                  <button key={p.key} onClick={() => setFilter(p.key)}
-                    className={`px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all ${
-                      filter === p.key
-                        ? 'bg-indigo-600 border-indigo-600 text-white'
-                        : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800'
-                    }`}>
-                    <p.Icon className="w-3.5 h-3.5" />
-                  </button>
-                ))}
-              </div>
+              <Tabs
+                tabs={[
+                  { key: 'all', label: 'All' },
+                  { key: 'test', label: 'Test' },
+                  { key: 'exam', label: 'Exam' },
+                  { key: 'assignment', label: 'Assignment' },
+                ]}
+                active={filter}
+                onChange={(k) => setFilter(k as FilterType)}
+                size="sm"
+              />
             </div>
 
             <div className="grid grid-cols-7">
@@ -610,7 +600,7 @@ CREATE POLICY "own" ON public.user_tasks
             {tasksLoading ? (
               <div className="grid grid-cols-7 gap-1" style={{ minHeight: 300 }}>
                 {Array.from({ length: 35 }).map((_, i) => (
-                  <div key={i} className="bg-slate-50 border border-slate-100 rounded-xl animate-pulse min-h-[58px]" />
+                  <div key={i} className="bg-white/[0.04] border border-white/[0.06] rounded-xl animate-pulse min-h-[58px]" />
                 ))}
               </div>
             ) : (
@@ -641,14 +631,14 @@ CREATE POLICY "own" ON public.user_tasks
               ))}
             </div>
 
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+            <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
                 <div>
-                  <p className="text-slate-900 font-bold text-sm">{selectedDateLabel}</p>
+                  <p className="text-white font-bold text-sm">{selectedDateLabel}</p>
                   <p className="text-slate-500 text-xs">{selectedDayTasks.length === 0 ? 'No events' : `${selectedDayTasks.length} event${selectedDayTasks.length > 1 ? 's' : ''}`}</p>
                 </div>
                 <button onClick={() => onAddForDate(selectedDate)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-all">
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-indigo-500/20">
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
@@ -659,9 +649,9 @@ CREATE POLICY "own" ON public.user_tasks
                 {selectedDayTasks.length === 0 ? (
                   <div className="text-center py-8">
                     <CalendarDays className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                    <p className="text-slate-400 text-sm mb-4">Nothing scheduled</p>
+                    <p className="text-slate-500 text-sm mb-4">Nothing scheduled</p>
                     <button onClick={() => onAddForDate(selectedDate)}
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 mx-auto">
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-indigo-500/20 flex items-center gap-1.5 mx-auto">
                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       </svg>
@@ -680,7 +670,7 @@ CREATE POLICY "own" ON public.user_tasks
 
             {tasks.length === 0 && !tasksLoading && !dbMissing && (
               <button onClick={seedDemoData} disabled={seedingDemo}
-                className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-slate-300 hover:border-indigo-400 text-slate-400 hover:text-indigo-600 text-sm rounded-2xl transition-all disabled:opacity-60">
+                className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-white/[0.15] hover:border-indigo-400 text-slate-500 hover:text-indigo-400 text-sm rounded-2xl transition-all duration-200 disabled:opacity-60">
                 {seedingDemo ? <Spinner size={14} /> : <FlaskConical className="w-3.5 h-3.5" />}
                 {seedingDemo ? 'Loading demo data...' : 'Load Demo Data to explore'}
               </button>
@@ -709,68 +699,68 @@ function TimetableCard({ allSlots, loading, missing }: TimetableCardProps) {
     .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
   return (
-    <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+    <section className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] rounded-2xl overflow-hidden hover:border-white/[0.12] hover:shadow-xl hover:shadow-indigo-500/[0.03] transition-all duration-300">
+      <div className="px-6 py-5 border-b border-white/[0.06] flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-bold text-slate-900">Today's Schedule</h2>
-          <p className="text-xs text-slate-500 mt-0.5">{todayLabel} · {formatFullDate(`${toLocalDateKey(new Date())}T12:00:00`)}</p>
+          <h2 className="text-sm font-bold text-white">Today's Schedule</h2>
+          <p className="text-xs text-slate-400 mt-0.5">{todayLabel} · {formatFullDate(`${toLocalDateKey(new Date())}T12:00:00`)}</p>
         </div>
-        <span className="text-xs font-semibold text-slate-500 bg-slate-100 border border-slate-200 rounded-full px-2.5 py-1 shrink-0">
+        <span className="text-xs font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-3 py-1 shrink-0">
           {slots.length} class{slots.length === 1 ? '' : 'es'}
         </span>
       </div>
 
       <div>
         {loading ? (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-white/[0.06]">
             {[0, 1, 2].map(i => (
-              <div key={i} className="flex items-center gap-4 px-5 py-4 animate-pulse">
-                <div className="w-[86px] h-8 bg-slate-100 rounded-lg" />
+              <div key={i} className="flex items-center gap-4 px-6 py-4 animate-pulse">
+                <div className="w-[86px] h-8 bg-white/[0.06] rounded-lg" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-3.5 bg-slate-100 rounded w-2/3" />
-                  <div className="h-3 bg-slate-100 rounded w-1/3" />
+                  <div className="h-3.5 bg-white/[0.06] rounded w-2/3" />
+                  <div className="h-3 bg-white/[0.06] rounded w-1/3" />
                 </div>
               </div>
             ))}
           </div>
         ) : missing ? (
-          <div className="px-5 py-10 text-center">
-            <CalendarDays className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-            <p className="text-sm font-semibold text-slate-900 mb-1">Timetable not set up yet</p>
-            <p className="text-xs text-slate-500 max-w-xs mx-auto">
-              Run <code className="bg-slate-100 px-1 rounded font-mono text-[10px]">supabase/migrations/013_class_schedule.sql</code> in your Supabase SQL Editor to load the weekly routine.
+          <div className="px-6 py-10 text-center">
+            <CalendarDays className="w-8 h-8 mx-auto mb-2 text-slate-500" />
+            <p className="text-sm font-semibold text-white mb-1">Timetable not set up yet</p>
+            <p className="text-xs text-slate-400 max-w-xs mx-auto">
+              Run <code className="bg-white/[0.06] px-1.5 rounded font-mono text-[10px]">supabase/migrations/013_class_schedule.sql</code> in your Supabase SQL Editor to load the weekly routine.
             </p>
           </div>
         ) : slots.length === 0 ? (
-          <div className="px-5 py-10 text-center">
-            {isWeekend ? <PartyPopper className="w-8 h-8 mx-auto mb-2 text-slate-300" /> : <Coffee className="w-8 h-8 mx-auto mb-2 text-slate-300" />}
-            <p className="text-sm font-semibold text-slate-900">
+          <div className="px-6 py-10 text-center">
+            {isWeekend ? <PartyPopper className="w-8 h-8 mx-auto mb-2 text-amber-400" /> : <Coffee className="w-8 h-8 mx-auto mb-2 text-slate-500" />}
+            <p className="text-sm font-semibold text-white">
               {isWeekend ? `It's ${todayLabel} — weekend!` : 'No classes scheduled'}
             </p>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-400 mt-0.5">
               {isWeekend ? 'No regular classes on weekends. Check back Monday!' : 'Enjoy your free day!'}
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-white/[0.06]">
             {slots.map(s => (
-              <div key={s.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50 transition-colors">
+              <div key={s.id} className="flex items-center gap-4 px-6 py-4 hover:bg-white/[0.04] transition-all duration-200">
                 <div className="w-[86px] shrink-0">
-                  <p className="text-xs font-bold text-slate-700 tabular-nums">{formatTime12(s.start_time)}</p>
-                  <p className="text-[10px] text-slate-400 tabular-nums">{formatTime12(s.end_time)}</p>
+                  <p className="text-xs font-bold text-white tabular-nums">{formatTime12(s.start_time)}</p>
+                  <p className="text-[10px] text-slate-500 tabular-nums">{formatTime12(s.end_time)}</p>
                 </div>
-                <div className="flex-1 min-w-0 border-l border-slate-100 pl-4">
-                  <p className="text-sm font-semibold text-slate-900 truncate">{s.subject_name}</p>
-                  <p className="text-xs text-slate-500 mt-0.5 truncate">
+                <div className="flex-1 min-w-0 border-l border-white/[0.08] pl-4">
+                  <p className="text-sm font-semibold text-white truncate">{s.subject_name}</p>
+                  <p className="text-xs text-slate-400 mt-0.5 truncate">
                     {'Faculty: '}{s.teacher_name ?? 'TBD'}
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-1 shrink-0">
-                  <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-md px-1.5 py-0.5">
+                  <span className="text-[10px] font-bold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-2 py-0.5">
                     {s.subject_code}
                   </span>
                   {s.room_number && (
-                    <span className="text-[10px] text-slate-600 bg-slate-100 border border-slate-200 rounded-md px-1.5 py-0.5">
+                    <span className="text-[10px] text-slate-400 bg-white/[0.06] border border-white/[0.08] rounded-full px-2 py-0.5">
                       {s.room_number}
                     </span>
                   )}
@@ -813,27 +803,27 @@ function ReviewFeed({ items, loading, profileId, votingId, onVote }: ReviewFeedP
   const [previewItem, setPreviewItem] = useState<PendingReviewItem | null>(null);
 
   return (
-    <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+    <section className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] rounded-2xl overflow-hidden hover:border-white/[0.12] hover:shadow-xl hover:shadow-amber-500/[0.03] transition-all duration-300">
+      <div className="px-6 py-5 border-b border-white/[0.06] flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <ShieldQuestion className="w-4 h-4 text-amber-500" /> Pending Community Review
+          <h2 className="text-sm font-bold text-white flex items-center gap-2">
+            <ShieldQuestion className="w-4 h-4 text-amber-400" /> Pending Community Review
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">Verify peer uploads — earn +2 karma per vote</p>
+          <p className="text-xs text-slate-400 mt-0.5">Verify peer uploads — earn +2 karma per vote</p>
         </div>
         {items.length > 0 && (
-          <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1">
+          <span className="text-xs font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-full px-3 py-1">
             {items.length} pending
           </span>
         )}
       </div>
-      <div className="divide-y divide-slate-100">
+      <div className="divide-y divide-white/[0.06]">
         {loading ? (
-          <div className="px-5 py-4 space-y-3">
-            {[0, 1].map(i => <div key={i} className="h-16 bg-slate-100 rounded-xl animate-pulse" />)}
+          <div className="px-6 py-5 space-y-3">
+            {[0, 1].map(i => <div key={i} className="h-16 bg-white/[0.04] rounded-xl animate-pulse" />)}
           </div>
         ) : items.length === 0 ? (
-          <p className="px-5 py-5 text-xs text-slate-400">Nothing awaiting review right now.</p>
+          <p className="px-6 py-5 text-xs text-slate-500">Nothing awaiting review right now.</p>
         ) : (
           items.map(item => {
             const meta = REVIEW_TYPE_META[item.category] ?? REVIEW_TYPE_META.NOTES;
@@ -846,19 +836,19 @@ function ReviewFeed({ items, loading, profileId, votingId, onVote }: ReviewFeedP
             const busy = votingId === item.id;
 
             return (
-              <div key={item.id} className="px-5 py-3.5 hover:bg-slate-50/60 transition-colors">
+              <div key={item.id} className="px-6 py-4 hover:bg-white/[0.03] transition-all duration-200">
                 <div className="flex items-start gap-3">
-                  <span className={`shrink-0 w-9 h-9 rounded-lg border flex items-center justify-center ${meta.chip}`}>
+                  <span className={`shrink-0 w-9 h-9 rounded-xl border flex items-center justify-center ${meta.chip}`}>
                     <meta.Icon className="w-4.5 h-4.5" />
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 truncate">
+                    <p className="text-sm font-semibold text-white truncate">
                       {item.title_syllabus}
                       {isOwn && (
-                        <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 align-middle">You</span>
+                        <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 align-middle">You</span>
                       )}
                     </p>
-                    <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                    <p className="text-[11px] text-slate-400 mt-0.5 truncate">
                       {sub ? `${sub.subject_name} · ` : ''}{timeAgo(item.created_at)}
                     </p>
 
@@ -866,13 +856,13 @@ function ReviewFeed({ items, loading, profileId, votingId, onVote }: ReviewFeedP
                     {(ups.length > 0 || downs.length > 0) && (
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
                         {ups.length > 0 && (
-                          <span className="inline-flex items-center gap-1 text-emerald-700">
+                          <span className="inline-flex items-center gap-1 text-emerald-400">
                             <ThumbsUp className="w-3.5 h-3.5" />
                             <span className="font-medium">{voterLabel(upNames, ups.length, 'upvoted this')}</span>
                           </span>
                         )}
                         {downs.length > 0 && (
-                          <span className="inline-flex items-center gap-1 text-red-500">
+                          <span className="inline-flex items-center gap-1 text-red-400">
                             <ThumbsDown className="w-3.5 h-3.5" />
                             <span className="font-medium">{voterLabel(downNames, downs.length, 'flagged this')}</span>
                           </span>
@@ -885,17 +875,17 @@ function ReviewFeed({ items, loading, profileId, votingId, onVote }: ReviewFeedP
                   <div className="shrink-0 flex items-center gap-1.5">
                     <button onClick={() => setPreviewItem(item)} disabled={busy}
                       title="Preview this content before voting"
-                      className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 transition-all active:scale-95">
+                      className="p-2 rounded-xl border border-white/[0.08] text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-40 transition-all duration-200 active:scale-95">
                       <Eye className="w-4 h-4" />
                     </button>
                     <button onClick={() => onVote(item.id, 'UP')} disabled={isOwn || busy}
                       title={isOwn ? 'You cannot vote on your own upload' : 'Upvote — verify this content'}
-                      className="p-2 rounded-xl border border-emerald-200 text-emerald-700 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95">
+                      className="p-2 rounded-xl border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 active:scale-95">
                       <ThumbsUp className="w-4 h-4" />
                     </button>
                     <button onClick={() => onVote(item.id, 'DOWN')} disabled={isOwn || busy}
                       title={isOwn ? 'You cannot vote on your own upload' : 'Downvote — flag this content'}
-                      className="p-2 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95">
+                      className="p-2 rounded-xl border border-red-500/20 text-red-400 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 active:scale-95">
                       <ThumbsDown className="w-4 h-4" />
                     </button>
                   </div>
@@ -909,24 +899,24 @@ function ReviewFeed({ items, loading, profileId, votingId, onVote }: ReviewFeedP
       {/* Pre-vote content preview modal */}
       {previewItem && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" role="dialog" aria-modal="true">
-          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setPreviewItem(null)} />
-          <div className="relative bg-white border border-slate-200 w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
-            <div className="px-5 py-4 border-b border-slate-100 flex items-start justify-between gap-3">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setPreviewItem(null)} />
+          <div className="relative bg-slate-900/95 backdrop-blur-xl border border-white/[0.1] w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="px-6 py-5 border-b border-white/[0.06] flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="text-sm font-bold text-slate-900 truncate">{previewItem.title_syllabus}</h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">
+                <h3 className="text-sm font-bold text-white truncate">{previewItem.title_syllabus}</h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">
                   {REVIEW_TYPE_META[previewItem.category]?.label ?? 'Upload'}
                   {relOne(previewItem.subjects) ? ` · ${relOne(previewItem.subjects)!.subject_name}` : ''}
                   {' · '}uploaded {timeAgo(previewItem.created_at)}
                 </p>
               </div>
               <button onClick={() => setPreviewItem(null)}
-                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all shrink-0" aria-label="Close preview">
+                className="p-2 text-slate-400 hover:text-white hover:bg-white/[0.08] rounded-xl transition-all duration-200 shrink-0" aria-label="Close preview">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-auto bg-slate-50">
+            <div className="flex-1 overflow-auto bg-slate-900/50">
               {previewItem.file_url ? (
                 <iframe
                   src={`${previewItem.file_url}#view=FitH`}
@@ -935,54 +925,54 @@ function ReviewFeed({ items, loading, profileId, votingId, onVote }: ReviewFeedP
                 />
               ) : previewItem.category === 'TEST' ? (
                 <div className="p-6 space-y-3">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Exam date submission — nothing to preview</p>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Exam date submission — nothing to preview</p>
                   <div className="flex flex-wrap gap-2">
                     {previewItem.test_type && (
-                      <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-red-50 border border-red-200 text-red-700">
+                      <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">
                         {previewItem.test_type.replace(/_/g, ' ')}
                       </span>
                     )}
                     {previewItem.due_date_time && (
-                      <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 inline-flex items-center gap-1">
+                      <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 inline-flex items-center gap-1">
                         <CalendarDays className="w-3.5 h-3.5" />
                         {new Date(previewItem.due_date_time).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </span>
                     )}
                     {previewItem.room_no && (
-                      <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 inline-flex items-center gap-1">
+                      <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white/[0.06] border border-white/[0.08] text-slate-300 inline-flex items-center gap-1">
                         <MapPin className="w-3.5 h-3.5" /> Room {previewItem.room_no}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-slate-500">Evaluate whether these exam details look correct before voting.</p>
+                  <p className="text-xs text-slate-400">Evaluate whether these exam details look correct before voting.</p>
                 </div>
               ) : (
                 <div className="p-10 text-center">
-                  <FileText className="w-10 h-10 mx-auto mb-3 text-slate-300" />
-                  <p className="text-sm font-medium text-slate-600">No file attached to this upload.</p>
+                  <FileText className="w-10 h-10 mx-auto mb-3 text-slate-600" />
+                  <p className="text-sm font-medium text-slate-400">No file attached to this upload.</p>
                 </div>
               )}
             </div>
 
-            <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-between gap-3 bg-white">
+            <div className="px-6 py-4 border-t border-white/[0.06] flex items-center justify-between gap-3 bg-white/[0.02]">
               <p className="text-[11px] text-slate-500">Review the content, then vote below or from the card.</p>
               <div className="flex items-center gap-2">
                 {previewItem.file_url && (
                   <a href={previewItem.file_url} target="_blank" rel="noopener noreferrer"
-                    className="px-3.5 py-2 rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-semibold transition-all inline-flex items-center gap-1.5">
+                    className="px-3.5 py-2 rounded-xl border border-white/[0.1] text-slate-300 hover:text-white hover:bg-white/[0.08] text-xs font-semibold transition-all duration-200 inline-flex items-center gap-1.5">
                     <ExternalLink className="w-3.5 h-3.5" /> Open in new tab
                   </a>
                 )}
                 <button
                   onClick={() => { onVote(previewItem.id, 'UP'); setPreviewItem(null); }}
                   disabled={previewItem.user_id === profileId || votingId === previewItem.id}
-                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold transition-all inline-flex items-center gap-1.5">
+                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold transition-all duration-200 inline-flex items-center gap-1.5 shadow-lg shadow-emerald-500/20">
                   <ThumbsUp className="w-3.5 h-3.5" /> Verify
                 </button>
                 <button
                   onClick={() => { onVote(previewItem.id, 'DOWN'); setPreviewItem(null); }}
                   disabled={previewItem.user_id === profileId || votingId === previewItem.id}
-                  className="px-3.5 py-2 rounded-xl bg-red-500 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold transition-all inline-flex items-center gap-1.5">
+                  className="px-3.5 py-2 rounded-xl bg-red-500 hover:bg-red-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold transition-all duration-200 inline-flex items-center gap-1.5 shadow-lg shadow-red-500/20">
                   <ThumbsDown className="w-3.5 h-3.5" /> Flag
                 </button>
               </div>
@@ -1004,34 +994,31 @@ interface PriorityFeedProps {
   uploadsLoading: boolean;
   onSelectTask: (t: AcademicTask) => void;
   onSelectUpload: (u: FeedUpload) => void;
-  onBrowse: () => void;
   profileId?: string;
 }
 
-function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, onSelectTask, onSelectUpload, onBrowse, profileId }: PriorityFeedProps) {
+function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, onSelectTask, onSelectUpload, profileId }: PriorityFeedProps) {
   const sectionTitle = "text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5";
 
   return (
-    <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-100">
-        <h2 className="text-sm font-bold text-slate-900">Recent Activity & Priorities</h2>
-        <p className="text-xs text-slate-500 mt-0.5">What needs your attention first</p>
+    <section className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] rounded-2xl overflow-hidden hover:border-white/[0.12] hover:shadow-xl hover:shadow-indigo-500/[0.03] transition-all duration-300">
+      <div className="px-6 py-5 border-b border-white/[0.06]">
+        <h2 className="text-sm font-bold text-white">Recent Activity & Priorities</h2>
+        <p className="text-xs text-slate-400 mt-0.5">What needs your attention first</p>
       </div>
 
-      <div className="divide-y divide-slate-100">
+      <div className="divide-y divide-white/[0.06]">
 
         {/* Priority 1: Urgent deadlines */}
         <div className="py-2">
-          <p className={`${sectionTitle} text-red-600 px-5 pt-2 pb-1`}>
+          <p className={`${sectionTitle} text-red-400 px-6 pt-3 pb-1`}>
             Urgent Deadlines · Next 48h
           </p>
           {tasksLoading ? (
-            <div className="px-5 py-3 space-y-2">
-              {[0, 1].map(i => <div key={i} className="h-12 bg-slate-100 rounded-xl animate-pulse" />)}
-            </div>
+            <ListSkeleton rows={3} />
           ) : urgent.length === 0 ? (
-            <div className="mx-5 my-2 bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-medium rounded-xl px-3 py-2.5">
-              Nothing urgent — you're on top of it!
+            <div className="mx-6 my-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium rounded-xl px-4 py-3 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4" /> Nothing urgent — you're on top of it!
             </div>
           ) : (
             <div className="pb-1">
@@ -1041,21 +1028,21 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
                 const overdue = tag.tone === 'overdue';
                 return (
                   <button key={t.id} onClick={() => onSelectTask(t)}
-                    className={`w-full text-left flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors border-l-4 ${
+                    className={`w-full text-left flex items-center gap-3 px-6 py-3 hover:bg-white/[0.04] transition-all duration-200 border-l-4 ${
                       overdue ? 'border-l-red-500' : 'border-l-orange-400'
                     }`}>
-                    <span className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
+                    <span className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
                       style={{ background: c.bg, border: `1px solid ${c.border}`, color: c.text }}>
-                      <c.Icon className="w-4 h-4" />
+                      <c.Icon className="w-4.5 h-4.5" />
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-900 truncate">{t.title}</p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
-                        {t.subject_code && <span className="font-medium text-slate-600">{t.subject_code} · </span>}
+                      <p className="text-sm font-semibold text-white truncate">{t.title}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        {t.subject_code && <span className="font-medium text-slate-300">{t.subject_code} · </span>}
                         {formatDisplayTime(t.due_date)}
                       </p>
                     </div>
-                    <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-full ${DUE_TAG_STYLES[tag.tone]}`}>
+                    <span className={`shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full ${DUE_TAG_STYLES[tag.tone]}`}>
                       {tag.label}
                     </span>
                   </button>
@@ -1067,15 +1054,13 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
 
         {/* Priority 2: Recent notes & PYQs */}
         <div className="py-2">
-          <p className={`${sectionTitle} text-indigo-600 px-5 pt-2 pb-1`}>
+          <p className={`${sectionTitle} text-indigo-400 px-6 pt-3 pb-1`}>
             New Notes & PYQs · Last 7 Days
           </p>
           {uploadsLoading ? (
-            <div className="px-5 py-3 space-y-2">
-              {[0, 1].map(i => <div key={i} className="h-11 bg-slate-100 rounded-xl animate-pulse" />)}
-            </div>
+            <ListSkeleton rows={3} />
           ) : recent.length === 0 ? (
-            <p className="px-5 py-2 text-xs text-slate-400">No new material this week.</p>
+            <p className="px-6 py-2 text-xs text-slate-500">No new material this week.</p>
           ) : (
             <div className="pb-1">
               {recent.map(u => {
@@ -1084,22 +1069,22 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
                 const uploader = relOne(u.users);
                 return (
                   <button key={u.id} onClick={() => onSelectUpload(u)}
-                    className="w-full text-left flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors">
-                    <span className={`shrink-0 w-8 h-8 rounded-lg border flex items-center justify-center ${meta.chip}`}>
+                    className="w-full text-left flex items-center gap-3 px-6 py-3 hover:bg-white/[0.04] transition-all duration-200">
+                    <span className={`shrink-0 w-9 h-9 rounded-xl border flex items-center justify-center ${meta.chip}`}>
                       <meta.Icon className="w-4 h-4" />
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-900 truncate">{u.title_syllabus}
+                      <p className="text-sm font-semibold text-white truncate">{u.title_syllabus}
                         {u.status === 'UNVERIFIED' && u.user_id === profileId && (
-                          <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 align-middle inline-flex items-center gap-1"><Clock className="w-3 h-3" /> Pending</span>
+                          <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 align-middle inline-flex items-center gap-1"><Clock className="w-3 h-3" /> Pending</span>
                         )}
                       </p>
-                      <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                      <p className="text-[11px] text-slate-400 mt-0.5 truncate">
                         {sub ? `${sub.subject_name} · ` : ''}
                         {uploader?.full_name ?? 'Peer upload'}
                       </p>
                     </div>
-                    <span className="shrink-0 text-[10px] text-slate-400">{timeAgo(u.created_at)}</span>
+                    <span className="shrink-0 text-[10px] text-slate-500">{timeAgo(u.created_at)}</span>
                   </button>
                 );
               })}
@@ -1110,31 +1095,31 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
         {/* Priority 3: General peer uploads */}
         {(general.length > 0 || !uploadsLoading) && (
           <div className="py-2 pb-3">
-            <p className={`${sectionTitle} text-slate-500 px-5 pt-2 pb-1`}>
+            <p className={`${sectionTitle} text-slate-400 px-6 pt-3 pb-1`}>
               Earlier Peer Uploads
             </p>
             {!uploadsLoading && general.length === 0 ? (
-              <p className="px-5 py-1 text-xs text-slate-400">Nothing else in the vault yet.</p>
+              <p className="px-6 py-1 text-xs text-slate-500">Nothing else in the vault yet.</p>
             ) : (
-              <div className="pb-1 opacity-80">
+              <div className="pb-1 opacity-75">
                 {general.map(u => {
                   const meta = UPLOAD_META[u.category] ?? FALLBACK_UPLOAD_META;
                   const sub = relOne(u.subjects);
                   return (
                     <button key={u.id} onClick={() => onSelectUpload(u)}
-                      className="w-full text-left flex items-center gap-3 px-5 py-2 hover:bg-slate-50 transition-colors">
+                      className="w-full text-left flex items-center gap-3 px-6 py-2.5 hover:bg-white/[0.04] transition-all duration-200">
                       <span className={`shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center ${meta.chip}`}>
                         <meta.Icon className="w-3.5 h-3.5" />
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-slate-700 truncate">{u.title_syllabus}
+                        <p className="text-xs font-medium text-slate-300 truncate">{u.title_syllabus}
                           {u.status === 'UNVERIFIED' && u.user_id === profileId && (
-                            <span className="ml-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 align-middle inline-flex items-center gap-1"><Clock className="w-3 h-3" /> Pending</span>
+                            <span className="ml-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 align-middle inline-flex items-center gap-1"><Clock className="w-3 h-3" /> Pending</span>
                           )}
                         </p>
-                        <p className="text-[10px] text-slate-400">{sub?.subject_name ?? meta.label}</p>
+                        <p className="text-[10px] text-slate-500">{sub?.subject_name ?? meta.label}</p>
                       </div>
-                      <span className="shrink-0 text-[10px] text-slate-400">{timeAgo(u.created_at)}</span>
+                      <span className="shrink-0 text-[10px] text-slate-500">{timeAgo(u.created_at)}</span>
                     </button>
                   );
                 })}
@@ -1157,34 +1142,34 @@ interface UpcomingTimelineProps {
 
 function UpcomingTimeline({ milestones, loading, onSelect }: UpcomingTimelineProps) {
   return (
-    <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+    <section className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] rounded-2xl overflow-hidden hover:border-white/[0.12] hover:shadow-xl hover:shadow-indigo-500/[0.03] transition-all duration-300">
+      <div className="px-6 py-5 border-b border-white/[0.06] flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-bold text-slate-900">Upcoming Events & Tests</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Your next milestones beyond the 48-hour window</p>
+          <h2 className="text-sm font-bold text-white">Upcoming Events & Tests</h2>
+          <p className="text-xs text-slate-400 mt-0.5">Your next milestones beyond the 48-hour window</p>
         </div>
         {milestones.length > 0 && (
-          <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-2.5 py-1">
+          <span className="text-xs font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-3 py-1">
             {milestones.length} scheduled
           </span>
         )}
       </div>
-      <div className="px-5 py-4">
+      <div className="px-6 py-5">
         {loading ? (
           <div className="flex gap-3 overflow-hidden">
             {[0, 1, 2, 3].map(i => (
-              <div key={i} className="min-w-[180px] h-[120px] bg-slate-100 rounded-xl animate-pulse" />
+              <div key={i} className="min-w-[180px] h-[120px] bg-white/[0.04] rounded-xl animate-pulse" />
             ))}
           </div>
         ) : milestones.length === 0 ? (
           <div className="py-6 text-center">
-            <Target className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-            <p className="text-sm font-semibold text-slate-900">No upcoming milestones</p>
-            <p className="text-xs text-slate-500 mt-0.5">Add tests & submissions from the calendar to track them here.</p>
+            <Target className="w-8 h-8 mx-auto mb-2 text-slate-600" />
+            <p className="text-sm font-semibold text-white">No upcoming milestones</p>
+            <p className="text-xs text-slate-400 mt-0.5">Add tests & submissions from the calendar to track them here.</p>
           </div>
         ) : (
           <div className="relative">
-            <div className="absolute top-[22px] left-4 right-4 h-px bg-slate-200 hidden md:block" />
+            <div className="absolute top-[22px] left-4 right-4 h-px bg-white/[0.08] hidden md:block" />
             <div className="flex gap-3 overflow-x-auto pb-2 relative">
               {milestones.map(t => {
                 const c = EVENT_COLORS[t.event_type];
@@ -1192,20 +1177,20 @@ function UpcomingTimeline({ milestones, loading, onSelect }: UpcomingTimelinePro
                 const tag = dueTag(t.due_date);
                 return (
                   <button key={t.id} onClick={() => onSelect(t)}
-                    className="min-w-[180px] max-w-[180px] text-left p-3.5 rounded-xl border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-md transition-all shrink-0">
-                    <div className="flex items-start justify-between mb-2.5">
-                      <div className="w-9 h-9 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 flex flex-col items-center justify-center leading-none shrink-0">
+                    className="min-w-[180px] max-w-[180px] text-left p-4 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:border-indigo-400/30 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-indigo-500/5 transition-all duration-200 shrink-0">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex flex-col items-center justify-center leading-none shrink-0">
                         <span className="text-[8px] font-bold uppercase tracking-wide">{MONTHS_SHORT[d.getMonth()]}</span>
                         <span className="text-sm font-extrabold mt-0.5">{d.getDate()}</span>
                       </div>
-                      <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full border bg-white"
+                      <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full border bg-white/[0.04]"
                         style={{ color: c.text, borderColor: c.border }}>
                         <c.Icon className="w-3 h-3 inline" /> {c.label}
                       </span>
                     </div>
-                    <p className="text-xs font-semibold text-slate-900 line-clamp-2 min-h-[2rem]">{t.title}</p>
+                    <p className="text-xs font-semibold text-white line-clamp-2 min-h-[2rem]">{t.title}</p>
                     <div className="mt-2.5 flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-medium text-slate-500 truncate">
+                      <span className="text-[10px] font-medium text-slate-400 truncate">
                         {t.subject_code && <>{t.subject_code} · </>}
                         <span className="inline-flex items-center gap-0.5">
                           <Clock className="w-3 h-3" />
@@ -1245,11 +1230,11 @@ function MilestoneDetailModal({ task, onClose }: MilestoneDetailModalProps) {
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white border border-slate-200 w-full max-w-lg rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-slate-900/95 backdrop-blur-xl border border-white/[0.1] w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
 
         {/* Header */}
-        <div className="px-5 py-4 border-b border-slate-100 flex items-start justify-between gap-3 shrink-0">
+        <div className="px-6 py-5 border-b border-white/[0.06] flex items-start justify-between gap-3 shrink-0">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border"
@@ -1260,72 +1245,72 @@ function MilestoneDetailModal({ task, onClose }: MilestoneDetailModalProps) {
                 {tag.label}
               </span>
             </div>
-            <h3 className="text-base font-bold text-slate-900 leading-snug">{task.title}</h3>
+            <h3 className="text-base font-bold text-white leading-snug">{task.title}</h3>
             {(task.subject_code || task.subject_name) && (
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-slate-400 mt-1">
                 {task.subject_name || task.subject_code}
                 {task.subject_code && task.subject_name ? ` (${task.subject_code})` : ''}
               </p>
             )}
           </div>
           <button onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all shrink-0" aria-label="Close">
+            className="p-2 text-slate-400 hover:text-white hover:bg-white/[0.08] rounded-xl transition-all duration-200 shrink-0" aria-label="Close">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Details */}
-        <div className="px-5 py-4 space-y-3 overflow-y-auto flex-1">
+        <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
           {/* Date & Time */}
-          <div className="flex items-center gap-2 text-sm text-slate-700">
-            <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
+          <div className="flex items-center gap-2 text-sm text-slate-300">
+            <CalendarDays className="w-4 h-4 text-slate-500 shrink-0" />
             <span className="font-medium">
               {d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
             </span>
-            <span className="text-slate-400">·</span>
+            <span className="text-slate-600">·</span>
             <span className="font-medium">{formatDisplayTime(task.due_date)}</span>
           </div>
 
           {/* Test Type */}
           {task.test_type && (
-            <div className="flex items-center gap-2 text-sm text-slate-700">
-              <FlaskConical className="w-4 h-4 text-slate-400 shrink-0" />
+            <div className="flex items-center gap-2 text-sm text-slate-300">
+              <FlaskConical className="w-4 h-4 text-slate-500 shrink-0" />
               <span className="font-medium">{task.test_type.replace(/_/g, ' ')}</span>
             </div>
           )}
 
           {/* Room */}
           {task.room_no && (
-            <div className="flex items-center gap-2 text-sm text-slate-700">
-              <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+            <div className="flex items-center gap-2 text-sm text-slate-300">
+              <MapPin className="w-4 h-4 text-slate-500 shrink-0" />
               <span className="font-medium">Room {task.room_no}</span>
             </div>
           )}
 
           {/* Description */}
           {task.description && (
-            <div className="mt-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Description</p>
-              <p className="text-sm text-slate-700 whitespace-pre-wrap">{task.description}</p>
+            <div className="mt-2 p-4 bg-white/[0.04] border border-white/[0.08] rounded-xl">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Description</p>
+              <p className="text-sm text-slate-300 whitespace-pre-wrap">{task.description}</p>
             </div>
           )}
 
           {/* Attachment */}
           {task.file_url && (
             <div className="mt-2">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Attachment</p>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Attachment</p>
               {isPdf ? (
                 <iframe
                   src={`${task.file_url}#view=FitH`}
                   title="Attachment preview"
-                  className="w-full h-[40vh] border border-slate-200 rounded-xl bg-white"
+                  className="w-full h-[40vh] border border-white/[0.08] rounded-xl bg-slate-900"
                 />
               ) : (
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-3">
+                <div className="p-4 bg-white/[0.04] border border-white/[0.08] rounded-xl flex items-center gap-3">
                   <FileText className="w-8 h-8 text-indigo-400 shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-700 truncate">Attached file</p>
-                    <p className="text-[11px] text-slate-400">Click below to view</p>
+                    <p className="text-sm font-medium text-slate-300 truncate">Attached file</p>
+                    <p className="text-[11px] text-slate-500">Click below to view</p>
                   </div>
                 </div>
               )}
@@ -1334,15 +1319,15 @@ function MilestoneDetailModal({ task, onClose }: MilestoneDetailModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-end gap-2 bg-white shrink-0">
+        <div className="px-6 py-4 border-t border-white/[0.06] flex items-center justify-end gap-2 bg-white/[0.02] shrink-0">
           {task.file_url && (
             <a href={task.file_url} target="_blank" rel="noopener noreferrer"
-              className="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-semibold transition-all inline-flex items-center gap-1.5">
+              className="px-4 py-2 rounded-xl border border-white/[0.1] text-slate-300 hover:text-white hover:bg-white/[0.08] text-xs font-semibold transition-all duration-200 inline-flex items-center gap-1.5">
               <ExternalLink className="w-3.5 h-3.5" /> Open in new tab
             </a>
           )}
           <button onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-all">
+            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-all duration-200 shadow-lg shadow-indigo-500/20">
             Close
           </button>
         </div>
@@ -1369,53 +1354,53 @@ function UploadDetailModal({ upload, onClose }: UploadDetailModalProps) {
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white border border-slate-200 w-full max-w-lg rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-slate-900/95 backdrop-blur-xl border border-white/[0.1] w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
 
         {/* Header */}
-        <div className="px-5 py-4 border-b border-slate-100 flex items-start justify-between gap-3 shrink-0">
+        <div className="px-6 py-5 border-b border-white/[0.06] flex items-start justify-between gap-3 shrink-0">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${meta.chip}`}>
                 <meta.Icon className="w-3 h-3 inline mr-0.5" /> {meta.label}
               </span>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                isVerified ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-amber-50 border border-amber-200 text-amber-700'
+                isVerified ? 'bg-emerald-500/15 border border-emerald-500/25 text-emerald-400' : 'bg-amber-500/15 border border-amber-500/25 text-amber-400'
               }`}>
                 {isVerified ? 'Verified' : 'Pending Review'}
               </span>
             </div>
-            <h3 className="text-base font-bold text-slate-900 leading-snug">{upload.title_syllabus}</h3>
+            <h3 className="text-base font-bold text-white leading-snug">{upload.title_syllabus}</h3>
             {sub && (
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-slate-400 mt-1">
                 {sub.subject_name}
                 {sub.subject_code ? ` (${sub.subject_code})` : ''}
               </p>
             )}
           </div>
           <button onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all shrink-0" aria-label="Close">
+            className="p-2 text-slate-400 hover:text-white hover:bg-white/[0.08] rounded-xl transition-all duration-200 shrink-0" aria-label="Close">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Details */}
-        <div className="px-5 py-4 space-y-3 overflow-y-auto flex-1">
+        <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
           {/* Uploader */}
           {uploader && (
-            <div className="flex items-center gap-2 text-sm text-slate-700">
-              <User className="w-4 h-4 text-slate-400 shrink-0" />
+            <div className="flex items-center gap-2 text-sm text-slate-300">
+              <User className="w-4 h-4 text-slate-500 shrink-0" />
               <span className="font-medium">Uploaded by {uploader.full_name}</span>
             </div>
           )}
 
           {/* Time */}
-          <div className="flex items-center gap-2 text-sm text-slate-700">
-            <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+          <div className="flex items-center gap-2 text-sm text-slate-300">
+            <Clock className="w-4 h-4 text-slate-500 shrink-0" />
             <span className="font-medium">
               {timeAgo(upload.created_at)}
             </span>
-            <span className="text-slate-400">·</span>
+            <span className="text-slate-600">·</span>
             <span className="text-slate-500">
               {new Date(upload.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </span>
@@ -1424,19 +1409,19 @@ function UploadDetailModal({ upload, onClose }: UploadDetailModalProps) {
           {/* Attachment */}
           {upload.file_url && (
             <div className="mt-2">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Attachment</p>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Attachment</p>
               {isPdf ? (
                 <iframe
                   src={`${upload.file_url}#view=FitH`}
                   title="Attachment preview"
-                  className="w-full h-[40vh] border border-slate-200 rounded-xl bg-white"
+                  className="w-full h-[40vh] border border-white/[0.08] rounded-xl bg-slate-900"
                 />
               ) : (
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-3">
+                <div className="p-4 bg-white/[0.04] border border-white/[0.08] rounded-xl flex items-center gap-3">
                   <FileText className="w-8 h-8 text-indigo-400 shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-700 truncate">Attached file</p>
-                    <p className="text-[11px] text-slate-400">Click below to view</p>
+                    <p className="text-sm font-medium text-slate-300 truncate">Attached file</p>
+                    <p className="text-[11px] text-slate-500">Click below to view</p>
                   </div>
                 </div>
               )}
@@ -1444,23 +1429,23 @@ function UploadDetailModal({ upload, onClose }: UploadDetailModalProps) {
           )}
 
           {!upload.file_url && (
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center">
-              <FileText className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+            <div className="p-4 bg-white/[0.04] border border-white/[0.08] rounded-xl text-center">
+              <FileText className="w-8 h-8 mx-auto mb-2 text-slate-600" />
               <p className="text-sm text-slate-500">No file attached to this upload.</p>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-end gap-2 bg-white shrink-0">
+        <div className="px-6 py-4 border-t border-white/[0.06] flex items-center justify-end gap-2 bg-white/[0.02] shrink-0">
           {upload.file_url && (
             <a href={upload.file_url} target="_blank" rel="noopener noreferrer"
-              className="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-semibold transition-all inline-flex items-center gap-1.5">
+              className="px-4 py-2 rounded-xl border border-white/[0.1] text-slate-300 hover:text-white hover:bg-white/[0.08] text-xs font-semibold transition-all duration-200 inline-flex items-center gap-1.5">
               <ExternalLink className="w-3.5 h-3.5" /> Open in new tab
             </a>
           )}
           <button onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-all">
+            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-all duration-200 shadow-lg shadow-indigo-500/20">
             Close
           </button>
         </div>
@@ -1643,21 +1628,21 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
   if (!editing) {
     return (
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true">
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
-        <div className="relative bg-white border border-slate-200 w-full max-w-md rounded-2xl shadow-xl overflow-hidden">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+        <div className="relative bg-slate-900/95 backdrop-blur-xl border border-white/[0.1] w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-            <h2 className="text-slate-900 font-bold text-lg flex items-center gap-2">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+          <h2 className="text-white font-bold text-lg flex items-center gap-2">
               <User className="w-4.5 h-4.5" /> My Profile
             </h2>
             <div className="flex items-center gap-1">
               <button onClick={() => setEditing(true)}
-                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Edit profile">
+                className="p-2 text-slate-400 hover:text-white hover:bg-white/[0.08] rounded-xl transition-all duration-200" title="Edit profile">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
               </button>
-              <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all">
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-white hover:bg-white/[0.08] rounded-xl transition-all duration-200">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -1668,16 +1653,16 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
           {/* Content */}
           <div className="px-6 py-6 space-y-5">
             {/* Avatar + Identity */}
-            <div className="flex items-center gap-4 pb-5 border-b border-slate-100">
+            <div className="flex items-center gap-4 pb-5 border-b border-white/[0.06]">
               <AvatarDisplay size="lg" />
               <div className="min-w-0">
-                <p className="text-slate-900 font-bold text-lg truncate">{profile.full_name}</p>
-                <p className="text-slate-500 text-sm truncate">{profile.email}</p>
+                <p className="text-white font-bold text-lg truncate">{profile.full_name}</p>
+                <p className="text-slate-400 text-sm truncate">{profile.email}</p>
                 <div className="flex items-center gap-2 mt-1.5">
-                  <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-2.5 py-0.5">
+                  <span className="text-[11px] font-semibold text-indigo-400 bg-indigo-400/10 border border-indigo-400/20 rounded-full px-2.5 py-0.5">
                     {profile.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Student'}
                   </span>
-                  <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-0.5">
+                  <span className="text-[11px] font-semibold text-amber-400 bg-amber-400/10 border border-amber-400/20 rounded-full px-2.5 py-0.5">
                     {profile.karma_points} karma points
                   </span>
                 </div>
@@ -1693,20 +1678,17 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
                 { label: 'Branch', value: branch?.branch_code ?? '—' },
                 { label: 'Current Semester', value: profile.semester ? `Semester ${profile.semester}` : '—' },
               ].map(field => (
-                <div key={field.label} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
+                <div key={field.label} className="flex items-center justify-between py-2 border-b border-white/[0.06] last:border-0">
                   <span className="text-xs text-slate-400 font-medium">{field.label}</span>
-                  <span className="text-sm font-semibold text-slate-900">{field.value}</span>
+                  <span className="text-sm font-semibold text-white">{field.value}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-slate-100">
-            <button onClick={onClose}
-              className="w-full py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-sm font-medium transition-all">
-              Close
-            </button>
+          <div className="px-6 py-4 border-t border-white/[0.06]">
+            <Button variant="secondary" className="w-full" onClick={onClose}>Close</Button>
           </div>
         </div>
       </div>
@@ -1718,19 +1700,19 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true">
       <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setEditing(false)} />
-      <div className="relative bg-white border border-slate-200 w-full max-w-md rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
+      <div className="relative bg-slate-900/95 backdrop-blur-xl border border-white/[0.1] w-full max-w-md rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] shrink-0">
           <div className="flex items-center gap-2">
             <button onClick={() => setEditing(false)}
-              className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all">
+              className="p-2 text-slate-400 hover:text-white hover:bg-white/[0.08] rounded-xl transition-all duration-200">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <h2 className="text-slate-900 font-bold text-lg">Edit Profile</h2>
+            <h2 className="text-white font-bold text-lg">Edit Profile</h2>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all">
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-white hover:bg-white/[0.08] rounded-xl transition-all duration-200">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -1740,7 +1722,7 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
         {/* Content */}
         <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
           {/* Avatar Upload */}
-          <div className="flex items-center gap-4 pb-4 border-b border-slate-100">
+          <div className="flex items-center gap-4 pb-4 border-b border-white/[0.06]">
             <AvatarDisplay size="md" editable />
             <div className="min-w-0 flex-1">
               <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
@@ -1766,17 +1748,17 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
 
           {/* Editable: Full Name */}
           <div>
-            <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Full Name</label>
+              <label className="block text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Full Name</label>
             <input type="text" value={fullName} onChange={e => setFullName(e.target.value)}
-              className="w-full bg-white border border-slate-300 text-slate-900 placeholder-slate-400 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all" />
+              className="w-full bg-white/[0.06] border border-white/[0.1] text-white placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all duration-200" />
           </div>
 
           {/* Editable: Semester */}
           <div>
-            <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Semester</label>
+            <label className="block text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Semester</label>
             <div className="relative">
               <select value={semester} onChange={e => setSemester(Number(e.target.value))}
-                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all appearance-none cursor-pointer">
+                className="w-full bg-white/[0.06] border border-white/[0.1] text-white rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all duration-200 appearance-none cursor-pointer">
                 {[1,2,3,4,5,6,7,8].map(s => (
                   <option key={s} value={s}>Semester {s}</option>
                 ))}
@@ -1792,22 +1774,22 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
           {/* Read-only fields */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Email</label>
+              <label className="block text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Email</label>
               <input type="text" value={profile.email} readOnly
-                className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 text-sm outline-none cursor-not-allowed" />
+                className="w-full bg-white/[0.04] border border-white/[0.06] text-slate-400 rounded-xl px-4 py-2.5 text-sm outline-none cursor-not-allowed" />
             </div>
             <div>
-              <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Enrollment ID</label>
+              <label className="block text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Enrollment ID</label>
               <input type="text" value={profile.enrollment_id ?? '—'} readOnly
-                className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 text-sm outline-none cursor-not-allowed" />
+                className="w-full bg-white/[0.04] border border-white/[0.06] text-slate-400 rounded-xl px-4 py-2.5 text-sm outline-none cursor-not-allowed" />
             </div>
           </div>
 
           <div>
-            <label className="block text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1.5">Branch</label>
+            <label className="block text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Branch</label>
             <div className="relative">
               <select value={branchId} onChange={e => setBranchId(e.target.value)}
-                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all appearance-none cursor-pointer">
+                className="w-full bg-white/[0.06] border border-white/[0.1] text-white rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all duration-200 appearance-none cursor-pointer">
                 {branches.length === 0 && <option value="">Loading…</option>}
                 {branches.map(b => (
                   <option key={b.id} value={b.id}>{b.branch_code} — {b.branch_name}</option>
@@ -1823,63 +1805,50 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
           </div>
 
           {/* Danger Zone */}
-          <div className="border border-red-200 bg-red-50 rounded-2xl p-4">
-            <h3 className="text-sm font-bold text-red-800 mb-1">Danger Zone</h3>
-            <p className="text-xs text-red-600 mb-3">Permanently delete your account and all data. This cannot be undone.</p>
+          <div className="border border-red-500/20 bg-red-500/5 rounded-2xl p-4">
+            <h3 className="text-sm font-bold text-red-400 mb-1">Danger Zone</h3>
+            <p className="text-xs text-red-400/70 mb-3">Permanently delete your account and all data. This cannot be undone.</p>
             <button onClick={() => setDeleteOpen(true)}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-xl transition-all">
+              className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-red-500/20">
               Delete Account
             </button>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 shrink-0 flex gap-3">
-          <button onClick={() => setEditing(false)}
-            className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-sm font-medium transition-all">
-            Cancel
-          </button>
-          <button onClick={handleSave} disabled={saving}
-            className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-sm shadow-indigo-200">
-            {saving ? <Spinner size={14} /> : null}
-            Save Changes
-          </button>
+        <div className="px-6 py-4 border-t border-white/[0.06] shrink-0 flex gap-3">
+          <Button variant="secondary" className="flex-1" onClick={() => setEditing(false)}>Cancel</Button>
+          <Button variant="primary" className="flex-1" loading={saving} onClick={handleSave}>Save Changes</Button>
         </div>
       </div>
 
       {/* Delete Account Confirmation Dialog */}
       {deleteOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => { setDeleteOpen(false); setDeleteText(''); }} />
-          <div className="relative bg-white border border-slate-200 w-full max-w-sm rounded-2xl shadow-xl p-6 space-y-4">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setDeleteOpen(false); setDeleteText(''); }} />
+          <div className="relative bg-slate-900/95 backdrop-blur-xl border border-white/[0.1] w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4">
             <div className="text-center">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <div className="w-12 h-12 bg-red-500/15 rounded-full flex items-center justify-center mx-auto mb-3 border border-red-500/20">
+                <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-slate-900">Delete Account?</h3>
-              <p className="text-sm text-slate-500 mt-1">This will permanently remove your account, uploaded files, and all data.</p>
+              <h3 className="text-lg font-bold text-white">Delete Account?</h3>
+              <p className="text-sm text-slate-400 mt-1">This will permanently remove your account, uploaded files, and all data.</p>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                Type <span className="font-mono bg-red-100 text-red-700 px-1 rounded">DELETE</span> to confirm:
+              <label className="block text-xs font-semibold text-slate-400 mb-1.5">
+                Type <span className="font-mono bg-red-500/15 text-red-400 px-1.5 py-0.5 rounded border border-red-500/20">DELETE</span> to confirm:
               </label>
               <input type="text" value={deleteText} onChange={e => setDeleteText(e.target.value)}
                 placeholder="DELETE"
-                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 transition-all font-mono" />
+                className="w-full bg-white/[0.06] border border-white/[0.1] text-white rounded-xl px-4 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-400/20 transition-all duration-200 font-mono" />
             </div>
             <div className="flex gap-3">
-              <button onClick={() => { setDeleteOpen(false); setDeleteText(''); }}
-                className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-sm font-medium transition-all">
-                Cancel
-              </button>
-              <button onClick={handleDeleteAccount}
-                disabled={deleteText !== 'DELETE' || deleting}
-                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-all flex items-center justify-center gap-2">
-                {deleting ? <Spinner size={14} /> : null}
+              <Button variant="secondary" className="flex-1" onClick={() => { setDeleteOpen(false); setDeleteText(''); }}>Cancel</Button>
+              <Button variant="destructive" className="flex-1" loading={deleting} disabled={deleteText !== 'DELETE'} onClick={handleDeleteAccount}>
                 {deleting ? 'Deleting...' : 'Delete Forever'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -2136,13 +2105,6 @@ export default function Dashboard() {
     setEditTask(null); setModalDate(date ?? toLocalDateKey(new Date())); setModalOpen(true);
   };
 
-  const openDrawerAtTask = (task: AcademicTask) => {
-    setSelectedDate(isoToDateKey(task.due_date));
-    setViewYear(new Date(task.due_date).getFullYear());
-    setViewMonth(new Date(task.due_date).getMonth());
-    setDrawerOpen(true);
-  };
-
   // ─── Seed demo data ───────────────────────────────────────────────────────
 
   const seedDemoData = async () => {
@@ -2176,58 +2138,31 @@ export default function Dashboard() {
   // Show skeleton while auth profile is resolving
   if (authLoading || !profile) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <div className="bg-white/95 backdrop-blur border-b border-slate-200 sticky top-0 z-30">
-          <div className="max-w-7xl mx-auto px-4 h-16 flex items-center gap-3">
-            <div className="w-9 h-9 bg-slate-100 rounded-xl animate-pulse" />
-            <div className="space-y-1.5">
-              <div className="h-4 w-40 bg-slate-100 rounded animate-pulse" />
-              <div className="h-2.5 w-24 bg-slate-100 rounded animate-pulse" />
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-zinc-950 text-white">
+        <div className="animate-pulse space-y-6 p-6 max-w-6xl mx-auto">
+          <div className="flex items-center gap-4">
+            <div className="w-9 h-9 skeleton rounded-xl" />
+            <div className="space-y-2">
+              <div className="h-4 w-40 skeleton rounded-md" />
+              <div className="h-2.5 w-24 skeleton rounded-md" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-4">
+              <CardSkeleton />
+              <CardSkeleton />
+            </div>
+            <div className="space-y-4">
+              <CardSkeleton />
             </div>
           </div>
         </div>
-        <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-7 space-y-4">
-              {[0, 1, 2].map(i => (
-                <div key={i} className="bg-white border border-slate-200 rounded-2xl p-5 animate-pulse">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-slate-100 rounded-xl" />
-                    <div className="space-y-1.5 flex-1">
-                      <div className="h-3 bg-slate-100 rounded w-3/4" />
-                      <div className="h-2 bg-slate-100 rounded w-1/2" />
-                    </div>
-                  </div>
-                  <div className="h-2.5 bg-slate-100 rounded-full mb-3" />
-                  <div className="flex gap-2">
-                    <div className="h-9 bg-slate-100 rounded-xl flex-1" />
-                    <div className="h-9 bg-slate-100 rounded-xl flex-1" />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="lg:col-span-5">
-              <div className="bg-white border border-slate-200 rounded-2xl p-5 animate-pulse">
-                <div className="h-4 bg-slate-100 rounded w-1/2 mb-4" />
-                {[0, 1, 2].map(i => (
-                  <div key={i} className="flex items-center gap-3 py-3 border-b border-slate-100 last:border-0">
-                    <div className="w-3 h-3 bg-slate-100 rounded-full" />
-                    <div className="flex-1 space-y-1.5">
-                      <div className="h-3 bg-slate-100 rounded w-3/4" />
-                      <div className="h-2 bg-slate-100 rounded w-1/2" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </main>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-zinc-950 text-white">
 
       {/* Task Modal */}
       {profile && (
@@ -2268,11 +2203,11 @@ export default function Dashboard() {
       {/* Side navigation drawer */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 flex">
-          <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <div className="relative w-72 bg-white border-r border-slate-200 flex flex-col h-full z-50 shadow-xl">
-            <div className="p-6 border-b border-slate-100">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+          <div className="relative w-72 bg-slate-900/95 backdrop-blur-xl border-r border-white/[0.08] flex flex-col h-full z-50 shadow-2xl">
+            <div className="p-6 border-b border-white/[0.06]">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-11 h-11 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl flex items-center justify-center text-lg text-white font-bold shadow-md shadow-indigo-100 shrink-0 overflow-hidden">
+                <div className="w-11 h-11 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl flex items-center justify-center text-lg text-white font-bold shadow-lg shadow-indigo-500/20 shrink-0 overflow-hidden">
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
@@ -2280,48 +2215,48 @@ export default function Dashboard() {
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-slate-900 font-bold truncate">{profile?.full_name}</p>
-                  <p className="text-slate-500 text-xs truncate">{profile?.email}</p>
+                  <p className="text-white font-bold truncate">{profile?.full_name}</p>
+                  <p className="text-slate-400 text-xs truncate">{profile?.email}</p>
                 </div>
               </div>
-              <div className="mt-3 flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
-                <span className="text-amber-500 font-bold text-sm inline-flex items-center gap-1"><Star className="w-3.5 h-3.5" /> {profile?.karma_points ?? 0}</span>
+              <div className="mt-3 flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2">
+                <span className="text-amber-400 font-bold text-sm inline-flex items-center gap-1"><Star className="w-3.5 h-3.5" /> {profile?.karma_points ?? 0}</span>
                 <span className="text-slate-400 text-xs">karma points</span>
               </div>
             </div>
             <nav className="flex-1 p-4 space-y-1">
               <button onClick={() => setSidebarOpen(false)}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:text-white hover:bg-white/[0.08] text-sm font-medium transition-all duration-200">
                 <Home className="w-4.5 h-4.5" /> Dashboard
               </button>
               <button onClick={() => { setSidebarOpen(false); navigate('/notes'); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:text-white hover:bg-white/[0.08] text-sm font-medium transition-all duration-200">
                 <BookOpen className="w-4.5 h-4.5" /> Study Materials
               </button>
               <button onClick={() => { setSidebarOpen(false); navigate('/attendance'); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:text-white hover:bg-white/[0.08] text-sm font-medium transition-all duration-200">
                 <Calendar className="w-4.5 h-4.5" /> Attendance
               </button>
               <button onClick={() => { setSidebarOpen(false); navigate('/classroom'); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:text-white hover:bg-white/[0.08] text-sm font-medium transition-all duration-200">
                 <UserCheck className="w-4.5 h-4.5" /> My Classroom
               </button>
               <button onClick={() => { setSidebarOpen(false); navigate('/karma-poll'); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:text-white hover:bg-white/[0.08] text-sm font-medium transition-all duration-200">
                 <History className="w-4.5 h-4.5" /> My Contributions
               </button>
               <button onClick={() => toast('Settings coming soon!')}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:text-white hover:bg-white/[0.08] text-sm font-medium transition-all duration-200">
                 <Settings className="w-4.5 h-4.5" /> Settings
               </button>
             </nav>
-            <div className="p-4 border-t border-slate-100 space-y-1">
+            <div className="p-4 border-t border-white/[0.06] space-y-1">
               <button onClick={() => { setSidebarOpen(false); setProfileOpen(true); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-sm font-medium transition-all">
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:text-white hover:bg-white/[0.08] text-sm font-medium transition-all duration-200">
                 <User className="w-4.5 h-4.5" /> View Profile
               </button>
               <button onClick={handleSignOut}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 text-sm font-medium transition-all">
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 text-sm font-medium transition-all duration-200">
                 <LogOut className="w-4.5 h-4.5" /> Log Out
               </button>
             </div>
@@ -2330,24 +2265,24 @@ export default function Dashboard() {
       )}
 
       {/* ── Top Navigation Bar ─────────────────────────────────────────────── */}
-      <header className="bg-white/95 backdrop-blur border-b border-slate-200 sticky top-0 z-30">
+      <header className="bg-white/[0.04] backdrop-blur-xl border-b border-white/[0.06] sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <button onClick={() => setSidebarOpen(true)}
-              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all shrink-0" aria-label="Menu">
+              className="p-2 text-slate-400 hover:text-white hover:bg-white/[0.08] rounded-xl transition-all duration-200 shrink-0" aria-label="Menu">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
             <div className="min-w-0">
-              <h1 className="text-base sm:text-lg font-bold text-slate-900 truncate">
+              <h1 className="text-base sm:text-lg font-bold text-white truncate">
                 Welcome back, {profile?.full_name?.split(' ')[0] ?? 'Student'}
               </h1>
               <div className="hidden xs:flex sm:flex items-center gap-1.5 mt-0.5">
-                <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 rounded-full px-2 py-0.5">
+                <span className="text-[10px] font-semibold text-slate-300 bg-white/[0.06] border border-white/[0.08] rounded-full px-2 py-0.5">
                   {branchList.find(b => b.id === profile?.branch_id)?.branch_code ?? '—'} · Sem {profile?.semester ?? '—'}
                 </span>
-                <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-full px-2 py-0.5">
                   {profile?.karma_points ?? 0} karma
                 </span>
               </div>
@@ -2356,7 +2291,7 @@ export default function Dashboard() {
 
           <div className="flex items-center gap-2 shrink-0">
             <button onClick={() => setDrawerOpen(true)}
-              className="relative p-2.5 rounded-xl border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 text-indigo-600 transition-all" aria-label="Calendar">
+              className="relative p-2.5 rounded-xl border border-white/[0.08] hover:border-indigo-400/40 hover:bg-indigo-500/10 text-slate-300 hover:text-indigo-400 transition-all duration-200" aria-label="Calendar">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
@@ -2367,7 +2302,7 @@ export default function Dashboard() {
               )}
             </button>
             <button onClick={() => navigate('/upload')}
-              className="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-200 transition-all active:scale-95" aria-label="Upload">
+              className="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 transition-all duration-200 hover:scale-[1.03] active:scale-95" aria-label="Upload">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
               </svg>
@@ -2397,7 +2332,6 @@ export default function Dashboard() {
               uploadsLoading={uploadsLoading}
               onSelectTask={(t) => setSelectedMilestone(t)}
               onSelectUpload={(u) => setSelectedUpload(u)}
-              onBrowse={() => navigate('/notes')}
               profileId={profile?.id}
             />
           </div>

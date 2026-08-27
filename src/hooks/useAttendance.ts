@@ -47,9 +47,9 @@ export const STATUS_META: Record<AttendanceStatus, { label: string }> = {
 export const ZONE_COLORS: Record<AttendanceZone, {
   text: string; stroke: string; chipBg: string; barBg: string; trackBg: string;
 }> = {
-  safe:       { text: 'text-emerald-600', stroke: '#10b981', chipBg: 'bg-emerald-50 border-emerald-200 text-emerald-700', barBg: 'bg-emerald-500', trackBg: 'bg-emerald-100' },
-  borderline: { text: 'text-amber-600',   stroke: '#f59e0b', chipBg: 'bg-amber-50 border-amber-200 text-amber-700',     barBg: 'bg-amber-500',   trackBg: 'bg-amber-100' },
-  danger:     { text: 'text-red-600',     stroke: '#ef4444', chipBg: 'bg-red-50 border-red-200 text-red-700',           barBg: 'bg-red-500',     trackBg: 'bg-red-100' },
+  safe:       { text: 'text-emerald-400', stroke: '#10b981', chipBg: 'bg-emerald-500/15 border border-emerald-500/25 text-emerald-400', barBg: 'bg-emerald-500', trackBg: 'bg-emerald-500/20' },
+  borderline: { text: 'text-amber-400',   stroke: '#f59e0b', chipBg: 'bg-amber-500/15 border border-amber-500/25 text-amber-400',     barBg: 'bg-amber-500',   trackBg: 'bg-amber-500/20' },
+  danger:     { text: 'text-red-400',     stroke: '#ef4444', chipBg: 'bg-red-500/15 border border-red-500/25 text-red-400',           barBg: 'bg-red-500',     trackBg: 'bg-red-500/20' },
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
