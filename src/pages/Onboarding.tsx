@@ -63,7 +63,7 @@ export default function Onboarding() {
   const progress = (step / TOTAL_STEPS) * 100;
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center p-4">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 right-1/4 w-72 h-72 bg-emerald-600/15 rounded-full blur-3xl" />
         <div className="absolute bottom-1/3 left-1/4 w-64 h-64 bg-indigo-600/15 rounded-full blur-3xl" />
@@ -78,12 +78,12 @@ export default function Onboarding() {
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-white">Set Up Your Profile</h1>
-          <p className="text-slate-400 text-sm mt-1">Just a few details to personalize your experience</p>
+          <p className="text-gray-400 text-sm mt-1">Just a few details to personalize your experience</p>
         </div>
 
         {/* Progress bar */}
         <div className="mb-6">
-          <div className="flex justify-between text-xs text-slate-500 mb-2">
+          <div className="flex justify-between text-xs text-gray-400 mb-2">
             <span>Step {step} of {TOTAL_STEPS}</span>
             <span>{Math.round(progress)}% complete</span>
           </div>
@@ -96,7 +96,7 @@ export default function Onboarding() {
         </div>
 
         {/* Card */}
-        <div className="bg-slate-800/60 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
+        <div className="glass-strong border border-white/10 rounded-2xl p-8 shadow-2xl">
           <form onSubmit={handleSubmit}>
 
             {/* Step 1: Personal Info */}
@@ -104,24 +104,24 @@ export default function Onboarding() {
               <div className="space-y-5">
                 <div>
                   <h2 className="text-lg font-semibold text-white mb-1">Personal Information</h2>
-                  <p className="text-slate-400 text-sm">Tell us who you are</p>
+                  <p className="text-gray-400 text-sm">Tell us who you are</p>
                 </div>
                 <div>
-                  <label className="block text-slate-300 text-sm font-medium mb-1.5">Full Name</label>
+                  <label className="block text-gray-300 text-sm font-medium mb-1.5">Full Name</label>
                   <input
                     type="text" required value={fullName} onChange={e => setFullName(e.target.value)}
                     placeholder="Enter your full name"
-                    className="w-full bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-all"
+                    className="w-full bg-white/5 border border-white/15 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 text-sm font-medium mb-1.5">
-                    Enrollment ID <span className="text-slate-500">(optional)</span>
+                  <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                    Enrollment ID <span className="text-gray-400">(optional)</span>
                   </label>
                   <input
                     type="text" value={enrollmentId} onChange={e => setEnrollmentId(e.target.value)}
                     placeholder="e.g. 24BCSE001"
-                    className="w-full bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-all"
+                    className="w-full bg-white/5 border border-white/15 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-all"
                   />
                 </div>
                 <button
@@ -138,13 +138,13 @@ export default function Onboarding() {
               <div className="space-y-5">
                 <div>
                   <h2 className="text-lg font-semibold text-white mb-1">Academic Details</h2>
-                  <p className="text-slate-400 text-sm">Help us show you relevant content</p>
+                  <p className="text-gray-400 text-sm">Help us show you relevant content</p>
                 </div>
                 <div>
-                  <label className="block text-slate-300 text-sm font-medium mb-1.5">Branch / Department</label>
+                  <label className="block text-gray-300 text-sm font-medium mb-1.5">Branch / Department</label>
                   <select
                     value={branchId} onChange={e => setBranchId(e.target.value)} required
-                    className="w-full bg-slate-900/50 border border-slate-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-all"
+                    className="w-full bg-white/5 border border-white/15 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-all"
                   >
                     <option value="" className="bg-slate-800">Select your branch</option>
                     {branches.map(b => (
@@ -156,7 +156,7 @@ export default function Onboarding() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-slate-300 text-sm font-medium mb-1.5">Current Semester</label>
+                  <label className="block text-gray-300 text-sm font-medium mb-1.5">Current Semester</label>
                   <div className="grid grid-cols-4 gap-2">
                     {SEMESTERS.map(s => (
                       <button
@@ -164,7 +164,7 @@ export default function Onboarding() {
                         className={`py-2.5 rounded-xl text-sm font-medium border transition-all duration-150 ${
                           semester === s
                             ? 'bg-emerald-600 border-emerald-500 text-white'
-                            : 'bg-slate-900/50 border-slate-700 text-slate-400 hover:border-slate-600 hover:text-white'
+                            : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
                         }`}
                       >
                         {s}
@@ -174,7 +174,7 @@ export default function Onboarding() {
                 </div>
                 <div className="flex gap-3">
                   <button type="button" onClick={() => setStep(1)}
-                    className="flex-1 bg-slate-700/50 hover:bg-slate-700 text-slate-300 font-medium py-3 rounded-xl transition-all">
+                    className="flex-1 bg-slate-700/50 hover:bg-slate-700 text-gray-300 font-medium py-3 rounded-xl transition-all">
                     ← Back
                   </button>
                   <button

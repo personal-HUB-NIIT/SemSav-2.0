@@ -173,19 +173,19 @@ export default function Upload() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen bg-[var(--bg)]">
       {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-900/95 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b border-white/10 bg-black/40 backdrop-blur-xl sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-4">
           <button onClick={() => navigate('/dashboard')}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all">
+            className="p-2 text-gray-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <div>
             <h1 className="text-white font-bold text-lg">Upload Content</h1>
-            <p className="text-slate-500 text-xs">Share notes, assignments & exam schedules</p>
+            <p className="text-gray-400 text-xs">Share notes, assignments & exam schedules</p>
           </div>
         </div>
       </header>
@@ -194,7 +194,7 @@ export default function Upload() {
         <form onSubmit={handleSubmit} className="space-y-6">
 
           {/* Category Selector */}
-          <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-6">
+          <div className="glass border border-white/10 rounded-2xl p-6">
             <label className="block text-white font-semibold mb-4">What are you uploading?</label>
             <div className="grid grid-cols-3 gap-3">
               {CATEGORIES.map(cat => (
@@ -205,7 +205,7 @@ export default function Upload() {
                   className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all ${
                     category === cat.value
                       ? 'bg-indigo-600/20 border-indigo-500 text-white'
-                      : 'bg-slate-900/50 border-slate-700 text-slate-400 hover:border-slate-600 hover:text-white'
+                      : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
                   }`}
                 >
                   <cat.Icon className="w-6 h-6" />
@@ -217,13 +217,13 @@ export default function Upload() {
           </div>
 
           {/* Subject & Title */}
-          <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-6 space-y-4">
+          <div className="glass border border-white/10 rounded-2xl p-6 space-y-4">
             <div>
-              <label className="block text-slate-300 text-sm font-medium mb-1.5">Subject</label>
+              <label className="block text-gray-300 text-sm font-medium mb-1.5">Subject</label>
               <select
                 value={subjectId}
                 onChange={e => setSubjectId(e.target.value)}
-                className="w-full bg-slate-900/60 border border-slate-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-all"
+                className="w-full bg-white/10 border border-white/15 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/30/50 transition-all"
               >
                 <option value="" className="bg-slate-800">Select subject...</option>
                 {subjects.map(s => (
@@ -238,7 +238,7 @@ export default function Upload() {
             </div>
 
             <div>
-              <label className="block text-slate-300 text-sm font-medium mb-1.5">
+              <label className="block text-gray-300 text-sm font-medium mb-1.5">
                 {category === 'NOTES' ? 'Title / Topic' : category === 'ASSIGNMENT' ? 'Assignment Title' : 'Syllabus / Topics Covered'}
               </label>
               <input
@@ -250,17 +250,17 @@ export default function Upload() {
                   category === 'ASSIGNMENT' ? 'e.g. Assignment 2 — Sorting Algorithms' :
                   'e.g. Unit 1–3, excluding Chapter 5'
                 }
-                className="w-full bg-slate-900/60 border border-slate-700 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-all"
+                className="w-full bg-slate-900/60 border border-slate-700 text-white placeholder-gray-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/30/50 transition-all"
               />
             </div>
           </div>
 
           {/* Assignment / Test specific fields */}
           {(category === 'ASSIGNMENT' || category === 'TEST') && (
-            <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-6 space-y-4">
+            <div className="glass border border-white/10 rounded-2xl p-6 space-y-4">
               {category === 'TEST' && (
                 <div>
-                  <label className="block text-slate-300 text-sm font-medium mb-1.5">Test Type</label>
+                  <label className="block text-gray-300 text-sm font-medium mb-1.5">Test Type</label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {TEST_TYPES.map(tt => (
                       <button
@@ -270,7 +270,7 @@ export default function Upload() {
                         className={`py-2.5 px-3 rounded-xl text-sm font-medium border transition-all ${
                           testType === tt.value
                             ? 'bg-emerald-600/20 border-emerald-500 text-emerald-300'
-                            : 'bg-slate-900/50 border-slate-700 text-slate-400 hover:border-slate-600 hover:text-white'
+                            : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20 hover:text-white'
                         }`}
                       >
                         {tt.label}
@@ -281,28 +281,28 @@ export default function Upload() {
               )}
 
               <div>
-                <label className="block text-slate-300 text-sm font-medium mb-1.5">
+                <label className="block text-gray-300 text-sm font-medium mb-1.5">
                   {category === 'ASSIGNMENT' ? 'Submission Deadline' : 'Exam Date & Time'}
                 </label>
                 <input
                   type="datetime-local"
                   value={dueDateTime}
                   onChange={e => setDueDateTime(e.target.value)}
-                  className="w-full bg-slate-900/60 border border-slate-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-all [color-scheme:dark]"
+                  className="w-full bg-white/10 border border-white/15 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/30/50 transition-all [color-scheme:dark]"
                 />
               </div>
 
               {category === 'TEST' && (
                 <div>
-                  <label className="block text-slate-300 text-sm font-medium mb-1.5">
-                    Room No. <span className="text-slate-500">(optional)</span>
+                  <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                    Room No. <span className="text-gray-400">(optional)</span>
                   </label>
                   <input
                     type="text"
                     value={roomNo}
                     onChange={e => setRoomNo(e.target.value)}
                     placeholder="e.g. A-201, Main Hall"
-                    className="w-full bg-slate-900/60 border border-slate-700 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-all"
+                    className="w-full bg-slate-900/60 border border-slate-700 text-white placeholder-gray-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/30/50 transition-all"
                   />
                 </div>
               )}
@@ -310,9 +310,9 @@ export default function Upload() {
           )}
 
           {/* File Upload */}
-          <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-6">
-            <label className="block text-slate-300 text-sm font-medium mb-3">
-              Attach File {category === 'NOTES' ? <span className="text-red-400">*</span> : <span className="text-slate-500">(optional)</span>}
+          <div className="glass border border-white/10 rounded-2xl p-6">
+            <label className="block text-gray-300 text-sm font-medium mb-3">
+              Attach File {category === 'NOTES' ? <span className="text-red-400">*</span> : <span className="text-gray-400">(optional)</span>}
             </label>
             <div
               onDragOver={e => { e.preventDefault(); setDragOver(true); }}
@@ -324,7 +324,7 @@ export default function Upload() {
                   ? 'border-indigo-500 bg-indigo-500/10'
                   : selectedFile
                   ? 'border-emerald-500/60 bg-emerald-500/5'
-                  : 'border-slate-700 hover:border-slate-600 hover:bg-slate-800/40'
+                  : 'border-slate-700 hover:border-white/20 hover:bg-slate-800/40'
               }`}
             >
               <input
@@ -338,7 +338,7 @@ export default function Upload() {
                 <div className="space-y-2">
                   
                   <p className="text-white font-medium text-sm">{selectedFile.name}</p>
-                  <p className="text-slate-500 text-xs">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                  <p className="text-gray-400 text-xs">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
                   <div className="flex items-center justify-center gap-4 mt-2">
                     <button
                       type="button"
@@ -367,8 +367,8 @@ export default function Upload() {
               ) : (
                 <div className="space-y-2">
                   
-                  <p className="text-slate-400 text-sm font-medium">Drop your file here or click to browse</p>
-                  <p className="text-slate-600 text-xs">PDF, Word, PPT, Images, ZIP — max 20 MB</p>
+                  <p className="text-gray-400 text-sm font-medium">Drop your file here or click to browse</p>
+                  <p className="text-gray-400 text-xs">PDF, Word, PPT, Images, ZIP — max 20 MB</p>
                 </div>
               )}
             </div>
@@ -388,7 +388,7 @@ export default function Upload() {
             ) : <span className='inline-flex items-center gap-2'><Rocket className='w-4 h-4' /> Submit Upload</span>}
           </button>
 
-          <p className="text-center text-slate-600 text-xs">
+          <p className="text-center text-gray-400 text-xs">
             Your upload will be visible to others once it receives enough upvotes (verified by peers).
           </p>
         </form>

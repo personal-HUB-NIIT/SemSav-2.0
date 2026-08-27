@@ -38,7 +38,7 @@ const TYPE_META: Record<string, { label: string; Icon: typeof FileText; chip: st
   TEST:       { label: 'Test / Exam', Icon: GraduationCap, chip: 'bg-red-50 border-red-200 text-red-700' },
 };
 
-const FALLBACK_TYPE_META = { label: 'Other', Icon: Folder, chip: 'bg-slate-100 border-slate-200 text-slate-600' };
+const FALLBACK_TYPE_META = { label: 'Other', Icon: Folder, chip: 'bg-white/10 border-white/10 text-gray-400' };
 
 const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: 'all',        label: 'All' },
@@ -54,7 +54,7 @@ const STATUS_META: Record<Contribution['status'], { label: string; chip: string;
 };
 
 const KARMA_TIERS = [
-  { min: 0,   label: 'Newcomer',    color: 'text-slate-600 bg-slate-100 border-slate-200' },
+  { min: 0,   label: 'Newcomer',    color: 'text-gray-400 bg-white/10 border-white/10' },
   { min: 50,  label: 'Contributor', color: 'text-blue-700 bg-blue-50 border-blue-200' },
   { min: 150, label: 'Reviewer',    color: 'text-indigo-700 bg-indigo-50 border-indigo-200' },
   { min: 300, label: 'Trusted',     color: 'text-purple-700 bg-purple-50 border-purple-200' },
@@ -118,17 +118,17 @@ export default function KarmaPoll() {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-[var(--bg)] text-white">
       {/* Header */}
-      <header className="bg-white/95 backdrop-blur border-b border-slate-200 sticky top-0 z-30">
+      <header className="bg-black/40 backdrop-blur-xl border-b border-white/10 sticky top-0 z-30">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center gap-3">
           <button onClick={() => navigate('/dashboard')}
-            className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all shrink-0" aria-label="Back">
+            className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all shrink-0" aria-label="Back">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="min-w-0">
-            <h1 className="text-base sm:text-lg font-bold text-slate-900 truncate">My Contributions</h1>
-            <p className="text-[10px] text-slate-500 truncate">Your upload history and community verification status</p>
+            <h1 className="text-base sm:text-lg font-bold text-white truncate">My Contributions</h1>
+            <p className="text-[10px] text-gray-400 truncate">Your upload history and community verification status</p>
           </div>
           <span className="ml-auto shrink-0 text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1 flex items-center gap-1">
             <Star className="w-3.5 h-3.5" /> {profile?.karma_points ?? 0}
@@ -139,28 +139,28 @@ export default function KarmaPoll() {
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
 
         {/* Karma summary */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5">
+        <div className="glass rounded-2xl p-5">
           <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
             <div>
-              <p className="text-xs text-slate-500">Karma balance</p>
-              <p className="text-2xl font-extrabold text-slate-900 flex items-center gap-1.5">
+              <p className="text-xs text-gray-400">Karma balance</p>
+              <p className="text-2xl font-extrabold text-white flex items-center gap-1.5">
                 <Star className="w-5 h-5 text-amber-500" /> {profile?.karma_points ?? 0}
               </p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Contributions</p>
-              <p className="text-2xl font-extrabold text-slate-900">{items.length}</p>
+              <p className="text-xs text-gray-400">Contributions</p>
+              <p className="text-2xl font-extrabold text-white">{items.length}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Verified</p>
+              <p className="text-xs text-gray-400">Verified</p>
               <p className="text-2xl font-extrabold text-emerald-600">{verifiedCount}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Pending</p>
+              <p className="text-xs text-gray-400">Pending</p>
               <p className="text-2xl font-extrabold text-amber-600">{pendingCount}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Upvotes received</p>
+              <p className="text-xs text-gray-400">Upvotes received</p>
               <p className="text-2xl font-extrabold text-indigo-600 flex items-center gap-1">
                 <ThumbsUp className="w-4 h-4" /> {upvotesReceived}
               </p>
@@ -178,12 +178,12 @@ export default function KarmaPoll() {
               className={`px-3.5 py-2 rounded-xl text-xs font-semibold border whitespace-nowrap transition-all ${
                 filter === tab.key
                   ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm shadow-indigo-200'
-                  : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-700'
+                  : 'bg-white border-white/10 text-gray-400 hover:border-indigo-300 hover:text-indigo-700'
               }`}>
               {tab.label}
               {tab.key === 'all' && items.length > 0 && (
                 <span className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                  filter === tab.key ? 'bg-indigo-500' : 'bg-slate-100 text-slate-500'
+                  filter === tab.key ? 'bg-indigo-500' : 'bg-white/10 text-gray-400'
                 }`}>
                   {items.length}
                 </span>
@@ -194,20 +194,20 @@ export default function KarmaPoll() {
 
         {/* Loading */}
         {loading && (
-          <div className="flex items-center justify-center py-16 gap-3 text-slate-500">
-            <div className="border-2 border-slate-200 border-t-indigo-600 rounded-full animate-spin w-6 h-6" />
+          <div className="flex items-center justify-center py-16 gap-3 text-gray-400">
+            <div className="border-2 border-white/15 border-t-indigo-500 rounded-full animate-spin w-6 h-6" />
             <span className="text-sm">Loading your contributions…</span>
           </div>
         )}
 
         {/* Empty */}
         {!loading && filtered.length === 0 && (
-          <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center">
-            <Folder className="w-10 h-10 mx-auto mb-3 text-slate-300" />
-            <p className="text-sm font-semibold text-slate-900 mb-1">
+          <div className="glass rounded-2xl p-10 text-center">
+            <Folder className="w-10 h-10 mx-auto mb-3 text-gray-400" />
+            <p className="text-sm font-semibold text-white mb-1">
               {items.length === 0 ? 'No contributions yet' : 'Nothing in this category'}
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-gray-400">
               {items.length === 0
                 ? 'Upload notes, assignments or exam dates from the dashboard to earn karma.'
                 : 'Try a different filter.'}
@@ -228,19 +228,19 @@ export default function KarmaPoll() {
               const downNames = downs.map(voterName).filter(Boolean) as string[];
 
               return (
-                <div key={item.id} className="bg-white border border-slate-200 rounded-2xl p-4 hover:shadow-md transition-all">
+                <div key={item.id} className="glass rounded-2xl p-4 hover:shadow-md transition-all">
                   <div className="flex items-start gap-3">
                     <span className={`shrink-0 w-10 h-10 rounded-xl border flex items-center justify-center ${meta.chip}`}>
                       <meta.Icon className="w-5 h-5" />
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-semibold text-slate-900 truncate">{item.title_syllabus}</p>
+                        <p className="text-sm font-semibold text-white truncate">{item.title_syllabus}</p>
                         <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${status.chip}`}>
                           <status.Icon className="w-3 h-3" /> {status.label}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
+                      <p className="text-[11px] text-gray-400 mt-0.5">
                         {sub ? `${sub.subject_name} (${sub.subject_code}) · ` : ''}
                         {new Date(item.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                         {item.status === 'VERIFIED' && item.file_url && (
@@ -252,7 +252,7 @@ export default function KarmaPoll() {
                       </p>
 
                       {/* Vote summary (read-only) + voter identities */}
-                      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
+                      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-gray-400">
                         <span className="inline-flex items-center gap-1 font-medium text-emerald-700">
                           <ThumbsUp className="w-3.5 h-3.5" /> {ups.length}
                         </span>
@@ -261,18 +261,18 @@ export default function KarmaPoll() {
                         </span>
                         {upNames.length > 0 && (
                           <span className="truncate">
-                            Upvoted by <span className="font-medium text-slate-700">{upNames.slice(0, 2).join(', ')}</span>
+                            Upvoted by <span className="font-medium text-gray-300">{upNames.slice(0, 2).join(', ')}</span>
                             {upNames.length > 2 && ` and ${upNames.length - 2} other${upNames.length > 3 ? 's' : ''}`}
                           </span>
                         )}
                         {downNames.length > 0 && (
                           <span className="truncate">
-                            Flagged by <span className="font-medium text-slate-700">{downNames.slice(0, 2).join(', ')}</span>
+                            Flagged by <span className="font-medium text-gray-300">{downNames.slice(0, 2).join(', ')}</span>
                             {downNames.length > 2 && ` and ${downNames.length - 2} other${downNames.length > 3 ? 's' : ''}`}
                           </span>
                         )}
                         {ups.length === 0 && downs.length === 0 && (
-                          <span className="inline-flex items-center gap-1 text-slate-400">
+                          <span className="inline-flex items-center gap-1 text-gray-500">
                             <status.Icon className="w-3 h-3" /> {status.hint}
                           </span>
                         )}

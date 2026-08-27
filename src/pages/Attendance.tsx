@@ -112,7 +112,7 @@ function StatusButtons({
           disabled={disabled}
           onClick={onClear}
           title="Clear mark"
-          className="px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed border-slate-200 text-slate-500 hover:bg-slate-100 bg-white"
+          className="px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed border-white/10 text-gray-400 hover:bg-white/10 bg-white"
         >
           ↩ Clear
         </button>
@@ -326,24 +326,24 @@ export default function Attendance() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-[var(--bg)] text-white">
 
       {/* Header */}
-      <header className="bg-white/95 backdrop-blur border-b border-slate-200 sticky top-0 z-30">
+      <header className="bg-black/40 backdrop-blur-xl border-b border-white/10 sticky top-0 z-30">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center gap-3">
           <button onClick={() => navigate('/dashboard')}
-            className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all"
+            className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all"
             aria-label="Back">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <div className="min-w-0">
-            <h1 className="text-base sm:text-lg font-bold text-slate-900">Attendance Tracker</h1>
-            <p className="text-xs text-slate-500">Stay above the 75% mandate</p>
+            <h1 className="text-base sm:text-lg font-bold text-white">Attendance Tracker</h1>
+            <p className="text-xs text-gray-400">Stay above the 75% mandate</p>
           </div>
           <button onClick={() => setReloadTick(t => t + 1)}
-            className="ml-auto p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+            className="ml-auto p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
             aria-label="Refresh" title="Refresh">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -365,11 +365,11 @@ export default function Attendance() {
 
         {/* Tabs */}
         <div className="flex items-center gap-2">
-          <div className="flex gap-2 bg-white border border-slate-200 rounded-xl p-1 w-fit">
+          <div className="flex gap-2 glass rounded-xl p-1 w-fit">
             {([['today', 'Mark Today'], ['history', 'History']] as const).map(([key, label]) => (
               <button key={key} onClick={() => setTab(key)}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                  tab === key ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200' : 'text-slate-600 hover:bg-slate-100'
+                  tab === key ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200' : 'text-gray-400 hover:bg-white/10'
                 }`}>
                 {label}
               </button>
@@ -386,8 +386,8 @@ export default function Attendance() {
 
         {/* Loading */}
         {loading && (
-          <div className="flex items-center justify-center py-16 gap-3 text-slate-500">
-            <div className="border-2 border-slate-200 border-t-indigo-600 rounded-full animate-spin w-6 h-6" />
+          <div className="flex items-center justify-center py-16 gap-3 text-gray-400">
+            <div className="border-2 border-white/15 border-t-indigo-500 rounded-full animate-spin w-6 h-6" />
             <span className="text-sm">Loading your subjects…</span>
           </div>
         )}
@@ -396,8 +396,8 @@ export default function Attendance() {
         {!loading && tab === 'today' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {subjects.length === 0 && !missingTable && (
-              <div className="md:col-span-2 text-center py-14 text-slate-500">
-                <BookOpen className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+              <div className="md:col-span-2 text-center py-14 text-gray-400">
+                <BookOpen className="w-10 h-10 mx-auto mb-3 text-gray-400" />
                 <p className="font-medium">No subjects found for Semester {profile?.semester}</p>
                 <p className="text-sm mt-1">Ask an admin to seed subjects for your branch.</p>
               </div>
@@ -408,18 +408,18 @@ export default function Attendance() {
               const busy = savingKeys.has(sub.id + today);
               return (
                 <div key={sub.id}
-                  className="bg-white border border-slate-200 rounded-2xl p-4 hover:border-slate-300 hover:shadow-md hover:shadow-slate-100 transition-all">
+                  className="glass rounded-2xl p-4 hover:border-white/20 hover:shadow-md hover:shadow-slate-100 transition-all">
                   <div className="flex items-center gap-4">
                     <Gauge pct={st.pct} zone={st.zone} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 min-w-0">
-                        <h3 className="font-bold text-slate-900 truncate">{sub.subject_name}</h3>
+                        <h3 className="font-bold text-white truncate">{sub.subject_name}</h3>
                         {sub.is_lab && (
                           <span className="text-[10px] font-bold uppercase bg-violet-50 border border-violet-200 text-violet-700 rounded-full px-1.5 py-0.5 shrink-0">Lab</span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400 font-mono">{sub.subject_code}</p>
-                      <p className="mt-1 text-xs text-slate-500">
+                      <p className="text-xs text-gray-500 font-mono">{sub.subject_code}</p>
+                      <p className="mt-1 text-xs text-gray-400">
                         {st.attended} attended · {st.total_held - st.attended} absent
                       </p>
                       <span className={`inline-block mt-1.5 text-[10px] font-bold uppercase tracking-wide border rounded-full px-2 py-0.5 ${ZONE_COLORS[st.zone].chipBg}`}>
@@ -429,7 +429,7 @@ export default function Attendance() {
                   </div>
 
                   {/* Quick advice */}
-                  <p className="mt-3 text-xs font-medium text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+                  <p className="mt-3 text-xs font-medium text-gray-400 bg-white/5 border border-white/10 rounded-lg px-3 py-2">
                     {st.total_held === 0
                       ? 'No classes logged yet — start marking below.'
                       : st.zone === 'danger'
@@ -453,17 +453,17 @@ export default function Attendance() {
         {!loading && tab === 'history' && (
           <div className="space-y-4">
             {groupedHistory.length === 0 && (
-              <div className="text-center py-14 text-slate-500">
-                <History className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+              <div className="text-center py-14 text-gray-400">
+                <History className="w-10 h-10 mx-auto mb-3 text-gray-400" />
                 <p className="font-medium">No history yet</p>
                 <p className="text-sm mt-1">Marks you record will appear here.</p>
               </div>
             )}
             {groupedHistory.map(([dateKey, entries]) => (
-              <div key={dateKey} className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-                <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                  <span className="text-sm font-bold text-slate-700">{dayLabel(dateKey)}</span>
-                  <span className="text-[11px] text-slate-400 font-mono">{entries.length} entr{entries.length > 1 ? 'ies' : 'y'}</span>
+              <div key={dateKey} className="glass rounded-2xl overflow-hidden">
+                <div className="px-4 py-2.5 bg-white/5 border-b border-white/10 flex items-center justify-between">
+                  <span className="text-sm font-bold text-gray-300">{dayLabel(dateKey)}</span>
+                  <span className="text-[11px] text-gray-500 font-mono">{entries.length} entr{entries.length > 1 ? 'ies' : 'y'}</span>
                 </div>
                 <div className="divide-y divide-slate-100">
                   {entries.map(entry => {
@@ -472,9 +472,9 @@ export default function Attendance() {
                     return (
                       <div key={entry.id} className="px-4 py-3 flex flex-wrap items-center gap-3">
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-slate-800 truncate">
+                          <p className="text-sm font-semibold text-white truncate">
                             {sub ? sub.subject_name : 'Unknown subject'}
-                            {sub && <span className="ml-2 text-[10px] text-slate-400 font-mono">{sub.subject_code}</span>}
+                            {sub && <span className="ml-2 text-[10px] text-gray-500 font-mono">{sub.subject_code}</span>}
                           </p>
                         </div>
                         <StatusButtons
@@ -497,12 +497,12 @@ export default function Attendance() {
       {/* ── Extra Class Modal ── */}
       {extraModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm" onClick={() => { if (!extraSaving) setExtraModalOpen(false); }} />
-          <div className="relative bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => { if (!extraSaving) setExtraModalOpen(false); }} />
+          <div className="relative glass rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900">Add Extra Class Attendance</h2>
+              <h2 className="text-base font-bold text-white">Add Extra Class Attendance</h2>
               <button onClick={() => setExtraModalOpen(false)} disabled={extraSaving}
-                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-all disabled:opacity-50">
+                className="p-1.5 text-gray-500 hover:text-gray-300 hover:bg-white/10 rounded-lg transition-all disabled:opacity-50">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -511,9 +511,9 @@ export default function Attendance() {
 
             {/* Subject */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Subject</label>
+              <label className="block text-xs font-semibold text-gray-300 mb-1">Subject</label>
               <select value={extraSubjectId} onChange={e => setExtraSubjectId(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400">
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400">
                 <option value="">Select subject…</option>
                 {subjects.map(s => (
                   <option key={s.id} value={s.id}>{s.subject_name} ({s.subject_code})</option>
@@ -523,21 +523,21 @@ export default function Attendance() {
 
             {/* Date */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Date</label>
+              <label className="block text-xs font-semibold text-gray-300 mb-1">Date</label>
               <input type="date" value={extraDate} onChange={e => setExtraDate(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400" />
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400" />
             </div>
 
             {/* Classes conducted */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Number of Classes</label>
+              <label className="block text-xs font-semibold text-gray-300 mb-1">Number of Classes</label>
               <input type="number" min={1} max={10} value={extraCount} onChange={e => setExtraCount(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400" />
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400" />
             </div>
 
             {/* Status */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-2">Status</label>
+              <label className="block text-xs font-semibold text-gray-300 mb-2">Status</label>
               <div className="flex gap-2">
                 {(['present', 'absent'] as AttendanceStatus[]).map(s => (
                   <button key={s} onClick={() => setExtraStatus(s)}
@@ -546,7 +546,7 @@ export default function Attendance() {
                         ? s === 'present'
                           ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-200'
                           : 'bg-red-500 border-red-500 text-white shadow-sm shadow-red-200'
-                        : 'border-slate-200 text-slate-600 hover:bg-slate-100 bg-white'
+                        : 'border-white/10 text-gray-400 hover:bg-white/10 bg-white'
                     }`}>
                     {STATUS_META[s].label}
                   </button>

@@ -31,28 +31,28 @@ type TabType = 'notes' | 'assignments';
 
 function SubjectCardSkeleton() {
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-5 animate-pulse">
+    <div className="glass rounded-2xl p-5 animate-pulse">
       <div className="flex items-start justify-between mb-3">
         <div className="space-y-2">
-          <div className="h-4 bg-slate-100 rounded w-32" />
-          <div className="h-3 bg-slate-100 rounded w-16" />
+          <div className="h-4 bg-white/10 rounded w-32" />
+          <div className="h-3 bg-white/10 rounded w-16" />
         </div>
-        <div className="h-5 bg-slate-100 rounded-full w-12" />
+        <div className="h-5 bg-white/10 rounded-full w-12" />
       </div>
-      <div className="h-2 bg-slate-100 rounded-full w-full" />
+      <div className="h-2 bg-white/10 rounded-full w-full" />
     </div>
   );
 }
 
 function UploadCardSkeleton() {
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-5 animate-pulse">
+    <div className="glass rounded-2xl p-5 animate-pulse">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 bg-slate-100 rounded-xl" />
+        <div className="w-10 h-10 bg-white/10 rounded-xl" />
         <div className="flex-1 space-y-2">
-          <div className="h-4 bg-slate-100 rounded w-3/4" />
-          <div className="h-3 bg-slate-100 rounded w-1/2" />
-          <div className="h-3 bg-slate-100 rounded w-1/4" />
+          <div className="h-4 bg-white/10 rounded w-3/4" />
+          <div className="h-3 bg-white/10 rounded w-1/2" />
+          <div className="h-3 bg-white/10 rounded w-1/4" />
         </div>
       </div>
     </div>
@@ -195,19 +195,19 @@ export default function Notes() {
 
   if (!selectedSubject) {
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-900">
-        <header className="bg-white/95 backdrop-blur border-b border-slate-200 sticky top-0 z-30">
+      <div className="min-h-screen bg-[var(--bg)] text-white">
+        <header className="bg-black/40 backdrop-blur-xl border-b border-white/10 sticky top-0 z-30">
           <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <button onClick={() => navigate('/dashboard')}
-                className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all shrink-0" aria-label="Back">
+                className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all shrink-0" aria-label="Back">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
               <div className="min-w-0">
-                <h1 className="text-base sm:text-lg font-bold text-slate-900 truncate">Study Materials</h1>
-                <p className="text-[10px] text-slate-500 truncate">Semester {profile?.semester ?? '—'} · {subjects.length} subject{subjects.length !== 1 ? 's' : ''}</p>
+                <h1 className="text-base sm:text-lg font-bold text-white truncate">Study Materials</h1>
+                <p className="text-[10px] text-gray-400 truncate">Semester {profile?.semester ?? '—'} · {subjects.length} subject{subjects.length !== 1 ? 's' : ''}</p>
               </div>
             </div>
           </div>
@@ -219,24 +219,24 @@ export default function Notes() {
               {[0,1,2,3,4,5].map(i => <SubjectCardSkeleton key={i} />)}
             </div>
           ) : subjects.length === 0 ? (
-            <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center">
-              <BookOpen className="w-10 h-10 mx-auto mb-3 text-slate-300" />
-              <p className="text-sm font-semibold text-slate-900 mb-1">No subjects found</p>
-              <p className="text-xs text-slate-500">No subjects are configured for your branch & semester yet.</p>
+            <div className="glass rounded-2xl p-10 text-center">
+              <BookOpen className="w-10 h-10 mx-auto mb-3 text-gray-400" />
+              <p className="text-sm font-semibold text-white mb-1">No subjects found</p>
+              <p className="text-xs text-gray-400">No subjects are configured for your branch & semester yet.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {subjects.map(subject => (
                 <button key={subject.id} onClick={() => setSelectedSubject(subject)}
-                  className="bg-white border border-slate-200 rounded-2xl p-5 text-left hover:shadow-md hover:border-indigo-300 transition-all group">
+                  className="glass rounded-2xl p-5 text-left hover:shadow-md hover:border-indigo-300 transition-all group">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h3 className="text-sm font-bold text-slate-900 group-hover:text-indigo-700 transition-colors">
+                      <h3 className="text-sm font-bold text-white group-hover:text-indigo-700 transition-colors">
                         {subject.subject_name}
                       </h3>
-                      <p className="text-xs text-slate-500 mt-0.5 font-mono">{subject.subject_code}</p>
+                      <p className="text-xs text-gray-400 mt-0.5 font-mono">{subject.subject_code}</p>
                     </div>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/10 text-gray-400 border border-white/10">
                       {subjectCounts[subject.id] ?? 0} file{(subjectCounts[subject.id] ?? 0) !== 1 ? 's' : ''}
                     </span>
                   </div>
@@ -246,7 +246,7 @@ export default function Notes() {
                         Lab
                       </span>
                     )}
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-[10px] text-gray-500">
                       {subjectCounts[subject.id] === 0 ? 'No uploads yet' : 'View materials →'}
                     </span>
                   </div>
@@ -262,31 +262,31 @@ export default function Notes() {
   // ─── Render: Subject Detail View ───────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-[var(--bg)] text-white">
       {/* Top Bar */}
-      <header className="bg-white/95 backdrop-blur border-b border-slate-200 sticky top-0 z-30">
+      <header className="bg-black/40 backdrop-blur-xl border-b border-white/10 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <button onClick={() => { setSelectedSubject(null); setSearch(''); }}
-              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all shrink-0" aria-label="Back">
+              className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all shrink-0" aria-label="Back">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
             <div className="min-w-0">
-              <h1 className="text-base sm:text-lg font-bold text-slate-900 truncate">{selectedSubject.subject_name}</h1>
-              <p className="text-[10px] text-slate-500 truncate font-mono">{selectedSubject.subject_code}</p>
+              <h1 className="text-base sm:text-lg font-bold text-white truncate">{selectedSubject.subject_name}</h1>
+              <p className="text-[10px] text-gray-400 truncate font-mono">{selectedSubject.subject_code}</p>
             </div>
           </div>
 
           {/* Search */}
           <div className="relative hidden sm:block shrink-0 w-64">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input type="text" value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search notes..."
-              className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all" />
+              className="w-full pl-9 pr-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-slate-400 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all" />
           </div>
         </div>
       </header>
@@ -294,12 +294,12 @@ export default function Notes() {
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-4">
         {/* Mobile search */}
         <div className="relative sm:hidden">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input type="text" value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search notes..."
-            className="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all" />
+            className="w-full pl-9 pr-3 py-2.5 glass rounded-xl text-sm text-white placeholder-slate-400 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all" />
         </div>
 
         {/* Tabs */}
@@ -312,13 +312,13 @@ export default function Notes() {
               className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
                 tab === t.key
                   ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm shadow-indigo-200'
-                  : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-700'
+                  : 'bg-white border-white/10 text-gray-400 hover:border-indigo-300 hover:text-indigo-700'
               }`}>
               <t.Icon className="w-3.5 h-3.5" />
               {t.label}
             </button>
           ))}
-          <span className="ml-auto text-xs text-slate-400">
+          <span className="ml-auto text-xs text-gray-500">
             {filtered.length} item{filtered.length !== 1 ? 's' : ''}
           </span>
         </div>
@@ -329,12 +329,12 @@ export default function Notes() {
             {[0,1,2].map(i => <UploadCardSkeleton key={i} />)}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center">
-            <FileText className="w-10 h-10 mx-auto mb-3 text-slate-300" />
-            <p className="text-sm font-semibold text-slate-900 mb-1">
+          <div className="glass rounded-2xl p-10 text-center">
+            <FileText className="w-10 h-10 mx-auto mb-3 text-gray-400" />
+            <p className="text-sm font-semibold text-white mb-1">
               {search ? 'No results found' : tab === 'notes' ? 'No verified notes yet' : 'No assignments uploaded yet'}
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-gray-400">
               {search ? 'Try a different search term' : tab === 'notes' ? 'Notes appear here once verified by classmates (5% upvotes).' : 'Be the first to contribute materials for this subject!'}
             </p>
           </div>
@@ -344,11 +344,11 @@ export default function Notes() {
               <div key={dateKey}>
                 {/* Date group header */}
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-400 uppercase tracking-wider">
                     <CalendarDays className="w-3.5 h-3.5 text-indigo-500" />
                     {formatDayLabel(dateKey)}
                   </span>
-                  <span className="text-[10px] text-slate-400">
+                  <span className="text-[10px] text-gray-500">
                     {dayItems.length} item{dayItems.length !== 1 ? 's' : ''}
                   </span>
                   <div className="flex-1 h-px bg-slate-200" />
@@ -357,7 +357,7 @@ export default function Notes() {
                 <div className="space-y-3">
                   {(dayItems as StudyMaterial[]).map(item => (
                     <div key={item.id}
-                      className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md transition-all">
+                      className="glass rounded-2xl p-5 hover:shadow-md transition-all">
                       <div className="flex items-start gap-4">
                         <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${
                           tab === 'notes'
@@ -371,7 +371,7 @@ export default function Notes() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <h3 className="text-sm font-bold text-slate-900 truncate">{item.title}</h3>
+                              <h3 className="text-sm font-bold text-white truncate">{item.title}</h3>
                               <div className="flex items-center gap-2 mt-1 flex-wrap">
                                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
                                   tab === 'notes'
@@ -380,16 +380,16 @@ export default function Notes() {
                                 }`}>
                                   {tab === 'notes' ? 'Notes' : 'Assignment'}
                                 </span>
-                                <span className="text-[10px] font-medium text-slate-500 inline-flex items-center gap-1">
+                                <span className="text-[10px] font-medium text-gray-400 inline-flex items-center gap-1">
                                   <CalendarDays className="w-3 h-3" />
                                   {formatDayLabel(dateKeyOf(item.created_at))}
                                 </span>
-                                <span className="text-[10px] text-slate-400">
+                                <span className="text-[10px] text-gray-500">
                                   at {new Date(item.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
                                 </span>
                               </div>
                               {item.uploader_name && (
-                                <p className="text-[10px] text-slate-400 mt-1">by {item.uploader_name}</p>
+                                <p className="text-[10px] text-gray-500 mt-1">by {item.uploader_name}</p>
                               )}
                             </div>
                             {item.file_url && (

@@ -44,7 +44,7 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center p-4">
       {/* Dark red/amber glow for admin - distinct from student portal */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-80 h-80 bg-amber-600/10 rounded-full blur-3xl" />
@@ -60,7 +60,7 @@ export default function AdminLogin() {
             </svg>
           </div>
           <h1 className="text-xl font-bold text-white">Admin Portal</h1>
-          <p className="text-slate-500 text-xs mt-1">Restricted Access — SemSav 2.0</p>
+          <p className="text-gray-400 text-xs mt-1">Restricted Access — SemSav 2.0</p>
         </div>
 
         {/* Warning banner */}
@@ -74,26 +74,26 @@ export default function AdminLogin() {
         </div>
 
         {/* Card */}
-        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl p-7 shadow-2xl">
+        <div className="glass-strong shadow-2xl rounded-2xl p-7 shadow-2xl">
           <form onSubmit={handleAdminLogin} className="space-y-4">
             <div>
-              <label className="block text-slate-400 text-xs font-medium mb-1.5 uppercase tracking-wider">
+              <label className="block text-gray-400 text-xs font-medium mb-1.5 uppercase tracking-wider">
                 Admin Email
               </label>
               <input
                 type="email" required value={email} onChange={e => setEmail(e.target.value)}
                 placeholder="admin@nita.ac.in"
-                className="w-full bg-slate-800/80 border border-slate-700 text-white placeholder-slate-600 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all"
+                className="w-full bg-white/10 border border-white/15 text-white placeholder-gray-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all"
               />
             </div>
             <div>
-              <label className="block text-slate-400 text-xs font-medium mb-1.5 uppercase tracking-wider">
+              <label className="block text-gray-400 text-xs font-medium mb-1.5 uppercase tracking-wider">
                 Password
               </label>
               <input
                 type="password" required value={password} onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-slate-800/80 border border-slate-700 text-white placeholder-slate-600 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all"
+                className="w-full bg-white/10 border border-white/15 text-white placeholder-gray-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all"
               />
             </div>
 
@@ -113,8 +113,8 @@ export default function AdminLogin() {
           </form>
         </div>
 
-        <p className="text-center text-slate-600 text-xs mt-6">
-          <Link to="/login" className="text-slate-500 hover:text-slate-400 transition-colors">
+        <p className="text-center text-gray-400 text-xs mt-6">
+          <Link to="/login" className="text-gray-400 hover:text-gray-400 transition-colors">
             ← Back to Student Portal
           </Link>
         </p>

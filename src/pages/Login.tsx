@@ -58,7 +58,7 @@ export default function Login() {
 // Removed handleSignup
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center p-4">
       {/* Background glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl" />
@@ -74,21 +74,21 @@ export default function Login() {
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-white">Student Login</h1>
-          <p className="text-slate-400 text-sm mt-1">Welcome back to SemSav 2.0</p>
+          <p className="text-gray-400 text-sm mt-1">Welcome back to SemSav 2.0</p>
         </div>
 
         {/* Card */}
-        <div className="bg-slate-800/60 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
+        <div className="glass-strong border border-white/10 rounded-2xl p-8 shadow-2xl">
           {/* Removed Tab Toggle */}
 
           {/* Google OAuth */}
           <button
             onClick={handleGoogleLogin}
             disabled={googleLoading || loading}
-            className="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-100 text-slate-800 font-medium py-3 px-4 rounded-xl transition-all duration-200 mb-5 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-100 text-gray-800 font-medium py-3 px-4 rounded-xl transition-all duration-200 mb-5 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
             {googleLoading ? (
-              <div className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-white/30 border-t-transparent rounded-full animate-spin" />
             ) : (
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -102,27 +102,27 @@ export default function Login() {
 
           {/* Divider */}
           <div className="flex items-center gap-3 mb-5">
-            <div className="flex-1 h-px bg-slate-700" />
-            <span className="text-slate-500 text-xs">or with email</span>
-            <div className="flex-1 h-px bg-slate-700" />
+            <div className="flex-1 h-px bg-white/15" />
+            <span className="text-gray-400 text-xs">or with email</span>
+            <div className="flex-1 h-px bg-white/15" />
           </div>
 
           {/* Login Form */}
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block text-slate-300 text-sm font-medium mb-1.5">Email</label>
+                <label className="block text-gray-300 text-sm font-medium mb-1.5">Email</label>
                 <input
                   type="email" required value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="you@nita.ac.in"
-                  className="w-full bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                  className="w-full bg-white/5 border border-white/15 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/30 transition-all"
                 />
               </div>
               <div>
-                <label className="block text-slate-300 text-sm font-medium mb-1.5">Password</label>
+                <label className="block text-gray-300 text-sm font-medium mb-1.5">Password</label>
                 <input
                   type="password" required value={password} onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                  className="w-full bg-white/5 border border-white/15 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/30 transition-all"
                 />
               </div>
               <button
@@ -136,7 +136,7 @@ export default function Login() {
 
           {/* Back link */}
           <div className="flex justify-between mt-6">
-            <Link to="/" className="text-slate-500 text-xs hover:text-white transition-colors">
+            <Link to="/" className="text-gray-400 text-xs hover:text-white transition-colors">
               ← Back
             </Link>
           </div>
