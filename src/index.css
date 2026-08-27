@@ -13,7 +13,7 @@
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: #0f172a;
+    background-color: #0a0a1a;
     color: #f1f5f9;
   }
 
@@ -33,4 +33,130 @@
   p {
     margin: 0;
   }
+}
+
+/* ─── Aurora Animated Background ─────────────────────────────────────────────── */
+
+@keyframes aurora {
+  0%   { background-position: 0% 50%; }
+  25%  { background-position: 100% 25%; }
+  50%  { background-position: 100% 50%; }
+  75%  { background-position: 0% 75%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes aurora-shift {
+  0%   { transform: translate(0, 0) scale(1); }
+  25%  { transform: translate(5%, -3%) scale(1.05); }
+  50%  { transform: translate(-3%, 5%) scale(0.95); }
+  75%  { transform: translate(4%, 2%) scale(1.02); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+.aurora-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    #0a0a1a 0%,
+    #0f0f2e 12%,
+    #1a1040 25%,
+    #16213e 38%,
+    #0f172a 50%,
+    #1a1a3e 62%,
+    #0d1130 75%,
+    #12122e 88%,
+    #0a0a1a 100%
+  );
+  background-size: 400% 400%;
+  animation: aurora 20s ease-in-out infinite;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.aurora-bg::before,
+.aurora-bg::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.35;
+  animation: aurora-shift 18s ease-in-out infinite;
+}
+
+.aurora-bg::before {
+  width: 60vw;
+  height: 60vw;
+  background: radial-gradient(circle, #6c3ce0 0%, transparent 70%);
+  top: -20%;
+  left: -10%;
+}
+
+.aurora-bg::after {
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, #1e40af 0%, transparent 70%);
+  bottom: -15%;
+  right: -10%;
+  animation-delay: -8s;
+}
+
+/* ─── Glass Utility Classes ──────────────────────────────────────────────────── */
+
+.glass {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(32px) saturate(1.8);
+  -webkit-backdrop-filter: blur(32px) saturate(1.8);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.glass-subtle {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-hover:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.glass-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+}
+
+.glass-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
