@@ -18,10 +18,14 @@ export interface AcademicTask {
   user_id: string;
   title: string;
   subject_code?: string;
+  subject_name?: string;
   event_type: 'test' | 'assignment' | 'exam' | 'task';
   due_date: string;
   is_completed: boolean;
   description?: string;
+  file_url?: string | null;
+  test_type?: string | null;
+  room_no?: string | null;
 }
 
 interface ClassSlot {
@@ -999,19 +1003,13 @@ interface PriorityFeedProps {
   tasksLoading: boolean;
   uploadsLoading: boolean;
   onSelectTask: (t: AcademicTask) => void;
+  onSelectUpload: (u: FeedUpload) => void;
   onBrowse: () => void;
   profileId?: string;
 }
 
-function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, onSelectTask, onBrowse, profileId }: PriorityFeedProps) {
+function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, onSelectTask, onSelectUpload, onBrowse, profileId }: PriorityFeedProps) {
   const sectionTitle = "text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5";
-
-  // Clicking a feed item opens the resource directly (PDF in a new tab);
-  // falls back to the study materials page when no file is attached.
-  const openUpload = (u: FeedUpload) => {
-    if (u.file_url) window.open(u.file_url, '_blank', 'noopener,noreferrer');
-    else onBrowse();
-  };
 
   return (
     <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
@@ -1085,7 +1083,7 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
                 const sub = relOne(u.subjects);
                 const uploader = relOne(u.users);
                 return (
-                  <button key={u.id} onClick={() => openUpload(u)}
+                  <button key={u.id} onClick={() => onSelectUpload(u)}
                     className="w-full text-left flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 transition-colors">
                     <span className={`shrink-0 w-8 h-8 rounded-lg border flex items-center justify-center ${meta.chip}`}>
                       <meta.Icon className="w-4 h-4" />
@@ -1123,7 +1121,7 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
                   const meta = UPLOAD_META[u.category] ?? FALLBACK_UPLOAD_META;
                   const sub = relOne(u.subjects);
                   return (
-                    <button key={u.id} onClick={onBrowse}
+                    <button key={u.id} onClick={() => onSelectUpload(u)}
                       className="w-full text-left flex items-center gap-3 px-5 py-2 hover:bg-slate-50 transition-colors">
                       <span className={`shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center ${meta.chip}`}>
                         <meta.Icon className="w-3.5 h-3.5" />
@@ -1227,6 +1225,247 @@ function UpcomingTimeline({ milestones, loading, onSelect }: UpcomingTimelinePro
         )}
       </div>
     </section>
+  );
+}
+
+// ─── Milestone Detail Modal ─────────────────────────────────────────────────
+
+interface MilestoneDetailModalProps {
+  task: AcademicTask | null;
+  onClose: () => void;
+}
+
+function MilestoneDetailModal({ task, onClose }: MilestoneDetailModalProps) {
+  if (!task) return null;
+
+  const c = EVENT_COLORS[task.event_type];
+  const d = new Date(task.due_date);
+  const tag = dueTag(task.due_date);
+  const isPdf = task.file_url?.toLowerCase().endsWith('.pdf');
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+      <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white border border-slate-200 w-full max-w-lg rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
+
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-slate-100 flex items-start justify-between gap-3 shrink-0">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border"
+                style={{ color: c.text, borderColor: c.border, background: c.bg }}>
+                <c.Icon className="w-3 h-3 inline mr-0.5" /> {c.label}
+              </span>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${DUE_TAG_STYLES[tag.tone]}`}>
+                {tag.label}
+              </span>
+            </div>
+            <h3 className="text-base font-bold text-slate-900 leading-snug">{task.title}</h3>
+            {(task.subject_code || task.subject_name) && (
+              <p className="text-xs text-slate-500 mt-1">
+                {task.subject_name || task.subject_code}
+                {task.subject_code && task.subject_name ? ` (${task.subject_code})` : ''}
+              </p>
+            )}
+          </div>
+          <button onClick={onClose}
+            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all shrink-0" aria-label="Close">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Details */}
+        <div className="px-5 py-4 space-y-3 overflow-y-auto flex-1">
+          {/* Date & Time */}
+          <div className="flex items-center gap-2 text-sm text-slate-700">
+            <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
+            <span className="font-medium">
+              {d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+            </span>
+            <span className="text-slate-400">·</span>
+            <span className="font-medium">{formatDisplayTime(task.due_date)}</span>
+          </div>
+
+          {/* Test Type */}
+          {task.test_type && (
+            <div className="flex items-center gap-2 text-sm text-slate-700">
+              <FlaskConical className="w-4 h-4 text-slate-400 shrink-0" />
+              <span className="font-medium">{task.test_type.replace(/_/g, ' ')}</span>
+            </div>
+          )}
+
+          {/* Room */}
+          {task.room_no && (
+            <div className="flex items-center gap-2 text-sm text-slate-700">
+              <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+              <span className="font-medium">Room {task.room_no}</span>
+            </div>
+          )}
+
+          {/* Description */}
+          {task.description && (
+            <div className="mt-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Description</p>
+              <p className="text-sm text-slate-700 whitespace-pre-wrap">{task.description}</p>
+            </div>
+          )}
+
+          {/* Attachment */}
+          {task.file_url && (
+            <div className="mt-2">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Attachment</p>
+              {isPdf ? (
+                <iframe
+                  src={`${task.file_url}#view=FitH`}
+                  title="Attachment preview"
+                  className="w-full h-[40vh] border border-slate-200 rounded-xl bg-white"
+                />
+              ) : (
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-3">
+                  <FileText className="w-8 h-8 text-indigo-400 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-slate-700 truncate">Attached file</p>
+                    <p className="text-[11px] text-slate-400">Click below to view</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-end gap-2 bg-white shrink-0">
+          {task.file_url && (
+            <a href={task.file_url} target="_blank" rel="noopener noreferrer"
+              className="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-semibold transition-all inline-flex items-center gap-1.5">
+              <ExternalLink className="w-3.5 h-3.5" /> Open in new tab
+            </a>
+          )}
+          <button onClick={onClose}
+            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-all">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Upload Detail Modal ─────────────────────────────────────────────────────
+
+interface UploadDetailModalProps {
+  upload: FeedUpload | null;
+  onClose: () => void;
+}
+
+function UploadDetailModal({ upload, onClose }: UploadDetailModalProps) {
+  if (!upload) return null;
+
+  const meta = UPLOAD_META[upload.category] ?? FALLBACK_UPLOAD_META;
+  const sub = relOne(upload.subjects);
+  const uploader = relOne(upload.users);
+  const isPdf = upload.file_url?.toLowerCase().endsWith('.pdf');
+  const isVerified = upload.status === 'VERIFIED';
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+      <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white border border-slate-200 w-full max-w-lg rounded-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
+
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-slate-100 flex items-start justify-between gap-3 shrink-0">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${meta.chip}`}>
+                <meta.Icon className="w-3 h-3 inline mr-0.5" /> {meta.label}
+              </span>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                isVerified ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-amber-50 border border-amber-200 text-amber-700'
+              }`}>
+                {isVerified ? 'Verified' : 'Pending Review'}
+              </span>
+            </div>
+            <h3 className="text-base font-bold text-slate-900 leading-snug">{upload.title_syllabus}</h3>
+            {sub && (
+              <p className="text-xs text-slate-500 mt-1">
+                {sub.subject_name}
+                {sub.subject_code ? ` (${sub.subject_code})` : ''}
+              </p>
+            )}
+          </div>
+          <button onClick={onClose}
+            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all shrink-0" aria-label="Close">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Details */}
+        <div className="px-5 py-4 space-y-3 overflow-y-auto flex-1">
+          {/* Uploader */}
+          {uploader && (
+            <div className="flex items-center gap-2 text-sm text-slate-700">
+              <User className="w-4 h-4 text-slate-400 shrink-0" />
+              <span className="font-medium">Uploaded by {uploader.full_name}</span>
+            </div>
+          )}
+
+          {/* Time */}
+          <div className="flex items-center gap-2 text-sm text-slate-700">
+            <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+            <span className="font-medium">
+              {timeAgo(upload.created_at)}
+            </span>
+            <span className="text-slate-400">·</span>
+            <span className="text-slate-500">
+              {new Date(upload.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+
+          {/* Attachment */}
+          {upload.file_url && (
+            <div className="mt-2">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Attachment</p>
+              {isPdf ? (
+                <iframe
+                  src={`${upload.file_url}#view=FitH`}
+                  title="Attachment preview"
+                  className="w-full h-[40vh] border border-slate-200 rounded-xl bg-white"
+                />
+              ) : (
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-3">
+                  <FileText className="w-8 h-8 text-indigo-400 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-slate-700 truncate">Attached file</p>
+                    <p className="text-[11px] text-slate-400">Click below to view</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!upload.file_url && (
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center">
+              <FileText className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+              <p className="text-sm text-slate-500">No file attached to this upload.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-end gap-2 bg-white shrink-0">
+          {upload.file_url && (
+            <a href={upload.file_url} target="_blank" rel="noopener noreferrer"
+              className="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-semibold transition-all inline-flex items-center gap-1.5">
+              <ExternalLink className="w-3.5 h-3.5" /> Open in new tab
+            </a>
+          )}
+          <button onClick={onClose}
+            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-all">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1682,6 +1921,8 @@ export default function Dashboard() {
   const [drawerOpen, setDrawerOpen]     = useState(false);
   const [sidebarOpen, setSidebarOpen]   = useState(false);
   const [profileOpen, setProfileOpen]   = useState(false);
+  const [selectedMilestone, setSelectedMilestone] = useState<AcademicTask | null>(null);
+  const [selectedUpload, setSelectedUpload]     = useState<FeedUpload | null>(null);
   const [modalOpen, setModalOpen]       = useState(false);
   const [modalDate, setModalDate]       = useState<string | undefined>();
   const [editTask, setEditTask]         = useState<AcademicTask | null>(null);
@@ -1738,10 +1979,11 @@ export default function Dashboard() {
     (async () => {
       const { data } = await supabase
         .from('uploads')
-        .select('id, title_syllabus, category, due_date_time, subjects(subject_code)')
+        .select('id, title_syllabus, category, due_date_time, file_url, test_type, room_no, subjects(subject_code, subject_name)')
         .eq('branch_id', profile.branch_id!)
         .eq('semester', profile.semester!)
         .eq('status', 'VERIFIED')
+        .neq('category', 'NOTES')
         .not('due_date_time', 'is', null);
       if (!data) { setCalendarUploads([]); return; }
       const mapped: AcademicTask[] = data.map((u: any) => ({
@@ -1749,9 +1991,13 @@ export default function Dashboard() {
         user_id: '',
         title: u.title_syllabus,
         subject_code: u.subjects?.subject_code,
+        subject_name: u.subjects?.subject_name,
         event_type: u.category === 'TEST' ? 'exam' as const : 'assignment' as const,
         due_date: u.due_date_time,
         is_completed: false,
+        file_url: u.file_url ?? null,
+        test_type: u.test_type ?? null,
+        room_no: u.room_no ?? null,
       }));
       setCalendarUploads(mapped);
     })();
@@ -1850,10 +2096,12 @@ export default function Dashboard() {
   };
 
   const urgentTasks   = tasks.filter(t => !t.is_completed && isUrgent(t)).sort(byDueAsc);
-  const upcomingMilestones = tasks
-    .filter(t => !t.is_completed && !isUrgent(t) && new Date(t.due_date).getTime() >= startOfTodayMs())
+  const upcomingMilestones = [
+    ...tasks.filter(t => !t.is_completed && !isUrgent(t) && new Date(t.due_date).getTime() >= startOfTodayMs()),
+    ...calendarUploads.filter(t => !isUrgent(t) && new Date(t.due_date).getTime() >= startOfTodayMs()),
+  ]
     .sort(byDueAsc)
-    .slice(0, 8);
+    .slice(0, 10);
 
   const recentUploads  = feedUploads.filter(u => daysAgo(u.created_at) <= 7).slice(0, 5);
   const generalUploads = feedUploads.filter(u => daysAgo(u.created_at) > 7).slice(0, 5);
@@ -2011,6 +2259,12 @@ export default function Dashboard() {
       {/* Profile Modal */}
       <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
 
+      {/* Milestone Detail Modal */}
+      <MilestoneDetailModal task={selectedMilestone} onClose={() => setSelectedMilestone(null)} />
+
+      {/* Upload Detail Modal */}
+      <UploadDetailModal upload={selectedUpload} onClose={() => setSelectedUpload(null)} />
+
       {/* Side navigation drawer */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 flex">
@@ -2141,7 +2395,8 @@ export default function Dashboard() {
               general={generalUploads}
               tasksLoading={tasksLoading}
               uploadsLoading={uploadsLoading}
-              onSelectTask={openDrawerAtTask}
+              onSelectTask={(t) => setSelectedMilestone(t)}
+              onSelectUpload={(u) => setSelectedUpload(u)}
               onBrowse={() => navigate('/notes')}
               profileId={profile?.id}
             />
@@ -2161,7 +2416,7 @@ export default function Dashboard() {
         <UpcomingTimeline
           milestones={upcomingMilestones}
           loading={tasksLoading}
-          onSelect={openDrawerAtTask}
+          onSelect={(t) => setSelectedMilestone(t)}
         />
 
       </main>
