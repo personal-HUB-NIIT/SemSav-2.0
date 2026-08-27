@@ -12,8 +12,6 @@ import type {
   AttendanceSubject, AttendanceLogRow, AttendanceStatus, SubjectSummary, SubjectStats, AttendanceZone,
 } from '../hooks/useAttendance';
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
 function prettyDate(dateKey: string): string {
   const [y, m, d] = dateKey.split('-').map(Number);
   return new Date(y, m - 1, d).toLocaleDateString('en-IN', {
@@ -49,8 +47,6 @@ async function loadAttendance(args: LoadArgs): Promise<{
   return { subs, summaryMap, logRows };
 }
 
-// ─── Circular Gauge ──────────────────────────────────────────────────────────
-
 function Gauge({ pct, zone, size = 84 }: { pct: number; zone: AttendanceZone; size?: number }) {
   const stroke = 7;
   const r = (size - stroke) / 2;
@@ -59,7 +55,7 @@ function Gauge({ pct, zone, size = 84 }: { pct: number; zone: AttendanceZone; si
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e2e8f0" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={stroke} />
         <circle
           cx={size / 2} cy={size / 2} r={r} fill="none"
           stroke={ZONE_COLORS[zone].stroke} strokeWidth={stroke} strokeLinecap="round"
@@ -75,11 +71,9 @@ function Gauge({ pct, zone, size = 84 }: { pct: number; zone: AttendanceZone; si
   );
 }
 
-// ─── Quick-action buttons ────────────────────────────────────────────────────
-
 const ACTION_STYLES: Record<AttendanceStatus, { idle: string; active: string }> = {
-  present: { idle: 'border-emerald-200 text-emerald-700 hover:bg-emerald-50', active: 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-200' },
-  absent:  { idle: 'border-red-200 text-red-600 hover:bg-red-50',           active: 'bg-red-500 border-red-500 text-white shadow-sm shadow-red-200' },
+  present: { idle: 'border-emerald-400/25 text-emerald-400 hover:bg-emerald-500/15', active: 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-500/20' },
+  absent:  { idle: 'border-red-400/25 text-red-400 hover:bg-red-500/15',           active: 'bg-red-500 border-red-500 text-white shadow-sm shadow-red-500/20' },
 };
 
 function StatusButtons({
@@ -100,7 +94,7 @@ function StatusButtons({
             onClick={() => onPick(s)}
             title={STATUS_META[s].label}
             className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
-              active ? ACTION_STYLES[s].active : `${ACTION_STYLES[s].idle} bg-white`
+              active ? ACTION_STYLES[s].active : `${ACTION_STYLES[s].idle} bg-white/5`
             }`}
           >
             {STATUS_META[s].label}
@@ -112,7 +106,7 @@ function StatusButtons({
           disabled={disabled}
           onClick={onClear}
           title="Clear mark"
-          className="px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed border-slate-200 text-slate-500 hover:bg-slate-100 bg-white"
+          className="px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed border-white/15 text-gray-400 hover:bg-white/10 bg-white/5"
         >
           ↩ Clear
         </button>
@@ -120,8 +114,6 @@ function StatusButtons({
     </div>
   );
 }
-
-// ─── Main Page ───────────────────────────────────────────────────────────────
 
 type Tab = 'today' | 'history';
 
@@ -144,7 +136,6 @@ export default function Attendance() {
   const [extraStatus, setExtraStatus] = useState<AttendanceStatus>('present');
   const [extraSaving, setExtraSaving] = useState(false);
 
-  // ─── Load data ─────────────────────────────────────────────────────────────
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -171,7 +162,6 @@ export default function Attendance() {
     return () => { alive = false; };
   }, [reloadTick, profile?.auth_id, profile?.branch_id, profile?.semester]);
 
-  // ─── Derived state ─────────────────────────────────────────────────────────
   const allStats: SubjectStats[] = useMemo(
     () => subjects.map(sub => computeStats(summary.get(sub.id) ?? emptySummary(sub.id))),
     [subjects, summary],
@@ -195,7 +185,6 @@ export default function Attendance() {
     return [...groups.entries()].sort((a, b) => b[0].localeCompare(a[0]));
   }, [logs]);
 
-  // ─── Actions ───────────────────────────────────────────────────────────────
   const handleMark = async (subjectId: string, status: AttendanceStatus, dateKey: string = today) => {
     if (!profile?.auth_id) return;
     const key = subjectId + dateKey;
@@ -205,31 +194,23 @@ export default function Attendance() {
     const prevSummary = new Map(summary);
     setSavingKeys(prev => new Set(prev).add(key));
 
-    // Find the existing regular log for this subject+date
     const oldLog = logs.find(l => l.subject_id === subjectId && l.date === dateKey && !l.is_extra);
     const oldStatus = oldLog?.status;
     const oldCount = oldLog?.class_count ?? 0;
 
-    // Optimistic: update logs — replace regular entry
     setLogs(prev => {
       const rest = prev.filter(l => !(l.subject_id === subjectId && l.date === dateKey && !l.is_extra));
       return [{ id: `tmp-${key}`, subject_id: subjectId, date: dateKey, status, class_count: 1, is_extra: false }, ...rest];
     });
 
-    // Optimistic: update summary
     setSummary(prev => {
       const next = new Map(prev);
       const cur = next.get(subjectId) ?? { subject_id: subjectId, total_held: 0, attended: 0 };
       let { total_held, attended } = cur;
-
-      // Subtract old effect
       if (oldStatus === 'present') { attended -= oldCount; total_held -= oldCount; }
       else if (oldStatus === 'absent') { total_held -= oldCount; }
-
-      // Add new effect (class_count = 1 for regular marks)
       if (status === 'present') { attended += 1; total_held += 1; }
       else if (status === 'absent') { total_held += 1; }
-
       next.set(subjectId, { subject_id: subjectId, total_held: Math.max(0, total_held), attended: Math.max(0, attended) });
       return next;
     });
@@ -255,22 +236,18 @@ export default function Attendance() {
     const prevSummary = new Map(summary);
     setSavingKeys(prev => new Set(prev).add(key));
 
-    // Find the regular log to know what to subtract
     const oldLog = logs.find(l => l.subject_id === subjectId && l.date === dateKey && !l.is_extra);
     const oldStatus = oldLog?.status;
     const oldCount = oldLog?.class_count ?? 0;
 
-    // Optimistic: remove regular entry
     setLogs(prev => prev.filter(l => !(l.subject_id === subjectId && l.date === dateKey && !l.is_extra)));
 
     setSummary(prev => {
       const next = new Map(prev);
       const cur = next.get(subjectId) ?? { subject_id: subjectId, total_held: 0, attended: 0 };
       let { total_held, attended } = cur;
-
       if (oldStatus === 'present') { attended -= oldCount; total_held -= oldCount; }
       else if (oldStatus === 'absent') { total_held -= oldCount; }
-
       next.set(subjectId, { subject_id: subjectId, total_held: Math.max(0, total_held), attended: Math.max(0, attended) });
       return next;
     });
@@ -294,7 +271,6 @@ export default function Attendance() {
     const prevLogs = logs;
     const prevSummary = new Map(summary);
 
-    // Optimistic: add extra log entry + update summary
     const tmpId = `tmp-extra-${Date.now()}`;
     setLogs(prev => [{ id: tmpId, subject_id: extraSubjectId, date: extraDate, status: extraStatus, class_count: extraCount, is_extra: true }, ...prev]);
 
@@ -324,26 +300,28 @@ export default function Attendance() {
     }
   };
 
-  // ─── Render ────────────────────────────────────────────────────────────────
+  const inputClass = 'w-full px-3 py-2 bg-white/10 border border-white/15 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-400/30 focus:border-indigo-400 transition-all';
+  const selectClass = 'w-full px-3 py-2 bg-white/10 border border-white/15 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-400/30 focus:border-indigo-400 transition-all appearance-none cursor-pointer';
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-[var(--bg)] text-white">
 
       {/* Header */}
-      <header className="bg-white/95 backdrop-blur border-b border-slate-200 sticky top-0 z-30">
+      <header className="glass border-b border-white/10 sticky top-0 z-30">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center gap-3">
           <button onClick={() => navigate('/dashboard')}
-            className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all"
+            className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all"
             aria-label="Back">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <div className="min-w-0">
-            <h1 className="text-base sm:text-lg font-bold text-slate-900">Attendance Tracker</h1>
-            <p className="text-xs text-slate-500">Stay above the 75% mandate</p>
+            <h1 className="text-base sm:text-lg font-bold text-white">Attendance Tracker</h1>
+            <p className="text-xs text-gray-400">Stay above the 75% mandate</p>
           </div>
           <button onClick={() => setReloadTick(t => t + 1)}
-            className="ml-auto p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+            className="ml-auto p-2 text-gray-400 hover:text-indigo-400 hover:bg-indigo-500/15 rounded-xl transition-all"
             aria-label="Refresh" title="Refresh">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -357,7 +335,7 @@ export default function Attendance() {
 
         {/* Missing table notice */}
         {missingTable && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 text-sm text-amber-300 glass-subtle">
             <span className="inline-flex items-center gap-1.5"><AlertTriangle className="w-4 h-4 inline" /> The <code className="font-mono">attendance_logs</code> table isn&apos;t set up yet.</span>
             Run <code className="font-mono">supabase/migrations/017_attendance.sql</code> in the Supabase SQL Editor.
           </div>
@@ -365,18 +343,18 @@ export default function Attendance() {
 
         {/* Tabs */}
         <div className="flex items-center gap-2">
-          <div className="flex gap-2 bg-white border border-slate-200 rounded-xl p-1 w-fit">
+          <div className="flex gap-2 glass rounded-xl p-1 w-fit border border-white/10">
             {([['today', 'Mark Today'], ['history', 'History']] as const).map(([key, label]) => (
               <button key={key} onClick={() => setTab(key)}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                  tab === key ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200' : 'text-slate-600 hover:bg-slate-100'
+                  tab === key ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20' : 'text-gray-400 hover:bg-white/10'
                 }`}>
                 {label}
               </button>
             ))}
           </div>
           <button onClick={() => setExtraModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition-all shadow-sm shadow-indigo-200">
+            className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition-all shadow-sm shadow-indigo-500/20">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
@@ -386,18 +364,18 @@ export default function Attendance() {
 
         {/* Loading */}
         {loading && (
-          <div className="flex items-center justify-center py-16 gap-3 text-slate-500">
-            <div className="border-2 border-slate-200 border-t-indigo-600 rounded-full animate-spin w-6 h-6" />
+          <div className="flex items-center justify-center py-16 gap-3 text-gray-400">
+            <div className="border-2 border-white/15 border-t-indigo-500 rounded-full animate-spin w-6 h-6" />
             <span className="text-sm">Loading your subjects…</span>
           </div>
         )}
 
-        {/* ── Today tab: per-subject cards ── */}
+        {/* Today tab */}
         {!loading && tab === 'today' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {subjects.length === 0 && !missingTable && (
-              <div className="md:col-span-2 text-center py-14 text-slate-500">
-                <BookOpen className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+              <div className="md:col-span-2 text-center py-14 text-gray-400">
+                <BookOpen className="w-10 h-10 mx-auto mb-3 text-gray-600" />
                 <p className="font-medium">No subjects found for Semester {profile?.semester}</p>
                 <p className="text-sm mt-1">Ask an admin to seed subjects for your branch.</p>
               </div>
@@ -408,18 +386,18 @@ export default function Attendance() {
               const busy = savingKeys.has(sub.id + today);
               return (
                 <div key={sub.id}
-                  className="bg-white border border-slate-200 rounded-2xl p-4 hover:border-slate-300 hover:shadow-md hover:shadow-slate-100 transition-all">
+                  className="glass rounded-2xl p-4 hover:border-white/20 hover:shadow-lg transition-all">
                   <div className="flex items-center gap-4">
                     <Gauge pct={st.pct} zone={st.zone} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 min-w-0">
-                        <h3 className="font-bold text-slate-900 truncate">{sub.subject_name}</h3>
+                        <h3 className="font-bold text-white truncate">{sub.subject_name}</h3>
                         {sub.is_lab && (
-                          <span className="text-[10px] font-bold uppercase bg-violet-50 border border-violet-200 text-violet-700 rounded-full px-1.5 py-0.5 shrink-0">Lab</span>
+                          <span className="text-[10px] font-bold uppercase bg-violet-500/15 border border-violet-400/25 text-violet-300 rounded-full px-1.5 py-0.5 shrink-0">Lab</span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400 font-mono">{sub.subject_code}</p>
-                      <p className="mt-1 text-xs text-slate-500">
+                      <p className="text-xs text-gray-500 font-mono">{sub.subject_code}</p>
+                      <p className="mt-1 text-xs text-gray-400">
                         {st.attended} attended · {st.total_held - st.attended} absent
                       </p>
                       <span className={`inline-block mt-1.5 text-[10px] font-bold uppercase tracking-wide border rounded-full px-2 py-0.5 ${ZONE_COLORS[st.zone].chipBg}`}>
@@ -428,8 +406,7 @@ export default function Attendance() {
                     </div>
                   </div>
 
-                  {/* Quick advice */}
-                  <p className="mt-3 text-xs font-medium text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+                  <p className="mt-3 text-xs font-medium text-gray-300 bg-white/5 border border-white/10 rounded-lg px-3 py-2">
                     {st.total_held === 0
                       ? 'No classes logged yet — start marking below.'
                       : st.zone === 'danger'
@@ -439,7 +416,6 @@ export default function Attendance() {
                           : 'Exactly at the limit — don\u2019t miss the next one.'}
                   </p>
 
-                  {/* Today's quick actions */}
                   <div className="mt-3">
                     <StatusButtons current={cur} disabled={busy || missingTable} onPick={(s) => handleMark(sub.id, s)} onClear={() => handleClear(sub.id)} />
                   </div>
@@ -449,32 +425,32 @@ export default function Attendance() {
           </div>
         )}
 
-        {/* ── History tab ── */}
+        {/* History tab */}
         {!loading && tab === 'history' && (
           <div className="space-y-4">
             {groupedHistory.length === 0 && (
-              <div className="text-center py-14 text-slate-500">
-                <History className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+              <div className="text-center py-14 text-gray-400">
+                <History className="w-10 h-10 mx-auto mb-3 text-gray-600" />
                 <p className="font-medium">No history yet</p>
                 <p className="text-sm mt-1">Marks you record will appear here.</p>
               </div>
             )}
             {groupedHistory.map(([dateKey, entries]) => (
-              <div key={dateKey} className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-                <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                  <span className="text-sm font-bold text-slate-700">{dayLabel(dateKey)}</span>
-                  <span className="text-[11px] text-slate-400 font-mono">{entries.length} entr{entries.length > 1 ? 'ies' : 'y'}</span>
+              <div key={dateKey} className="glass rounded-2xl overflow-hidden">
+                <div className="px-4 py-2.5 bg-white/5 border-b border-white/10 flex items-center justify-between">
+                  <span className="text-sm font-bold text-white">{dayLabel(dateKey)}</span>
+                  <span className="text-[11px] text-gray-500 font-mono">{entries.length} entr{entries.length > 1 ? 'ies' : 'y'}</span>
                 </div>
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-white/5">
                   {entries.map(entry => {
                     const sub = subjectById.get(entry.subject_id);
                     const busy = savingKeys.has(entry.subject_id + entry.date);
                     return (
                       <div key={entry.id} className="px-4 py-3 flex flex-wrap items-center gap-3">
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-slate-800 truncate">
+                          <p className="text-sm font-semibold text-white truncate">
                             {sub ? sub.subject_name : 'Unknown subject'}
-                            {sub && <span className="ml-2 text-[10px] text-slate-400 font-mono">{sub.subject_code}</span>}
+                            {sub && <span className="ml-2 text-[10px] text-gray-500 font-mono">{sub.subject_code}</span>}
                           </p>
                         </div>
                         <StatusButtons
@@ -494,59 +470,55 @@ export default function Attendance() {
 
       </main>
 
-      {/* ── Extra Class Modal ── */}
+      {/* Extra Class Modal */}
       {extraModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm" onClick={() => { if (!extraSaving) setExtraModalOpen(false); }} />
-          <div className="relative bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { if (!extraSaving) setExtraModalOpen(false); }} />
+          <div className="relative glass-strong rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5 border border-white/10">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900">Add Extra Class Attendance</h2>
+              <h2 className="text-base font-bold text-white">Add Extra Class Attendance</h2>
               <button onClick={() => setExtraModalOpen(false)} disabled={extraSaving}
-                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-all disabled:opacity-50">
+                className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all disabled:opacity-50">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            {/* Subject */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Subject</label>
+              <label className="block text-xs font-semibold text-gray-400 mb-1">Subject</label>
               <select value={extraSubjectId} onChange={e => setExtraSubjectId(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400">
-                <option value="">Select subject…</option>
+                className={selectClass}>
+                <option value="" className="bg-gray-900 text-white">Select subject…</option>
                 {subjects.map(s => (
-                  <option key={s.id} value={s.id}>{s.subject_name} ({s.subject_code})</option>
+                  <option key={s.id} value={s.id} className="bg-gray-900 text-white">{s.subject_name} ({s.subject_code})</option>
                 ))}
               </select>
             </div>
 
-            {/* Date */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Date</label>
+              <label className="block text-xs font-semibold text-gray-400 mb-1">Date</label>
               <input type="date" value={extraDate} onChange={e => setExtraDate(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400" />
+                className={inputClass} />
             </div>
 
-            {/* Classes conducted */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Number of Classes</label>
+              <label className="block text-xs font-semibold text-gray-400 mb-1">Number of Classes</label>
               <input type="number" min={1} max={10} value={extraCount} onChange={e => setExtraCount(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400" />
+                className={inputClass} />
             </div>
 
-            {/* Status */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-2">Status</label>
+              <label className="block text-xs font-semibold text-gray-400 mb-2">Status</label>
               <div className="flex gap-2">
                 {(['present', 'absent'] as AttendanceStatus[]).map(s => (
                   <button key={s} onClick={() => setExtraStatus(s)}
                     className={`flex-1 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
                       extraStatus === s
                         ? s === 'present'
-                          ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-200'
-                          : 'bg-red-500 border-red-500 text-white shadow-sm shadow-red-200'
-                        : 'border-slate-200 text-slate-600 hover:bg-slate-100 bg-white'
+                          ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-500/20'
+                          : 'bg-red-500 border-red-500 text-white shadow-sm shadow-red-500/20'
+                        : 'border-white/15 text-gray-400 hover:bg-white/10 bg-white/5'
                     }`}>
                     {STATUS_META[s].label}
                   </button>
@@ -554,9 +526,8 @@ export default function Attendance() {
               </div>
             </div>
 
-            {/* Submit */}
             <button onClick={handleExtraClass} disabled={!extraSubjectId || !extraDate || extraSaving}
-              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-all shadow-sm shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-all shadow-sm shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
               {extraSaving && <div className="border-2 border-white/30 border-t-white rounded-full animate-spin w-4 h-4" />}
               {extraSaving ? 'Saving…' : 'Add Extra Class'}
             </button>
