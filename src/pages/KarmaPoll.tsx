@@ -118,7 +118,7 @@ export default function KarmaPoll() {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-white">
+    <div className="min-h-screen bg-transparent text-white">
       {/* Header */}
       <header className="bg-black/40 backdrop-blur-xl border-b border-white/10 sticky top-0 z-30">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center gap-3">

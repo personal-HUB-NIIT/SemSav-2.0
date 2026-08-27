@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 export default function Unauthorized() {
   return (
-    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-transparent flex items-center justify-center p-4">
       <div className="text-center">
         
         <h1 className="text-2xl font-bold text-white mb-2">Access Denied</h1>

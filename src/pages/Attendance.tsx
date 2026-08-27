@@ -112,7 +112,7 @@ function StatusButtons({
           disabled={disabled}
           onClick={onClear}
           title="Clear mark"
-          className="px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed border-white/10 text-gray-400 hover:bg-white/10 bg-white"
+          className="px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed border-white/10 text-gray-400 hover:bg-white/10 bg-white/5"
         >
           ↩ Clear
         </button>
@@ -326,7 +326,7 @@ export default function Attendance() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-white">
+    <div className="min-h-screen bg-transparent text-white">
 
       {/* Header */}
       <header className="bg-black/40 backdrop-blur-xl border-b border-white/10 sticky top-0 z-30">

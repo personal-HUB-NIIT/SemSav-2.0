@@ -173,7 +173,7 @@ export default function Upload() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg)]">
+    <div className="min-h-screen bg-transparent">
       {/* Header */}
       <header className="border-b border-white/10 bg-black/40 backdrop-blur-xl sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-4">

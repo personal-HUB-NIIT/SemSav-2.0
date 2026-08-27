@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 export default function RoleSelection() {
   return (
-    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-transparent flex items-center justify-center p-4">
       {/* Background glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl" />

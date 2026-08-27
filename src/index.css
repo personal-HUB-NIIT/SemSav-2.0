@@ -79,14 +79,14 @@
   position: absolute;
   border-radius: 50%;
   filter: blur(140px);
-  opacity: 0.12;
+  opacity: 0.18;
   animation: aurora-shift 22s ease-in-out infinite;
 }
 
 .aurora-bg::before {
   width: 50vw;
   height: 50vw;
-  background: radial-gradient(circle, #1e3a5f 0%, transparent 70%);
+  background: radial-gradient(circle, #2d5a8e 0%, transparent 70%);
   top: -20%;
   left: -10%;
 }
@@ -94,7 +94,7 @@
 .aurora-bg::after {
   width: 45vw;
   height: 45vw;
-  background: radial-gradient(circle, #1a2744 0%, transparent 70%);
+  background: radial-gradient(circle, #1e3a5f 0%, transparent 70%);
   bottom: -15%;
   right: -10%;
   animation-delay: -10s;

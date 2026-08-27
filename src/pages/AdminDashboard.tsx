@@ -178,7 +178,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-white flex flex-col">
+    <div className="min-h-screen bg-transparent text-white flex flex-col">
       {/* Header */}
       <header className="bg-black/40 backdrop-blur-xl border-b border-white/10 p-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">

@@ -23,6 +23,9 @@ import ProtectedRoute from './components/ProtectedRoute';
 export default function App() {
   return (
     <BrowserRouter>
+      {/* Aurora animated background */}
+      <div className="aurora-bg" />
+
       {/* Toast notifications - top center */}
       <Toaster
         position="top-center"

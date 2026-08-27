@@ -44,7 +44,7 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-transparent flex items-center justify-center p-4">
       {/* Dark red/amber glow for admin - distinct from student portal */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-80 h-80 bg-amber-600/10 rounded-full blur-3xl" />
