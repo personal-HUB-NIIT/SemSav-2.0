@@ -19,6 +19,7 @@ import MyClassroom from './pages/MyClassroom';
 import AdminDashboard from './pages/AdminDashboard';
 import AuthCallback from './pages/AuthCallback';
 import Unauthorized from './pages/Unauthorized';
+import NotFound from './pages/NotFound';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -128,7 +129,7 @@ export default function App() {
         } />
 
         {/* 404 fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );
