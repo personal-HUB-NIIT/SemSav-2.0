@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabaseClient';
 import toast from 'react-hot-toast';
 
-type Tab = 'UPLOADS' | 'USERS' | 'CURRICULUM';
+type Tab = 'UPLOADS' | 'USERS' | 'CURRICULUM' | 'FLAGGED';
 
 interface Upload {
   id: string;
@@ -42,6 +42,36 @@ interface Subject {
   branch_id: string;
 }
 
+interface FlaggedUser {
+  id: string;
+  user_id: string;
+  full_name: string;
+  email: string;
+  enrollment_id: string | null;
+  semester: number;
+  karma_points: number;
+  is_banned: boolean;
+  report_count: number;
+  flagged_upload_ids: string[];
+  status: string;
+  created_at: string;
+}
+
+interface UserUpload {
+  id: string;
+  title_syllabus: string;
+  category: string;
+  test_type: string | null;
+  due_date_time: string | null;
+  file_url: string | null;
+  status: string;
+  net_score: number;
+  created_at: string;
+  subject_name: string | null;
+  subject_code: string | null;
+  report_count: number;
+}
+
 export default function AdminDashboard() {
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
@@ -53,6 +83,10 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [flaggedUsers, setFlaggedUsers] = useState<FlaggedUser[]>([]);
+  const [selectedFlaggedUser, setSelectedFlaggedUser] = useState<FlaggedUser | null>(null);
+  const [flaggedUserUploads, setFlaggedUserUploads] = useState<UserUpload[]>([]);
+  const [loadingFlaggedUploads, setLoadingFlaggedUploads] = useState(false);
 
   // Form states for Curriculum
   const [newBranchCode, setNewBranchCode] = useState('');
@@ -66,6 +100,49 @@ export default function AdminDashboard() {
   const handleSignOut = async () => {
     await signOut();
     navigate('/admin/login');
+  };
+
+  // ─── Flagged user actions ──────────────────────────────────────────────
+
+  const fetchFlaggedUserUploads = async (userId: string) => {
+    setLoadingFlaggedUploads(true);
+    const { data, error } = await supabase.rpc('get_user_uploads', { p_user_id: userId });
+    if (!error) setFlaggedUserUploads(data || []);
+    setLoadingFlaggedUploads(false);
+  };
+
+  const handleBanUser = async (flaggedUserId: string) => {
+    if (!profile?.id) return;
+    const { data, error } = await supabase.rpc('ban_flagged_user', {
+      p_flagged_user_id: flaggedUserId,
+      p_admin_id: profile.id,
+    });
+    if (error) {
+      toast.error(error.message);
+    } else if (data && typeof data === 'object' && 'error' in data) {
+      toast.error(String(data.error));
+    } else {
+      toast.success('User banned successfully');
+      setSelectedFlaggedUser(null);
+      setFlaggedUserUploads([]);
+      fetchData();
+    }
+  };
+
+  const handleDismissUser = async (flaggedUserId: string) => {
+    if (!profile?.id) return;
+    const { error } = await supabase.rpc('dismiss_flagged_user', {
+      p_flagged_user_id: flaggedUserId,
+      p_admin_id: profile.id,
+    });
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success('Report dismissed');
+      setSelectedFlaggedUser(null);
+      setFlaggedUserUploads([]);
+      fetchData();
+    }
   };
 
   const fetchData = async () => {
@@ -89,6 +166,9 @@ export default function AdminDashboard() {
         setBranches(bData || []);
         setSubjects(sData || []);
         if (bData && bData.length > 0) setNewSubBranchId(bData[0].id);
+      } else if (activeTab === 'FLAGGED') {
+        const { data, error } = await supabase.rpc('get_flagged_users');
+        if (!error) setFlaggedUsers(data || []);
       }
     } catch (err) {
       toast.error('Failed to load data');
@@ -200,10 +280,10 @@ export default function AdminDashboard() {
         
         {/* Sidebar Nav */}
         <div className="md:col-span-1 space-y-2">
-          {['UPLOADS', 'USERS', 'CURRICULUM'].map((tab) => (
+          {['UPLOADS', 'USERS', 'CURRICULUM', 'FLAGGED'].map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab as Tab)}
+              onClick={() => { setActiveTab(tab as Tab); setSelectedFlaggedUser(null); setFlaggedUserUploads([]); }}
               className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                 activeTab === tab 
                   ? 'bg-amber-600/10 text-amber-400 border border-amber-600/30' 
@@ -213,6 +293,7 @@ export default function AdminDashboard() {
               {tab === 'UPLOADS' && 'Manage Uploads'}
               {tab === 'USERS' && 'User Directory'}
               {tab === 'CURRICULUM' && 'Curriculum (Branches)'}
+              {tab === 'FLAGGED' && '⚠️ Flagged Users'}
             </button>
           ))}
         </div>
@@ -359,6 +440,138 @@ export default function AdminDashboard() {
                       </table>
                     </div>
                   </section>
+                </div>
+              )}
+
+              {/* FLAGGED USERS TAB */}
+              {activeTab === 'FLAGGED' && (
+                <div>
+                  {selectedFlaggedUser ? (
+                    <div>
+                      <button onClick={() => { setSelectedFlaggedUser(null); setFlaggedUserUploads([]); }}
+                        className="text-sm text-amber-400 hover:text-amber-300 mb-4 inline-flex items-center gap-1">
+                        ← Back to flagged users
+                      </button>
+                      <div className="flex items-start justify-between mb-6">
+                        <div>
+                          <h2 className="text-xl font-bold text-white">{selectedFlaggedUser.full_name}</h2>
+                          <p className="text-sm text-gray-400">{selectedFlaggedUser.email}</p>
+                          <div className="flex gap-2 mt-2">
+                            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-red-500/15 text-red-400 border border-red-500/25">
+                              {selectedFlaggedUser.report_count} reports
+                            </span>
+                            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${selectedFlaggedUser.is_banned ? 'bg-red-500/15 text-red-400 border border-red-500/25' : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'}`}>
+                              {selectedFlaggedUser.is_banned ? 'Banned' : 'Active'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          {!selectedFlaggedUser.is_banned && (
+                            <button onClick={() => handleBanUser(selectedFlaggedUser.id)}
+                              className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm font-semibold rounded-xl transition-all">
+                              Ban User
+                            </button>
+                          )}
+                          <button onClick={() => handleDismissUser(selectedFlaggedUser.id)}
+                            className="px-4 py-2 bg-white/10 hover:bg-white/15 text-gray-300 text-sm font-medium rounded-xl border border-white/10 transition-all">
+                            Dismiss
+                          </button>
+                        </div>
+                      </div>
+                      <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wide mb-3">All Uploads by this User</h3>
+                      {loadingFlaggedUploads ? (
+                        <div className="flex justify-center py-8">
+                          <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-amber-500"></div>
+                        </div>
+                      ) : flaggedUserUploads.length === 0 ? (
+                        <p className="text-gray-400 text-sm py-4">No uploads found.</p>
+                      ) : (
+                        <table className="w-full text-left text-sm whitespace-nowrap">
+                          <thead>
+                            <tr className="text-gray-500 border-b border-white/10">
+                              <th className="pb-3 font-medium">Title</th>
+                              <th className="pb-3 font-medium">Subject</th>
+                              <th className="pb-3 font-medium">Status</th>
+                              <th className="pb-3 font-medium">Reports</th>
+                              <th className="pb-3 font-medium">Date</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/5">
+                            {flaggedUserUploads.map(u => (
+                              <tr key={u.id} className="hover:bg-white/5">
+                                <td className="py-3">
+                                  <div className="font-medium text-white">{u.title_syllabus}</div>
+                                  <div className="text-xs text-gray-400">{u.category}</div>
+                                </td>
+                                <td className="py-3 text-gray-400">{u.subject_code ?? '—'}</td>
+                                <td className="py-3">
+                                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                                    u.status === 'VERIFIED' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25' :
+                                    u.status === 'PURGED' ? 'bg-red-500/15 text-red-400 border border-red-500/25' :
+                                    'bg-amber-500/15 text-amber-400 border border-amber-500/25'
+                                  }`}>{u.status}</span>
+                                </td>
+                                <td className="py-3 text-amber-400 font-medium">{u.report_count}</td>
+                                <td className="py-3 text-gray-400 text-xs">{new Date(u.created_at).toLocaleDateString()}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <h2 className="text-xl font-bold text-white mb-4">⚠️ Flagged Users</h2>
+                      <p className="text-sm text-gray-400 mb-4">Users reported by the community for spam or inappropriate content.</p>
+                      {flaggedUsers.length === 0 ? (
+                        <p className="text-gray-400 text-sm py-8 text-center">No flagged users — all clear!</p>
+                      ) : (
+                        <table className="w-full text-left text-sm whitespace-nowrap">
+                          <thead>
+                            <tr className="text-gray-500 border-b border-white/10">
+                              <th className="pb-3 font-medium">User</th>
+                              <th className="pb-3 font-medium">Semester</th>
+                              <th className="pb-3 font-medium">Reports</th>
+                              <th className="pb-3 font-medium">Status</th>
+                              <th className="pb-3 font-medium text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/5">
+                            {flaggedUsers.map(fu => (
+                              <tr key={fu.id} className="hover:bg-white/5 cursor-pointer" onClick={() => {
+                                setSelectedFlaggedUser(fu);
+                                fetchFlaggedUserUploads(fu.user_id);
+                              }}>
+                                <td className="py-4">
+                                  <div className="font-medium text-white">{fu.full_name}</div>
+                                  <div className="text-xs text-gray-400">{fu.email}</div>
+                                </td>
+                                <td className="py-4 text-gray-400">Sem {fu.semester}</td>
+                                <td className="py-4">
+                                  <span className="text-xs font-semibold px-2 py-1 rounded-full bg-red-500/15 text-red-400 border border-red-500/25">
+                                    {fu.report_count}
+                                  </span>
+                                </td>
+                                <td className="py-4">
+                                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${fu.is_banned || fu.status === 'banned' ? 'bg-red-500/15 text-red-400 border border-red-500/25' : 'bg-amber-500/15 text-amber-400 border border-amber-500/25'}`}>
+                                    {fu.is_banned || fu.status === 'banned' ? 'Banned' : fu.status}
+                                  </span>
+                                </td>
+                                <td className="py-4 text-right space-x-3">
+                                  {!fu.is_banned && fu.status !== 'banned' && (
+                                    <button onClick={(e) => { e.stopPropagation(); handleBanUser(fu.id); }}
+                                      className="text-red-400 hover:text-red-300 text-xs font-medium">Ban</button>
+                                  )}
+                                  <button onClick={(e) => { e.stopPropagation(); handleDismissUser(fu.id); }}
+                                    className="text-gray-400 hover:text-gray-300 text-xs font-medium">Dismiss</button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </>

@@ -8,7 +8,7 @@ import {
   GraduationCap, BookOpen, CheckCircle2, CalendarDays, ExternalLink,
   FlaskConical, PartyPopper, Coffee, User, Star, Home, Calendar,
   History, Settings, LogOut, Clock, Pencil, Plus, Target, Folder, UserCheck,
-  Eye, X, MapPin,
+  Eye, X, MapPin, Flag,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -807,9 +807,10 @@ interface ReviewFeedProps {
   profileId?: string;
   votingId: string | null;
   onVote: (uploadId: string, voteType: 'UP' | 'DOWN') => void;
+  onReport: (uploadId: string) => void;
 }
 
-function ReviewFeed({ items, loading, profileId, votingId, onVote }: ReviewFeedProps) {
+function ReviewFeed({ items, loading, profileId, votingId, onVote, onReport }: ReviewFeedProps) {
   const [previewItem, setPreviewItem] = useState<PendingReviewItem | null>(null);
 
   return (
@@ -898,6 +899,11 @@ function ReviewFeed({ items, loading, profileId, votingId, onVote }: ReviewFeedP
                       className="p-2 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95">
                       <ThumbsDown className="w-4 h-4" />
                     </button>
+                    <button onClick={() => onReport(item.id)} disabled={isOwn || busy}
+                      title={isOwn ? 'You cannot report your own upload' : 'Report — spam or inappropriate content'}
+                      className="p-2 rounded-xl border border-amber-200 text-amber-600 hover:bg-amber-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95">
+                      <Flag className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -984,6 +990,12 @@ function ReviewFeed({ items, loading, profileId, votingId, onVote }: ReviewFeedP
                   disabled={previewItem.user_id === profileId || votingId === previewItem.id}
                   className="px-3.5 py-2 rounded-xl bg-red-500 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold transition-all inline-flex items-center gap-1.5">
                   <ThumbsDown className="w-3.5 h-3.5" /> Flag
+                </button>
+                <button
+                  onClick={() => { onReport(previewItem.id); setPreviewItem(null); }}
+                  disabled={previewItem.user_id === profileId || votingId === previewItem.id}
+                  className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold transition-all inline-flex items-center gap-1.5">
+                  <Flag className="w-3.5 h-3.5" /> Report
                 </button>
               </div>
             </div>
@@ -2088,6 +2100,31 @@ export default function Dashboard() {
     setVotingId(null);
   };
 
+  // ─── Report a pending upload ─────────────────────────────────────────────
+
+  const handleReport = async (uploadId: string) => {
+    if (!profile?.id) return;
+
+    const { data, error } = await supabase.rpc('submit_report', {
+      p_upload_id: uploadId,
+      p_reporter_id: profile.id,
+    });
+
+    if (error) {
+      toast.error(error.message);
+    } else if (data && typeof data === 'object' && 'error' in data) {
+      toast.error(String(data.error));
+    } else {
+      const result = data as { purged?: boolean; message?: string };
+      if (result?.purged) {
+        toast.success('Content reported and removed — uploader flagged');
+      } else {
+        toast.success('Report recorded — thank you');
+      }
+      await Promise.all([fetchReviewData(), fetchFeedUploads()]);
+    }
+  };
+
   // ─── Derived buckets ──────────────────────────────────────────────────────
 
   const isUrgent = (t: AcademicTask) => {
@@ -2382,6 +2419,7 @@ export default function Dashboard() {
               profileId={profile?.id}
               votingId={votingId}
               onVote={handleReviewVote}
+              onReport={handleReport}
             />
             <PriorityFeed
               urgent={urgentTasks}
