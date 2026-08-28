@@ -1108,7 +1108,7 @@ function PriorityFeed({ urgent, recent, general, tasksLoading, uploadsLoading, o
                       </p>
                       <p className="text-[11px] text-gray-400 mt-0.5 truncate">
                         {sub ? `${sub.subject_name} · ` : ''}
-                        {uploader?.full_name ?? 'Peer upload'}
+                        {uploader?.full_name ?? 'Deleted User'}
                       </p>
                     </div>
                     <span className="shrink-0 text-[10px] text-gray-500">{timeAgo(u.created_at)}</span>
@@ -1414,12 +1414,10 @@ function UploadDetailModal({ upload, onClose }: UploadDetailModalProps) {
         {/* Details */}
         <div className="px-5 py-4 space-y-3 overflow-y-auto flex-1">
           {/* Uploader */}
-          {uploader && (
-            <div className="flex items-center gap-2 text-sm text-gray-300">
-              <User className="w-4 h-4 text-gray-500 shrink-0" />
-              <span className="font-medium">Uploaded by {uploader.full_name}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2 text-sm text-gray-300">
+            <User className="w-4 h-4 text-gray-500 shrink-0" />
+            <span className="font-medium">Uploaded by {uploader?.full_name ?? 'Deleted User'}</span>
+          </div>
 
           {/* Time */}
           <div className="flex items-center gap-2 text-sm text-gray-300">
@@ -1574,7 +1572,7 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
     setSaving(true);
     const { error } = await supabase
       .from('users')
-      .update({ full_name: fullName.trim(), semester, branch_id: branchId || undefined })
+      .update({ full_name: fullName.trim(), semester })
       .eq('id', profile.id);
     if (error) {
       toast.error(error.message);
@@ -1818,8 +1816,8 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
           <div>
             <label className="block text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Branch</label>
             <div className="relative">
-              <select value={branchId} onChange={e => setBranchId(e.target.value)}
-                className="w-full bg-slate-900/10 border border-white/20 text-white rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-400/30 transition-all appearance-none cursor-pointer">
+              <select value={branchId} disabled
+                className="w-full bg-white/5 border border-white/10 text-gray-400 rounded-xl px-4 py-2.5 text-sm outline-none cursor-not-allowed appearance-none opacity-60">
                 {branches.length === 0 && <option value="">Loading…</option>}
                 {branches.map(b => (
                   <option key={b.id} value={b.id}>{b.branch_code} — {b.branch_name}</option>
@@ -1831,7 +1829,7 @@ function ProfileModal({ open, onClose }: ProfileModalProps) {
                 </svg>
               </div>
             </div>
-            <p className="text-[10px] text-gray-500 mt-1">Changing branch reloads your subjects and timetable.</p>
+            <p className="text-[10px] text-amber-300/80 mt-1">Branch cannot be changed after registration. Contact admin for corrections.</p>
           </div>
 
           {/* Danger Zone */}
