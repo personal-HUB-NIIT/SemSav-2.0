@@ -27,3 +27,6 @@ dist-ssr
 *.sln
 *.sw?
 supabase/.temp/
+.vercel
+.vercel-token
+!.vercel-token.example

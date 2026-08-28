@@ -1,0 +1,5 @@
+# Vercel Token Storage — DO NOT COMMIT REAL TOKEN
+# 1. Go to https://vercel.com/account/tokens → Create Token (Scope: your team, Expiration: 30 days)
+# 2. Paste the token below (replace this line):
+#    e.g. VERCEL_TOKEN=vcp_xxxxxxxxxxxxxxxxxxxx
+VERCEL_TOKEN=your_vercel_token_here
