@@ -13,14 +13,18 @@ interface Upload {
   file_url: string;
   created_at: string;
   net_score: number;
-  users: { full_name: string; email: string }[] | null;
-  subjects: { subject_code: string; subject_name: string }[] | null;
+  users: { full_name: string; email: string } | { full_name: string; email: string }[] | null;
+  subjects: { subject_code: string; subject_name: string } | { subject_code: string; subject_name: string }[] | null;
 }
 
 interface User {
   id: string;
   full_name: string;
   email: string;
+  enrollment_id: string | null;
+  branch_id: string | null;
+  semester: number | null;
+  is_banned: boolean;
   role: string;
   karma_points: number;
   created_at: string;
@@ -79,6 +83,12 @@ interface UserUpload {
   report_reasons: ReportReason[];
 }
 
+// Helper: Supabase returns embedded relations as object (one-to-one) or array depending on FK — handle both
+function relOne<T>(rel: T | T[] | null | undefined): T | null {
+  if (!rel) return null;
+  return Array.isArray(rel) ? (rel[0] ?? null) : rel;
+}
+
 export default function AdminDashboard() {
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
@@ -94,6 +104,15 @@ export default function AdminDashboard() {
   const [selectedFlaggedUser, setSelectedFlaggedUser] = useState<FlaggedUser | null>(null);
   const [flaggedUserUploads, setFlaggedUserUploads] = useState<UserUpload[]>([]);
   const [loadingFlaggedUploads, setLoadingFlaggedUploads] = useState(false);
+
+  // ─── User Directory filters & detail ───────────────────────────────────
+  const [userSearch, setUserSearch] = useState('');
+  const [userBranchFilter, setUserBranchFilter] = useState<string>('ALL');
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUserUploads, setSelectedUserUploads] = useState<UserUpload[]>([]);
+  const [loadingUserUploads, setLoadingUserUploads] = useState(false);
+  const [deletingUser, setDeletingUser] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   // Form states for Curriculum
   const [newBranchCode, setNewBranchCode] = useState('');
@@ -152,6 +171,48 @@ export default function AdminDashboard() {
     }
   };
 
+  // ─── Student Directory detail & delete ───────────────────────────────────
+  const fetchSelectedUserUploads = async (userId: string) => {
+    setLoadingUserUploads(true);
+    const { data } = await supabase.rpc('get_user_uploads', { p_user_id: userId });
+    setSelectedUserUploads((data as UserUpload[]) || []);
+    setLoadingUserUploads(false);
+  };
+
+  const handleAdminDeleteUser = async () => {
+    if (!selectedUser) return;
+    if (deleteConfirmText !== 'DELETE') {
+      toast.error('Type DELETE to confirm');
+      return;
+    }
+    if (selectedUser.role === 'SUPER_ADMIN') {
+      toast.error('Cannot delete an admin');
+      return;
+    }
+    setDeletingUser(true);
+    const { data, error } = await supabase.rpc('admin_delete_user', { p_target_user_id: selectedUser.id });
+    if (error) {
+      // PGRST202 = function not found in schema cache → migration 035 not applied
+      const msg = error.message || '';
+      const isSchemaCache = (error as unknown as { code?: string })?.code === 'PGRST202' || msg.includes('schema cache');
+      if (isSchemaCache) {
+        toast.error('Admin delete not available: run 035_admin_delete_user.sql in Supabase SQL Editor, then reload.', { duration: 6000 });
+        console.error('Missing RPC public.admin_delete_user — apply supabase/migrations/035_admin_delete_user.sql. Raw error:', error);
+      } else {
+        toast.error(msg || 'Failed to delete user');
+      }
+    } else if (data && typeof data === 'object' && 'error' in (data as Record<string, unknown>)) {
+      toast.error(String((data as Record<string, unknown>).error));
+    } else {
+      toast.success('User deleted — uploads retained as anonymous');
+      setSelectedUser(null);
+      setSelectedUserUploads([]);
+      setDeleteConfirmText('');
+      fetchData();
+    }
+    setDeletingUser(false);
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -164,9 +225,14 @@ export default function AdminDashboard() {
       } else if (activeTab === 'USERS') {
         const { data } = await supabase
           .from('users')
-          .select('id, full_name, email, role, karma_points, created_at, branches(branch_code)')
+          .select('id, full_name, email, enrollment_id, branch_id, semester, is_banned, role, karma_points, created_at, branches(branch_code)')
           .order('created_at', { ascending: false });
         setUsers(data || []);
+        // Ensure branches are loaded for filter dropdown
+        if (branches.length === 0) {
+          const { data: bData } = await supabase.from('branches').select('*').order('branch_code');
+          if (bData) setBranches(bData);
+        }
       } else if (activeTab === 'CURRICULUM') {
         const { data: bData } = await supabase.from('branches').select('*').order('branch_code');
         const { data: sData } = await supabase.from('subjects').select('*').order('subject_code');
@@ -334,8 +400,8 @@ export default function AdminDashboard() {
                             <div className="font-medium text-white">{u.title_syllabus}</div>
                             <div className="text-xs text-gray-400">{u.category} • {new Date(u.created_at).toLocaleDateString()}</div>
                           </td>
-                          <td className="py-4 text-gray-400">{u.subjects?.[0]?.subject_code ?? '—'}</td>
-                           <td className="py-4 text-gray-400">{u.users?.[0]?.full_name ?? '—'}</td>
+                           <td className="py-4 text-gray-400">{relOne(u.subjects)?.subject_code ?? '—'}</td>
+                          <td className="py-4 text-gray-400">{relOne(u.users)?.full_name ?? <span className="italic text-gray-500">Deleted User</span>}</td>
                           <td className="py-4 text-amber-400 font-medium">{u.net_score}</td>
                           <td className="py-4 text-right space-x-3">
                             <a href={u.file_url} target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-300">View</a>
@@ -350,37 +416,167 @@ export default function AdminDashboard() {
               )}
 
               {/* USERS TAB */}
-              {activeTab === 'USERS' && (
+              {activeTab === 'USERS' && (() => {
+                const filteredUsers = users.filter(u => {
+                  const matchesBranch = userBranchFilter === 'ALL' || u.branch_id === userBranchFilter;
+                  if (!matchesBranch) return false;
+                  if (!userSearch.trim()) return true;
+                  const q = userSearch.toLowerCase();
+                  return (u.full_name?.toLowerCase().includes(q) || u.enrollment_id?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q));
+                });
+                return (
                 <div>
                   <h2 className="text-xl font-bold text-white mb-4">User Directory</h2>
+                  {/* Filters */}
+                  <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                    <div className="relative flex-1">
+                      <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                      <input
+                        type="text"
+                        placeholder="Search by name, enrollment ID, or email..."
+                        value={userSearch}
+                        onChange={e => setUserSearch(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 bg-white/10 border border-white/15 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-400/50"
+                      />
+                    </div>
+                    <select
+                      value={userBranchFilter}
+                      onChange={e => setUserBranchFilter(e.target.value)}
+                      className="bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400/50 min-w-[160px]"
+                    >
+                      <option value="ALL" className="bg-gray-900">All Branches</option>
+                      {branches.map(b => (
+                        <option key={b.id} value={b.id} className="bg-gray-900">{b.branch_code} — {b.branch_name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <p className="text-xs text-gray-500 mb-2">{filteredUsers.length} of {users.length} users</p>
                   <table className="w-full text-left text-sm whitespace-nowrap">
                     <thead>
                       <tr className="text-gray-500 border-b border-white/10">
                         <th className="pb-3 font-medium">Name</th>
-                        <th className="pb-3 font-medium">Email</th>
+                        <th className="pb-3 font-medium">Enrollment</th>
                         <th className="pb-3 font-medium">Role</th>
                         <th className="pb-3 font-medium">Branch</th>
                         <th className="pb-3 font-medium">Karma</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {users.map(u => (
-                        <tr key={u.id} className="hover:bg-white/5">
-                          <td className="py-4 font-medium text-white">{u.full_name}</td>
-                          <td className="py-4 text-gray-400">{u.email}</td>
+                      {filteredUsers.map(u => (
+                        <tr key={u.id} className="hover:bg-white/5 cursor-pointer" onClick={() => { setSelectedUser(u); setDeleteConfirmText(''); fetchSelectedUserUploads(u.id); }}>
+                          <td className="py-4">
+                            <div className="font-medium text-white">{u.full_name}</div>
+                            <div className="text-xs text-gray-400">{u.email}</div>
+                          </td>
+                          <td className="py-4 text-gray-400 font-mono text-xs">{u.enrollment_id ?? '—'}</td>
                           <td className="py-4">
                             <span className={`px-2 py-1 rounded-md text-xs font-medium ${u.role === 'SUPER_ADMIN' ? 'bg-amber-500/10 text-amber-400' : 'bg-slate-800 text-gray-300'}`}>
                               {u.role}
                             </span>
+                            {u.is_banned && <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30">BANNED</span>}
                           </td>
                           <td className="py-4 text-gray-400">{u.branches?.[0]?.branch_code ?? 'N/A'}</td>
                           <td className="py-4 text-amber-400 font-medium">{u.karma_points}</td>
                         </tr>
                       ))}
+                      {filteredUsers.length === 0 && <tr><td colSpan={5} className="text-center py-8 text-gray-400">No users match your filters.</td></tr>}
                     </tbody>
                   </table>
+
+                  {/* Student Detail Modal */}
+                  {selectedUser && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setSelectedUser(null); setSelectedUserUploads([]); setDeleteConfirmText(''); }} />
+                      <div className="relative bg-slate-900 border border-white/10 w-full max-w-lg rounded-2xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
+                        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+                          <h3 className="text-lg font-bold text-white">Student Details</h3>
+                          <button onClick={() => { setSelectedUser(null); setSelectedUserUploads([]); setDeleteConfirmText(''); }} className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                        </div>
+                        <div className="p-6 space-y-4 overflow-y-auto">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg">
+                              {selectedUser.full_name[0]?.toUpperCase() ?? '?'}
+                            </div>
+                            <div>
+                              <p className="text-white font-bold">{selectedUser.full_name}</p>
+                              <p className="text-sm text-gray-400">{selectedUser.email}</p>
+                              <p className="text-xs text-gray-500 font-mono">{selectedUser.enrollment_id ?? 'No enrollment'}</p>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+                              <p className="text-xs text-gray-500 uppercase tracking-wide">Karma</p>
+                              <p className="text-lg font-bold text-amber-400">{selectedUser.karma_points}</p>
+                            </div>
+                            <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+                              <p className="text-xs text-gray-500 uppercase tracking-wide">Semester</p>
+                              <p className="text-lg font-bold text-white">{selectedUser.semester ?? '—'}</p>
+                            </div>
+                            <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+                              <p className="text-xs text-gray-500 uppercase tracking-wide">Branch</p>
+                              <p className="text-sm font-bold text-white">{selectedUser.branches?.[0]?.branch_code ?? 'N/A'}</p>
+                            </div>
+                            <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+                              <p className="text-xs text-gray-500 uppercase tracking-wide">Status</p>
+                              <p className={`text-sm font-bold ${selectedUser.is_banned ? 'text-red-400' : 'text-emerald-400'}`}>{selectedUser.is_banned ? 'Banned' : 'Active'} • {selectedUser.role}</p>
+                            </div>
+                          </div>
+                          <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+                            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Contributions</p>
+                            {loadingUserUploads ? (
+                              <div className="flex items-center gap-2 text-sm text-gray-400"><div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" /> Loading…</div>
+                            ) : (
+                              <p className="text-sm text-white">{selectedUserUploads.length} uploads</p>
+                            )}
+                            {selectedUserUploads.length > 0 && (
+                              <div className="mt-2 space-y-1 max-h-32 overflow-y-auto pr-1">
+                                {selectedUserUploads.slice(0, 10).map(u => (
+                                  <div key={u.id} className="text-xs flex items-center justify-between gap-2">
+                                    <span className="text-gray-300 truncate">{u.title_syllabus}</span>
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${u.status === 'VERIFIED' ? 'bg-emerald-500/15 text-emerald-400' : u.status === 'PURGED' ? 'bg-red-500/15 text-red-400' : 'bg-amber-500/15 text-amber-400'}`}>{u.status}</span>
+                                  </div>
+                                ))}
+                                {selectedUserUploads.length > 10 && <p className="text-xs text-gray-500">+{selectedUserUploads.length - 10} more</p>}
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Joined {new Date(selectedUser.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </div>
+
+                          {/* Admin Delete */}
+                          <div className="border border-red-500/30 bg-red-500/5 rounded-xl p-4">
+                            <h4 className="text-sm font-bold text-red-400 mb-1">Danger Zone</h4>
+                            <p className="text-xs text-gray-400 mb-3">Delete this user account. Their uploads will remain as “Deleted User” (anonymous).</p>
+                            <div className="flex gap-2 mb-3">
+                              <input
+                                type="text"
+                                placeholder="Type DELETE to confirm"
+                                value={deleteConfirmText}
+                                onChange={e => setDeleteConfirmText(e.target.value)}
+                                className="flex-1 bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 font-mono"
+                              />
+                              <button
+                                onClick={handleAdminDeleteUser}
+                                disabled={deleteConfirmText !== 'DELETE' || deletingUser || selectedUser.role === 'SUPER_ADMIN'}
+                                className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-all flex items-center gap-2"
+                              >
+                                {deletingUser ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
+                                Delete User
+                              </button>
+                            </div>
+                            {selectedUser.role === 'SUPER_ADMIN' && <p className="text-xs text-amber-400">Cannot delete another admin.</p>}
+                          </div>
+                        </div>
+                        <div className="px-6 py-3 border-t border-white/10 flex justify-end">
+                          <button onClick={() => { setSelectedUser(null); setSelectedUserUploads([]); setDeleteConfirmText(''); }} className="px-4 py-2 bg-white/10 hover:bg-white/15 text-gray-300 text-sm font-medium rounded-xl border border-white/10">Close</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+                );
+              })()}
 
               {/* CURRICULUM TAB */}
               {activeTab === 'CURRICULUM' && (
