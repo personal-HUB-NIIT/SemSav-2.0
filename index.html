@@ -4,10 +4,34 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>semsav-2-0</title>
+    <meta name="theme-color" content="#09090b" />
+    <meta name="description" content="SemSav — Attendance tracking, verified notes, and real-time timetables for NIIT University students." />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="SemSav" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>SemSav — Your Semester Companion</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then((reg) => {
+            reg.update();
+            if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }).catch(() => {});
+          // Force clear old v1 cache if still present
+          caches.keys().then((keys) => {
+            keys.forEach((k) => { if (k === 'semsav-v1') caches.delete(k); });
+          });
+        });
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          // New SW took over — reload once to get fresh bundle
+          if (!window.__swReloaded) { window.__swReloaded = true; window.location.reload(); }
+        });
+      }
+    </script>
   </body>
 </html>
