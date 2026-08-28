@@ -81,8 +81,9 @@ export default function AuthCallback() {
 
         navigate('/dashboard');
 
-      } catch (err: any) {
-        console.error('Auth callback error:', err.message);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error('Auth callback error:', msg);
         navigate('/login?error=oauth_failed');
       }
     };

@@ -88,8 +88,8 @@ export default function Upload() {
       const formData = new FormData();
       formData.append('file', selectedFile);
 
-      // Call local Node.js Server
-      const res = await fetch('http://127.0.0.1:3001/api/ai-extract', {
+      const aiServerUrl = import.meta.env.VITE_AI_SERVER_URL || 'http://127.0.0.1:3001';
+      const res = await fetch(`${aiServerUrl}/api/ai-extract`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`
@@ -109,8 +109,9 @@ export default function Upload() {
       if (data.due_date_time) setDueDateTime(data.due_date_time);
 
       toast.success('Fields auto-filled successfully!', { id: loadingToast });
-    } catch (err: any) {
-      toast.error(err.message, { id: loadingToast });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(msg, { id: loadingToast });
     } finally {
       setAiExtracting(false);
     }
@@ -165,8 +166,9 @@ export default function Upload() {
 
       toast.success('Upload successful! It will appear once verified.');
       navigate('/dashboard');
-    } catch (err: any) {
-      toast.error('Upload failed: ' + err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error('Upload failed: ' + msg);
     } finally {
       setLoading(false);
     }

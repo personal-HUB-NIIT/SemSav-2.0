@@ -1996,19 +1996,32 @@ export default function Dashboard() {
         .neq('category', 'NOTES')
         .not('due_date_time', 'is', null);
       if (!data) { setCalendarUploads([]); return; }
-      const mapped: AcademicTask[] = data.map((u: any) => ({
+      type CalendarUploadRow = {
+        id: string;
+        title_syllabus: string;
+        category: string;
+        due_date_time: string;
+        file_url: string | null;
+        test_type: string | null;
+        room_no: string | null;
+        subjects: { subject_code: string; subject_name: string } | { subject_code: string; subject_name: string }[] | null;
+      };
+      const mapped: AcademicTask[] = (data as unknown as CalendarUploadRow[]).map((u) => {
+        const sub = relOne(u.subjects);
+        return {
         id: u.id,
         user_id: '',
         title: u.title_syllabus,
-        subject_code: u.subjects?.subject_code,
-        subject_name: u.subjects?.subject_name,
+        subject_code: sub?.subject_code,
+        subject_name: sub?.subject_name,
         event_type: u.category === 'TEST' ? 'exam' as const : 'assignment' as const,
         due_date: u.due_date_time,
         is_completed: false,
         file_url: u.file_url ?? null,
         test_type: u.test_type ?? null,
         room_no: u.room_no ?? null,
-      }));
+      };
+      });
       setCalendarUploads(mapped);
     })();
   }, [profile?.branch_id, profile?.semester]);
