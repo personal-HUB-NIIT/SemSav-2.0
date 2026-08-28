@@ -1,7 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { useAuth } from './hooks/useAuth';
 
 // Pages
+import LandingPage from './pages/LandingPage';
+import IntroPage from './pages/IntroPage';
 import RoleSelection from './pages/RoleSelection';
 import Login from './pages/Login';
 import SetPassword from './pages/SetPassword';
@@ -19,6 +22,19 @@ import Unauthorized from './pages/Unauthorized';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
+
+function LandingRoute() {
+  const { session, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+  if (session) return <Navigate to="/dashboard" replace />;
+  return <LandingPage />;
+}
 
 export default function App() {
   return (
@@ -44,7 +60,9 @@ export default function App() {
 
       <Routes>
         {/* Public routes */}
-        <Route path="/"             element={<RoleSelection />} />
+        <Route path="/"             element={<LandingRoute />} />
+        <Route path="/intro" element={<IntroPage />} />
+        <Route path="/role" element={<RoleSelection />} />
         <Route path="/auth/student" element={<Login />} />
         <Route path="/admin/login"  element={<AdminLogin />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
