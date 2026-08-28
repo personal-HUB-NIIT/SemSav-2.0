@@ -326,7 +326,7 @@ export default function Attendance() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-transparent text-white">
+    <div className="min-h-screen bg-slate-900 relative z-10 text-white">
 
       {/* Header */}
       <header className="bg-black/40 backdrop-blur-xl border-b border-white/10 sticky top-0 z-30">

@@ -173,7 +173,7 @@ export default function Upload() {
   };
 
   return (
-    <div className="min-h-screen bg-transparent">
+    <div className="min-h-screen bg-slate-900 relative z-10">
       {/* Header */}
       <header className="border-b border-white/10 bg-black/40 backdrop-blur-xl sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-4">
@@ -190,8 +190,8 @@ export default function Upload() {
         </div>
       </header>
 
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="max-w-3xl mx-auto px-4 py-8 relative">
+        <form onSubmit={handleSubmit} className="space-y-6 relative">
 
           {/* Category Selector */}
           <div className="glass border border-white/10 rounded-2xl p-6">

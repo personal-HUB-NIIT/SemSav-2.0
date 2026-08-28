@@ -74,7 +74,7 @@ export default function MyClassroom() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-transparent">
+      <div className="min-h-screen bg-slate-900 relative z-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
           <div className="space-y-4 animate-pulse">
             <div className="h-32 glass rounded-2xl" />
@@ -90,7 +90,7 @@ export default function MyClassroom() {
   }
 
   return (
-    <div className="min-h-screen bg-transparent text-white">
+    <div className="min-h-screen bg-slate-900 relative z-10 text-white">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
 
         {/* Back button */}

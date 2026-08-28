@@ -57,6 +57,12 @@ interface FlaggedUser {
   created_at: string;
 }
 
+interface ReportReason {
+  reason: string | null;
+  reporter_name: string;
+  created_at: string;
+}
+
 interface UserUpload {
   id: string;
   title_syllabus: string;
@@ -70,6 +76,7 @@ interface UserUpload {
   subject_name: string | null;
   subject_code: string | null;
   report_count: number;
+  report_reasons: ReportReason[];
 }
 
 export default function AdminDashboard() {
@@ -258,7 +265,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-transparent text-white flex flex-col">
+    <div className="min-h-screen bg-slate-900 relative z-10 text-white flex flex-col">
       {/* Header */}
       <header className="bg-black/40 backdrop-blur-xl border-b border-white/10 p-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
@@ -486,37 +493,54 @@ export default function AdminDashboard() {
                       ) : flaggedUserUploads.length === 0 ? (
                         <p className="text-gray-400 text-sm py-4">No uploads found.</p>
                       ) : (
-                        <table className="w-full text-left text-sm whitespace-nowrap">
-                          <thead>
-                            <tr className="text-gray-500 border-b border-white/10">
-                              <th className="pb-3 font-medium">Title</th>
-                              <th className="pb-3 font-medium">Subject</th>
-                              <th className="pb-3 font-medium">Status</th>
-                              <th className="pb-3 font-medium">Reports</th>
-                              <th className="pb-3 font-medium">Date</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-white/5">
-                            {flaggedUserUploads.map(u => (
-                              <tr key={u.id} className="hover:bg-white/5">
-                                <td className="py-3">
-                                  <div className="font-medium text-white">{u.title_syllabus}</div>
-                                  <div className="text-xs text-gray-400">{u.category}</div>
-                                </td>
-                                <td className="py-3 text-gray-400">{u.subject_code ?? '—'}</td>
-                                <td className="py-3">
-                                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                                    u.status === 'VERIFIED' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25' :
-                                    u.status === 'PURGED' ? 'bg-red-500/15 text-red-400 border border-red-500/25' :
-                                    'bg-amber-500/15 text-amber-400 border border-amber-500/25'
-                                  }`}>{u.status}</span>
-                                </td>
-                                <td className="py-3 text-amber-400 font-medium">{u.report_count}</td>
-                                <td className="py-3 text-gray-400 text-xs">{new Date(u.created_at).toLocaleDateString()}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                        <div className="space-y-3">
+                          {flaggedUserUploads.map(u => (
+                            <div key={u.id} className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-medium text-white">{u.title_syllabus}</span>
+                                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                      u.status === 'VERIFIED' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25' :
+                                      u.status === 'PURGED' ? 'bg-red-500/15 text-red-400 border border-red-500/25' :
+                                      'bg-amber-500/15 text-amber-400 border border-amber-500/25'
+                                    }`}>{u.status}</span>
+                                  </div>
+                                  <div className="flex items-center gap-3 text-xs text-gray-400">
+                                    <span>{u.category}</span>
+                                    {u.subject_code && <span>· {u.subject_code}</span>}
+                                    <span>· {new Date(u.created_at).toLocaleDateString()}</span>
+                                    {u.file_url && (
+                                      <a href={u.file_url} target="_blank" rel="noopener noreferrer"
+                                        className="text-indigo-400 hover:text-indigo-300 underline">View file</a>
+                                    )}
+                                  </div>
+                                </div>
+                                {u.report_count > 0 && (
+                                  <span className="text-xs font-semibold px-2 py-1 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 shrink-0">
+                                    {u.report_count} report{u.report_count > 1 ? 's' : ''}
+                                  </span>
+                                )}
+                              </div>
+                              {u.report_reasons && u.report_reasons.length > 0 && (
+                                <div className="mt-3 pt-3 border-t border-white/[0.06]">
+                                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Report Reasons</p>
+                                  <div className="space-y-1.5">
+                                    {u.report_reasons.map((r, i) => (
+                                      <div key={i} className="flex items-start gap-2 text-sm">
+                                        <span className="text-red-400 mt-0.5">•</span>
+                                        <div>
+                                          <span className="text-white">{r.reason || 'No reason provided'}</span>
+                                          <span className="text-gray-500 ml-2">— {r.reporter_name}</span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
                   ) : (

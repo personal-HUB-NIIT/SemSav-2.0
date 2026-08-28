@@ -2258,7 +2258,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-transparent text-white">
+    <div className="min-h-screen bg-slate-900 relative z-10 text-white">
 
       {/* Task Modal */}
       {profile && (
