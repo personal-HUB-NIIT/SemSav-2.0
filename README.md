@@ -6,7 +6,7 @@ A full-stack academic companion platform built for NIIT University students. Tra
 
 ---
 
-## ✨ Features
+##  Features
 
 | Feature | Description |
 |---------|-------------|
@@ -60,9 +60,9 @@ A full-stack academic companion platform built for NIIT University students. Tra
 │  │ subjects │ │ content_ │ │flagged_  │ │  class_  │ │study_  ││
 │  │          │ │ reports  │ │ users    │ │ schedule │ │materials│
 │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └────────┘│
-│  🔐 Row Level Security (RLS) on all tables                     │
+│   Row Level Security (RLS) on all tables                     │
 │  ⚡ Realtime subscriptions for votes, uploads, attendance      │
-│  📦 Storage buckets: `semsav-files`, `avatars`                 │
+│   Storage buckets: `semsav-files`, `avatars`                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -73,7 +73,7 @@ A full-stack academic companion platform built for NIIT University students. Tra
 
 ---
 
-## 🚀 Getting Started (Local Development)
+##  Getting Started (Local Development)
 
 ### Prerequisites
 - **Node.js ≥ 20** (LTS recommended)
@@ -132,7 +132,7 @@ The Upload page will auto-fill title, test type, room, deadline from PDFs/images
 
 ---
 
-## 📦 Project Structure
+##  Project Structure
 
 ```
 SemSav-2.0/
@@ -178,7 +178,7 @@ SemSav-2.0/
 
 ---
 
-## 🔐 Security Notes
+##  Security Notes
 
 - **No Service Role Key in Frontend** — only `anon` key via `VITE_SUPABASE_ANON_KEY`
 - **Row Level Security** enforced on every table; policies in `supabase/migrations/004_...007_`
@@ -189,7 +189,7 @@ SemSav-2.0/
 
 ---
 
-## 🚀 Deployment (Vercel)
+##  Deployment (Vercel)
 
 ### Automatic (GitHub Push)
 1. Push to `main` → Vercel auto-deploys
@@ -245,7 +245,7 @@ Key migrations:
 
 ---
 
-## 🤝 Contributing
+##  Contributing
 
 1. Fork → Create feature branch (`git checkout -b feat/amazing-feature`)
 2. Commit with conventional messages (`feat:`, `fix:`, `chore:`, `refactor:`)
@@ -259,13 +259,13 @@ Key migrations:
 
 ---
 
-## 📄 License
+##  License
 
 MIT License — see [LICENSE](LICENSE).
 
 ---
 
-## 🙏 Acknowledgements
+##  Acknowledgements
 
 - **Supabase** — BaaS that makes full-stack React trivial
 - **Vercel** — Zero-config deployments with SPA rewrites
@@ -276,5 +276,5 @@ MIT License — see [LICENSE](LICENSE).
 
 ---
 
-**Built with ❤️ for NIIT University students**  
+**Built with ❤️ for students**  
 *SemSav — Take Control of Your Semester*
