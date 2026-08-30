@@ -497,8 +497,8 @@ export default function Attendance() {
       {/* ── Extra Class Modal ── */}
       {extraModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => { if (!extraSaving) setExtraModalOpen(false); }} />
-          <div className="relative glass rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { if (!extraSaving) setExtraModalOpen(false); }} />
+          <div className="relative bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-white">Add Extra Class Attendance</h2>
               <button onClick={() => setExtraModalOpen(false)} disabled={extraSaving}
@@ -513,10 +513,10 @@ export default function Attendance() {
             <div>
               <label className="block text-xs font-semibold text-gray-300 mb-1">Subject</label>
               <select value={extraSubjectId} onChange={e => setExtraSubjectId(e.target.value)}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400">
-                <option value="">Select subject…</option>
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 [color-scheme:dark]">
+                <option value="" className="bg-slate-800 text-gray-400">Select subject…</option>
                 {subjects.map(s => (
-                  <option key={s.id} value={s.id}>{s.subject_name} ({s.subject_code})</option>
+                  <option key={s.id} value={s.id} className="bg-slate-800 text-white">{s.subject_name} ({s.subject_code})</option>
                 ))}
               </select>
             </div>
@@ -525,14 +525,14 @@ export default function Attendance() {
             <div>
               <label className="block text-xs font-semibold text-gray-300 mb-1">Date</label>
               <input type="date" value={extraDate} onChange={e => setExtraDate(e.target.value)}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400" />
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 [color-scheme:dark]" />
             </div>
 
             {/* Classes conducted */}
             <div>
               <label className="block text-xs font-semibold text-gray-300 mb-1">Number of Classes</label>
               <input type="number" min={1} max={10} value={extraCount} onChange={e => setExtraCount(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400" />
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
             </div>
 
             {/* Status */}
@@ -546,7 +546,7 @@ export default function Attendance() {
                         ? s === 'present'
                           ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-200'
                           : 'bg-red-500 border-red-500 text-white shadow-sm shadow-red-200'
-                        : 'border-white/10 text-gray-400 hover:bg-white/10 bg-white'
+                        : 'border-slate-700 text-gray-400 hover:bg-slate-700 bg-slate-800'
                     }`}>
                     {STATUS_META[s].label}
                   </button>

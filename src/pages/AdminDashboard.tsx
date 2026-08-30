@@ -123,6 +123,27 @@ export default function AdminDashboard() {
   const [newSubSem, setNewSubSem] = useState('1');
   const [newSubBranchId, setNewSubBranchId] = useState('');
 
+  const [cleaningOrphans, setCleaningOrphans] = useState(false);
+
+  const handleCleanupOrphans = async () => {
+    if (!confirm('Wipe all orphaned accounts where branch IS NULL / empty / CSE? This deletes their auth + profile.')) return;
+    setCleaningOrphans(true);
+    const { error } = await supabase.rpc('delete_orphan_and_null_branch_users');
+    setCleaningOrphans(false);
+    if (error) {
+      const msg = error.message || '';
+      const isCache = (error as unknown as { code?: string })?.code === 'PGRST202' || msg.includes('schema cache');
+      if (isCache) {
+        toast.error('Cleanup unavailable: run 037_delete_orphan_and_null_branch_users.sql in Supabase SQL Editor, then reload.', { duration: 6000 });
+      } else {
+        toast.error(msg || 'Cleanup failed');
+      }
+      return;
+    }
+    toast.success('Orphaned accounts wiped');
+    fetchData();
+  };
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/admin/login');
@@ -299,10 +320,44 @@ export default function AdminDashboard() {
   };
 
   const deleteBranch = async (id: string) => {
-    if (!confirm('Delete this branch? This will delete all subjects and users associated with it!')) return;
+    if (!confirm('Delete this branch? This will delete all subjects, uploads, and users associated with it!')) return;
+    const target = branches.find(b => b.id === id);
+    if (!target) { toast.error('Branch not found'); return; }
+    const branchCode = target.branch_code;
+
+    // Step 1: wipe all auth accounts + profiles for this branch (and NULL/orphaned refs)
+    const { data: wipeData, error: wipeError } = await supabase.rpc('delete_branch_users', { target_branch: branchCode });
+    if (wipeError) {
+      const msg = wipeError.message || '';
+      const isCache = (wipeError as unknown as { code?: string })?.code === 'PGRST202' || msg.includes('schema cache');
+      if (isCache) {
+        toast.error('User wipe unavailable: run 036_delete_branch_users_wipe.sql in Supabase SQL Editor, then reload.', { duration: 6000 });
+      } else {
+        toast.error(msg || 'Failed to wipe users for this branch — branch not deleted');
+      }
+      return;
+    }
+    if (wipeData && typeof wipeData === 'object' && 'error' in wipeData) {
+      toast.error(String((wipeData as Record<string, unknown>).error));
+      return; // do not delete branch if wipe failed
+    }
+
+    // Step 2: delete uploads/subjects linked to branch (branch_id has no CASCADE for uploads)
+    // delete_branch_users already removed uploads for branch; keep defensive delete
+    await supabase.from('uploads').delete().eq('branch_id', id);
+
+    // Step 3: delete the branch row itself (cascades subjects, class_schedule)
     const { error } = await supabase.from('branches').delete().eq('id', id);
-    if (error) toast.error(error.message);
-    else { toast.success('Deleted'); fetchData(); }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    const wiped = (wipeData as Record<string, unknown>)?.deleted_auth ?? 0;
+    toast.success(`Deleted ${branchCode} — wiped ${wiped} user${Number(wiped) === 1 ? '' : 's'}`);
+    setBranches(prev => prev.filter(b => b.id !== id));
+    setSubjects(prev => prev.filter(s => s.branch_id !== id));
+    fetchData();
   };
 
   const addSubject = async (e: React.FormEvent) => {
@@ -326,8 +381,12 @@ export default function AdminDashboard() {
   const deleteSubject = async (id: string) => {
     if (!confirm('Delete this subject? This deletes all associated uploads!')) return;
     const { error } = await supabase.from('subjects').delete().eq('id', id);
-    if (error) toast.error(error.message);
-    else { toast.success('Deleted'); fetchData(); }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success('Deleted');
+    setSubjects(prev => prev.filter(s => s.id !== id));
   };
 
   return (
@@ -426,7 +485,17 @@ export default function AdminDashboard() {
                 });
                 return (
                 <div>
-                  <h2 className="text-xl font-bold text-white mb-4">User Directory</h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold text-white">User Directory</h2>
+                    <button
+                      onClick={handleCleanupOrphans}
+                      disabled={cleaningOrphans}
+                      className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 disabled:opacity-40 border border-red-500/30 text-red-400 text-xs font-semibold rounded-lg flex items-center gap-1.5"
+                    >
+                      {cleaningOrphans ? <div className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" /> : null}
+                      Cleanup Orphans
+                    </button>
+                  </div>
                   {/* Filters */}
                   <div className="flex flex-col sm:flex-row gap-3 mb-4">
                     <div className="relative flex-1">

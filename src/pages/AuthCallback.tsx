@@ -69,13 +69,19 @@ export default function AuthCallback() {
           return;
         }
 
-        if (!profile || !profile.onboarding_completed) {
-          // If the user hasn't completed password setup, send to set-password
-          if (!currentSession.user.user_metadata?.password_setup_complete) {
-            navigate('/auth/set-password');
-          } else {
-            navigate('/auth/student-onboarding');
-          }
+        if (!profile) {
+          // No matching profile — auth was wiped (orphan/branch deleted) or stale cache.
+          // Spec: sign out locally and redirect to login/onboarding, never render blank dashboard.
+          await supabase.auth.signOut();
+          Object.keys(localStorage).filter(k => k.startsWith('sb-')).forEach(k => localStorage.removeItem(k));
+          navigate('/auth/student');
+          return;
+        }
+
+        if (!profile.onboarding_completed) {
+          // Standard onboarding — never auto-send to set-password here.
+          // set-password is ONLY for PASSWORD_RECOVERY / type=recovery.
+          navigate('/auth/student-onboarding');
           return;
         }
 

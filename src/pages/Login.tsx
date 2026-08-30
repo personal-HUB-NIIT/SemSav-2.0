@@ -29,9 +29,14 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
+    await supabase.auth.signOut();
+    Object.keys(localStorage).filter(k => k.startsWith('sb-')).forEach(k => localStorage.removeItem(k));
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: { prompt: 'select_account consent' },
+      },
     });
     if (error) {
       toast.error(error.message);

@@ -419,8 +419,8 @@ function AgendaCard({ task, onToggle, onEdit, onDelete, toggling }: AgendaCardPr
           )}
           <span className="text-[10px] text-gray-500 ml-auto inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {formatDisplayTime(task.due_date)}</span>
         </div>
-        <p className={`text-sm font-semibold ${task.is_completed ? 'line-through text-gray-500' : 'text-white'}`}>{task.title}</p>
-        {task.description && <p className="text-xs text-gray-400 mt-0.5">{task.description}</p>}
+        <p className={`text-sm font-semibold ${task.is_completed ? 'line-through text-gray-500' : 'text-slate-900'}`}>{task.title}</p>
+        {task.description && <p className="text-xs text-slate-600 mt-0.5">{task.description}</p>}
       </div>
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
         <button onClick={() => onEdit(task)} className="p-1 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all">
@@ -678,13 +678,7 @@ CREATE POLICY "own" ON public.user_tasks
               </div>
             </div>
 
-            {tasks.length === 0 && !tasksLoading && !dbMissing && (
-              <button onClick={seedDemoData} disabled={seedingDemo}
-                className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-white/20 hover:border-indigo-400 text-gray-500 hover:text-indigo-600 text-sm rounded-2xl transition-all disabled:opacity-60">
-                {seedingDemo ? <Spinner size={14} /> : <FlaskConical className="w-3.5 h-3.5" />}
-                {seedingDemo ? 'Loading demo data...' : 'Load Demo Data to explore'}
-              </button>
-            )}
+
           </div>
         </div>
       </div>

@@ -1,6 +1,33 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from './hooks/useAuth';
+import { supabase } from './lib/supabaseClient';
+
+function AuthRedirectListener() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, _session) => {
+      const hash = window.location.hash || '';
+      const isRecovery = hash.includes('type=recovery');
+      // Only allow set-password on explicit recovery
+      if (event === 'PASSWORD_RECOVERY' || isRecovery) {
+        if (window.location.pathname !== '/auth/set-password') {
+          navigate('/auth/set-password');
+        }
+        return;
+      }
+      if (event === 'SIGNED_IN') {
+        // Standard email/password or Magic Link -> home dashboard, never set-password
+        if (window.location.pathname.startsWith('/auth') && window.location.pathname !== '/auth/set-password') {
+          navigate('/');
+        }
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+  return null;
+}
 
 // Pages
 import LandingPage from './pages/LandingPage';
@@ -40,6 +67,7 @@ function LandingRoute() {
 export default function App() {
   return (
     <BrowserRouter>
+      <AuthRedirectListener />
       {/* Aurora animated background */}
       <div className="aurora-bg" />
 

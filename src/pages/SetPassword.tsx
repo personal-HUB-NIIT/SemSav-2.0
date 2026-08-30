@@ -47,7 +47,7 @@ export default function SetPassword() {
     }
     
     toast.success('Password set successfully!');
-    navigate('/auth/student-onboarding');
+    navigate('/');
   };
 
   return (
