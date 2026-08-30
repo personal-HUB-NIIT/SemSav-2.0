@@ -466,7 +466,6 @@ function CalendarDrawer({
   viewYear, setViewYear, viewMonth, setViewMonth,
   selectedDate, setSelectedDate, filter, setFilter,
   onToggle, onEdit, onDelete, togglingId, onAddForDate,
-  seedDemoData, seedingDemo,
 }: CalendarDrawerProps) {
   const today = new Date();
   const todayKey = toLocalDateKey(today);
